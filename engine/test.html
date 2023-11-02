@@ -8,9 +8,10 @@
 	function exec() {
 		document.getElementById('result').innerHTML = '';
 		const buf = document.getElementById('src').value;
-		const sp = new ScriptParse({extension: false, strict_val: false});
+		const sp = new ScriptParse({extension: true, strict_val: false});
 		sp.parse(buf, {
 			success: function(token) {
+				console.log(token);
 				if (token) {
 					const ep = new ScriptExec({extension: sp.extension, strict_val: sp.strict_val});
 					ep.exec(token, {}, {
@@ -45,6 +46,11 @@ var a,b
 a = 123
 b = 456
 var c = 3 - (a + b)
+if (c == 10) {
+  c = c + 100
+} else {
+  c = c * 100
+}
 exit c + 1
 </textarea>
 <div><input type="button" value="Exec" onclick="exec();"></input></div>
