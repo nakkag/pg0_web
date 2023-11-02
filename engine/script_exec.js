@@ -1,35 +1,30 @@
 "use strict";
 
+ScriptExec.noop = function() {};
+
 function ScriptExec(options) {
 	options = options || {};
 	const that = this;
 
-	const RET_RETURN = -3;
-	const RET_EXIT = -2;
-	const RET_ERROR = -1;
-	const RET_SUCCESS = 0;
-	const RET_BREAK = 1;
-	const RET_CONTINUE = 2;
-
 	function valueBoolean(v) {
 		switch (v.type) {
-		case 'TYPE_STRING':
+		case TYPE_STRING:
 			if (!v.str) {
-				return false;
+				return 0;
 			}
 			break;
-		case 'TYPE_FLOAT':
+		case TYPE_FLOAT:
 			if (v.num == 0.0) {
-				return false;
+				return 0;
 			}
 			break;
 		default:
 			if (v.num == 0) {
-				return false;
+				return 0;
 			}
 			break;
 		}
-		return true;
+		return 1;
 	}
 
 	function getVariable(ei, name) {
@@ -46,40 +41,40 @@ function ScriptExec(options) {
 			ei.err = {msg: errMsg.ERR_DECLARE, line: ei.token[ei.index].line};
 			return null;
 		}
-		ei.vi[name] = {type: 'TYPE_INTEGER', num: 0};
+		ei.vi[name] = {type: TYPE_INTEGER, num: 0};
 		return {name: name, v: ei.vi[name]};
 	}
 
 	function unaryCalcValue(ei, vi, type) {
 		let i = vi.v.num;
 		switch (type) {
-		case 'SYM_NOT':
+		case SYM_NOT:
 			i = !i;
 			break;
-		case 'SYM_PLUS':
+		case SYM_PLUS:
 			i = +i;
 			break;
-		case 'SYM_MINS':
+		case SYM_MINS:
 			i = -i;
 			break;
-		case 'SYM_BITNOT':
+		case SYM_BITNOT:
 			i = ~parseInt(i);
 			break;
-		case 'SYM_INC':
+		case SYM_INC:
 			i++;
 			vi.v.num = i;
 			break;
-		case 'SYM_DEC':
+		case SYM_DEC:
 			i--;
 			vi.v.num = i;
 			break;
-		case 'SYM_BINC':
-		case 'SYM_BDEC':
+		case SYM_BINC:
+		case SYM_BDEC:
 			switch (type) {
-			case 'SYM_BINC':
+			case SYM_BINC:
 				ei.inc_vi.push(vi);
 				break;
-			case 'SYM_BDEC':
+			case SYM_BDEC:
 				ei.dec_vi.push(vi);
 				break;
 			}
@@ -88,9 +83,9 @@ function ScriptExec(options) {
 		if (typeof i === 'boolean') {
 			i = i ? 1 : 0;
 		}
-		let vret = {name: '', v: {type: 'TYPE_INTEGER', num: i}};
+		let vret = {name: '', v: {type: TYPE_INTEGER, num: i}};
 		if (options.extension && i !== parseInt(i)) {
-			vret.v.type = 'TYPE_FLOAT';
+			vret.v.type = TYPE_FLOAT;
 		}
 		return vret;
 	}
@@ -98,7 +93,7 @@ function ScriptExec(options) {
 	function unaryCalcString(ei, vi, type) {
 		let i = 0;
 		switch (type) {
-		case 'SYM_NOT':
+		case SYM_NOT:
 			if (vi.v.str === '') {
 				i = 1;
 			} else {
@@ -106,41 +101,41 @@ function ScriptExec(options) {
 			}
 			break;
 		}
-		return {name: '', v: {type: 'TYPE_INTEGER', num: i}};
+		return {name: '', v: {type: TYPE_INTEGER, num: i}};
 	}
 
 	function integerCalcValue(ei, v1, v2, type) {
 		let i = v1.v.num;
 		let j = v2.v.num;
 		switch (type) {
-		case 'SYM_DIV':
-		case 'SYM_MOD':
+		case SYM_DIV:
+		case SYM_MOD:
 			if (j == 0) {
 				ei.err = {msg: errMsg.ERR_DIVZERO, line: ei.token[ei.index].line};
 				return null;
 			}
-			if (type == 'SYM_DIV') {
+			if (type == SYM_DIV) {
 				i /= j;
 			} else {
 				i %= j;
 			}
 			break;
-		case 'SYM_MULTI': i *= j; break;
-		case 'SYM_ADD': i += j; break;
-		case 'SYM_SUB': i -= j; break;
-		case 'SYM_EQEQ': i = i == j; break;
-		case 'SYM_NTEQ': i = i != j; break;
-		case 'SYM_LEFTEQ': i = i <= j; break;
-		case 'SYM_LEFT': i = i < j; break;
-		case 'SYM_RIGHTEQ': i = i >= j; break;
-		case 'SYM_RIGHT': i = i > j; break;
-		case 'SYM_AND': i &= j; break;
-		case 'SYM_OR': i |= j; break;
-		case 'SYM_XOR': i ^= j; break;
-		case 'SYM_LEFTSHIFT': i = i << j; break;
-		case 'SYM_RIGHTSHIFT': i = i >> j; break;
-		case 'SYM_LEFTSHIFT_LOGICAL': i = (i << j) >>> 0; break;
-		case 'SYM_RIGHTSHIFT_LOGICAL': i = i >>> j; break;
+		case SYM_MULTI: i *= j; break;
+		case SYM_ADD: i += j; break;
+		case SYM_SUB: i -= j; break;
+		case SYM_EQEQ: i = i == j; break;
+		case SYM_NTEQ: i = i != j; break;
+		case SYM_LEFTEQ: i = i <= j; break;
+		case SYM_LEFT: i = i < j; break;
+		case SYM_RIGHTEQ: i = i >= j; break;
+		case SYM_RIGHT: i = i > j; break;
+		case SYM_AND: i &= j; break;
+		case SYM_OR: i |= j; break;
+		case SYM_XOR: i ^= j; break;
+		case SYM_LEFTSHIFT: i = i << j; break;
+		case SYM_RIGHTSHIFT: i = i >> j; break;
+		case SYM_LEFTSHIFT_LOGICAL: i = (i << j) >>> 0; break;
+		case SYM_RIGHTSHIFT_LOGICAL: i = i >>> j; break;
 		default:
 			ei.err = {msg: errMsg.ERR_OPERATOR, line: ei.token[ei.index].line};
 			return null;
@@ -149,15 +144,15 @@ function ScriptExec(options) {
 			i = i ? 1 : 0;
 		}
 		if (options.extension && i !== parseInt(i)) {
-			return {name: '', v: {type: 'TYPE_FLOAT', num: i}};
+			return {name: '', v: {type: TYPE_FLOAT, num: i}};
 		}
-		return {name: '', v: {type: 'TYPE_INTEGER', num: parseInt(i)}};
+		return {name: '', v: {type: TYPE_INTEGER, num: parseInt(i)}};
 	}
 
 	function calcValue(ei, v1, v2, type) {
-		if (v1.v.type === 'TYPE_ARRAY' || v2.v.type === 'TYPE_ARRAY') {
+		if (v1.v.type === TYPE_ARRAY || v2.v.type === TYPE_ARRAY) {
 			// TODO:
-		} else if (v1.v.type === 'TYPE_STRING' || v2.v.type === 'TYPE_STRING') {
+		} else if (v1.v.type === TYPE_STRING || v2.v.type === TYPE_STRING) {
 			// TODO:
 		}
 		return integerCalcValue(ei, v1, v2, type);
@@ -182,11 +177,11 @@ function ScriptExec(options) {
 		let cp;
 
 		while (ei.index < ei.token.length) {
-			//console.log('token=' + ei.token[ei.index].type + ', stack=' + JSON.stringify(stack) + ', vi=' + JSON.stringify(ei.vi));
+			console.log('token=' + ei.token[ei.index].type + ', stack=' + JSON.stringify(stack) + ', vi=' + JSON.stringify(ei.vi));
 			const token = ei.token[ei.index];
 			switch (token.type) {
-			case 'SYM_BOPEN':
-			case 'SYM_BOPEN_PRIMARY':
+			case SYM_BOPEN:
+			case SYM_BOPEN_PRIMARY:
 				postfixValue(ei);
 				const cei = {parent: ei, vi: {}, token: token.target, index: 0, stack: [], inc_vi: [], dec_vi: []};
 				ret = execSentense(cei);
@@ -194,48 +189,61 @@ function ScriptExec(options) {
 					ei.err = cei.err;
 				}
 				break;
-			case 'SYM_BCLOSE':
-			case 'SYM_DAMMY':
+			case SYM_BCLOSE:
+			case SYM_DAMMY:
 				break;
-			case 'SYM_LINEEND':
+			case SYM_LINEEND:
 				postfixValue(ei);
 				stack = [];
 				break;
-			case 'SYM_LINESEP':
+			case SYM_LINESEP:
 				postfixValue(ei);
 				stack = [];
 				break;
-			case 'SYM_WORDEND':
-				if (ei.index >= ei.token.length && ei.token[ei.index + 1].type === 'SYM_WORDEND') {
-					stack.push({name: '', v: {type: 'TYPE_INTEGER', num: 0}});
+			case SYM_WORDEND:
+				if (ei.index >= ei.token.length && ei.token[ei.index + 1].type === SYM_WORDEND) {
+					stack.push({name: '', v: {type: TYPE_INTEGER, num: 0}});
 				}
 				break;
-			case 'SYM_JUMP':
+			case SYM_JUMP:
 				ei.index = token.link;
 				break;
-			case 'SYM_JZE':
-			case 'SYM_JNZ':
-				// TODO:
+			case SYM_JZE:
+			case SYM_JNZ:
+				if (stack.length === 0) {
+					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+					ret = RET_ERROR;
+					break;
+				}
+				vi = stack.pop();
+				cp = valueBoolean(vi.v);
+				if ((token.type === SYM_JZE && !cp) ||
+					(token.type === SYM_JNZ && cp)) {
+					stack.push({name: '', v: {type: TYPE_INTEGER, num: cp}});
+					ei.index = token.link;
+				} else {
+					stack.push(vi);
+				}
 				break;
-			case 'SYM_RETURN':
-			case 'SYM_EXIT':
-				if (token.type === 'SYM_EXIT') {
+			case SYM_RETURN:
+			case SYM_EXIT:
+				if (token.type === SYM_EXIT) {
 					ret = RET_EXIT;
 				} else {
 					ret = RET_RETURN;
 				}
 				break;
-			case 'SYM_BREAK':
+			case SYM_BREAK:
 				ret = RET_BREAK;
 				break;
-			case 'SYM_CONTINUE':
+			case SYM_CONTINUE:
 				ret = RET_CONTINUE;
 				break;
-			case 'SYM_CASE':
-			case 'SYM_DEFAULT':
-				// TODO:
+			case SYM_CASE:
+			case SYM_DEFAULT:
+				for (; ei.index < ei.token.length && ei.token[ei.index].type !== SYM_LABELEND; ei.index++);
 				break;
-			case 'SYM_CMP':
+			case SYM_CMP:
 				if (stack.length === 0) {
 					ei.index++;
 					break;
@@ -245,14 +253,14 @@ function ScriptExec(options) {
 					ei.index++;
 				}
 				break;
-			case 'SYM_CMPSTART':
-			case 'SYM_ELSE':
-			case 'SYM_CMPEND':
+			case SYM_CMPSTART:
+			case SYM_ELSE:
+			case SYM_CMPEND:
 				break;
-			case 'SYM_SWITCH':
+			case SYM_SWITCH:
 				// TODO:
 				break;
-			case 'SYM_LOOP':
+			case SYM_LOOP:
 				if (stack.length > 0) {
 					vi = stack.pop();
 					if (!valueBoolean(vi.v)) {
@@ -270,23 +278,23 @@ function ScriptExec(options) {
 					break;
 				}
 				if (ret === RET_BREAK) {
-					for (; ei.index < ei.token.length && ei.token[ei.index].type !== 'SYM_LOOPEND'; ei.index++);
+					for (; ei.index < ei.token.length && ei.token[ei.index].type !== SYM_LOOPEND; ei.index++);
 					ret = RET_SUCCESS;
 					break;
 				}
 				ei.index++;
 				ret = RET_SUCCESS;
 				break;
-			case 'SYM_LOOPEND':
-			case 'SYM_LOOPSTART':
+			case SYM_LOOPEND:
+			case SYM_LOOPSTART:
 				break;
-			case 'SYM_ARGSTART':
+			case SYM_ARGSTART:
 				// TODO:
 				break;
-			case 'SYM_FUNC':
+			case SYM_FUNC:
 				// TODO:
 				break;
-			case 'SYM_DECLVARIABLE':
+			case SYM_DECLVARIABLE:
 				vi = declVariable(ei, token.buf);
 				if (!vi) {
 					ret = RET_ERROR;
@@ -294,7 +302,7 @@ function ScriptExec(options) {
 				}
 				stack.push(vi);
 				break;
-			case 'SYM_VARIABLE':
+			case SYM_VARIABLE:
 				vi = getVariable(ei, token.buf);
 				if (!vi) {
 					if (options.strict_val) {
@@ -312,31 +320,38 @@ function ScriptExec(options) {
 				}
 				stack.push(vi);
 				break;
-			case 'SYM_ARRAY':
+			case SYM_ARRAY:
+				if (stack.length < 2) {
+					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+					ret = RET_ERROR;
+					break;
+				}
+				v1 = stack.pop();
+				v2 = stack.pop();
 				// TODO:
 				break;
-			case 'SYM_CONST_INT':
-				vi = {name: '', v: {type: 'TYPE_INTEGER', num: token.num}};
+			case SYM_CONST_INT:
+				vi = {name: '', v: {type: TYPE_INTEGER, num: token.num}};
 				stack.push(vi);
 				break;
-			case 'SYM_CONST_FLOAT':
-				vi = {name: '', v: {type: 'TYPE_FLOAT', num: token.num}};
+			case SYM_CONST_FLOAT:
+				vi = {name: '', v: {type: TYPE_FLOAT, num: token.num}};
 				stack.push(vi);
 				break;
-			case 'SYM_CONST_STRING':
-				vi = {name: '', v: {type: 'TYPE_STRING', str: token.buf}};
+			case SYM_CONST_STRING:
+				vi = {name: '', v: {type: TYPE_STRING, str: token.buf}};
 				stack.push(vi);
 				break;
-			case 'SYM_NOT':
+			case SYM_NOT:
 				if (stack.length === 0) {
 					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 					ret = RET_ERROR;
 					break;
 				}
 				vi = stack.pop();
-				if (vi.v.type === 'TYPE_INTEGER' || vi.v.type === 'TYPE_FLOAT') {
+				if (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT) {
 					vi = unaryCalcValue(ei, vi, token.type);
-				} else if (vi.v.type === 'TYPE_STRING') {
+				} else if (vi.v.type === TYPE_STRING) {
 					vi = unaryCalcString(ei, vi, token.type);
 				} else {
 					ei.err = {msg: errMsg.ERR_OPERATOR, line: ei.token[ei.index].line};
@@ -345,20 +360,20 @@ function ScriptExec(options) {
 				}
 				stack.push(vi);
 				break;
-			case 'SYM_BITNOT':
-			case 'SYM_PLUS':
-			case 'SYM_MINS':
-			case 'SYM_INC':
-			case 'SYM_DEC':
-			case 'SYM_BINC':
-			case 'SYM_BDEC':
+			case SYM_BITNOT:
+			case SYM_PLUS:
+			case SYM_MINS:
+			case SYM_INC:
+			case SYM_DEC:
+			case SYM_BINC:
+			case SYM_BDEC:
 				if (stack.length === 0) {
 					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 					ret = RET_ERROR;
 					break;
 				}
 				vi = stack.pop();
-				if (vi.v.type === 'TYPE_INTEGER' || vi.v.type === 'TYPE_FLOAT') {
+				if (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT) {
 					vi = unaryCalcValue(ei, vi, token.type);
 				} else {
 					ei.err = {msg: errMsg.ERR_OPERATOR, line: ei.token[ei.index].line};
@@ -367,7 +382,7 @@ function ScriptExec(options) {
 				}
 				stack.push(vi);
 				break;
-			case 'SYM_EQ':
+			case SYM_EQ:
 				if (stack.length < 2) {
 					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 					ret = RET_ERROR;
@@ -380,7 +395,7 @@ function ScriptExec(options) {
 				v2.v.str = v1.v.str;
 				stack.push(v2);
 				break;
-			case 'SYM_COMP_EQ':
+			case SYM_COMP_EQ:
 				if (stack.length < 2) {
 					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 					ret = RET_ERROR;
@@ -392,7 +407,7 @@ function ScriptExec(options) {
 				stack.push(v2);
 				stack.push(v1);
 				break;
-			case 'SYM_LABELEND':
+			case SYM_LABELEND:
 				if (stack.length < 2) {
 					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 					ret = RET_ERROR;
@@ -400,13 +415,13 @@ function ScriptExec(options) {
 				}
 				v1 = stack.pop();
 				v2 = stack.pop();
-				if (v2.v.type === 'TYPE_STRING' && v2.v.str !== '') {
+				if (v2.v.type === TYPE_STRING && v2.v.str !== '') {
 					v1.name = v2.v.str;
 				}
 				stack.push(v1);
 				break;
-			case 'SYM_CPAND':
-			case 'SYM_CPOR':
+			case SYM_CPAND:
+			case SYM_CPOR:
 				if (stack.length < 2) {
 					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 					ret = RET_ERROR;
@@ -414,12 +429,12 @@ function ScriptExec(options) {
 				}
 				v1 = stack.pop();
 				v2 = stack.pop();
-				if (token.type === 'SYM_CPAND') {
+				if (token.type === SYM_CPAND) {
 					cp = valueBoolean(v1.v) && valueBoolean(v2.v);
 				} else {
 					cp = valueBoolean(v1.v) || valueBoolean(v2.v);
 				}
-				stack.push({name: '', v: {type: 'TYPE_INTEGER', num: (cp ? 1 : 0)}});
+				stack.push({name: '', v: {type: TYPE_INTEGER, num: (cp ? 1 : 0)}});
 				break;
 			default:
 				if (stack.length < 2) {
@@ -449,11 +464,11 @@ function ScriptExec(options) {
 
 	this.exec = function(token, vi, callbacks) {
 		callbacks = callbacks || {};
-		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptParse.noop;
-		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptParse.noop;
+		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptExec.noop;
+		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptExec.noop;
 
 		const ei = {vi: vi, token: token, index: 0, stack: [], inc_vi: [], dec_vi: []};
-		const ret = execSentense(ei);
+		let ret = execSentense(ei);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 			ret = RET_ERROR;

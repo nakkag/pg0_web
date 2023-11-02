@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<script type="text/javascript" src="script_common.js"></script>
+	<meta charset="UTF-8">
+	<script type="text/javascript" src="script_common_debug.js"></script>
 	<script type="text/javascript" src="script_parse.js"></script>
 	<script type="text/javascript" src="script_exec.js"></script>
 	<script type="text/javascript">
@@ -17,9 +18,9 @@
 					ep.exec(token, {}, {
 						success: function(value) {
 							if (value) {
-								if (value.type === 'TYPE_INTEGER' || value.type === 'TYPE_FLOAT') {
+								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
 									document.getElementById('result').innerHTML = 'Success: ' + value.num;
-								} else if (value.type === 'TYPE_STRING') {
+								} else if (value.type === TYPE_STRING) {
 									document.getElementById('result').innerHTML = 'Success: ' + value.str;
 								}
 							} else {
@@ -42,16 +43,11 @@
 <body>
 
 <textarea id="src" style="width:350px;height:200px;">
-var a,b
-a = 123
-b = 456
-var c = 3 - (a + b)
-if (c == 10) {
-  c = c + 100
-} else {
-  c = c * 100
+var i
+for (i = 0; i < 10; i++) {
+	i++
 }
-exit c + 1
+exit i
 </textarea>
 <div><input type="button" value="Exec" onclick="exec();"></input></div>
 <div>Result: <span id="result"></span></div>

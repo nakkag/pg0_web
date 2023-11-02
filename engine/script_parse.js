@@ -10,29 +10,29 @@ function ScriptParse(options) {
 	this.strict_val = options.strict_val || false;
 
 	this.keyword = {
-		'var': 'SYM_VAR',
-		'if': 'SYM_IF',
-		'else': 'SYM_ELSE',
-		'while': 'SYM_WHILE',
-		'exit': 'SYM_EXIT',
+		'var': SYM_VAR,
+		'if': SYM_IF,
+		'else': SYM_ELSE,
+		'while': SYM_WHILE,
+		'exit': SYM_EXIT,
 	};
 
 	this.extensionKeyword = {
-		'for': 'SYM_FOR',
-		'do': 'SYM_DO',
-		'break': 'SYM_BREAK',
-		'continue': 'SYM_CONTINUE',
-		'switch': 'SYM_SWITCH',
-		'case': 'SYM_CASE',
-		'default': 'SYM_DEFAULT',
-		'return': 'SYM_RETURN',
-		'function': 'SYM_FUNCSTART'
+		'for': SYM_FOR,
+		'do': SYM_DO,
+		'break': SYM_BREAK,
+		'continue': SYM_CONTINUE,
+		'switch': SYM_SWITCH,
+		'case': SYM_CASE,
+		'default': SYM_DEFAULT,
+		'return': SYM_RETURN,
+		'function': SYM_FUNCSTART
 	};
 
 	function getExtensionToken(pi, p) {
 		switch(p) {
 		case ':':
-			pi.type = 'SYM_LABELEND';
+			pi.type = SYM_LABELEND;
 			pi.concat = true;
 			break;
 		case "'":
@@ -41,7 +41,7 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_CONST_STRING';
+			pi.type = SYM_CONST_STRING;
 			let re;
 			if (p === "'") {
 				re = /'((?:[^\\']+|\\.)*)'/;
@@ -64,19 +64,19 @@ function ScriptParse(options) {
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '<') {
 				if (pi.buf.length > 2 && pi.buf.substr(2, 1) === '<') {
-					pi.type = 'SYM_LEFTSHIFT_LOGICAL';
+					pi.type = SYM_LEFTSHIFT_LOGICAL;
 					pi.buf = pi.buf.substr(2);
 					if (pi.buf.length > 2 && pi.buf.substr(2, 1) === '=') {
 						pi.cType = pi.type;
-						pi.type = 'SYM_COMP_EQ';
+						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substr(1);
 					}
 				} else {
-					pi.type = 'SYM_LEFTSHIFT';
+					pi.type = SYM_LEFTSHIFT;
 					pi.buf = pi.buf.substr(1);
 					if (pi.buf.length > 2 && pi.buf.substr(2, 1) === '=') {
 						pi.cType = pi.type;
-						pi.type = 'SYM_COMP_EQ';
+						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substr(1);
 					}
 				}
@@ -90,19 +90,19 @@ function ScriptParse(options) {
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '>') {
 				if (pi.buf.length > 2 && pi.buf.substr(2, 1) === '>') {
-					pi.type = 'SYM_RIGHTSHIFT_LOGICAL';
+					pi.type = SYM_RIGHTSHIFT_LOGICAL;
 					pi.buf = pi.buf.substr(2);
 					if (pi.buf.length > 2 && pi.buf.substr(2, 1) === '=') {
 						pi.cType = pi.type;
-						pi.type = 'SYM_COMP_EQ';
+						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substr(1);
 					}
 				} else {
-					pi.type = 'SYM_RIGHTSHIFT';
+					pi.type = SYM_RIGHTSHIFT;
 					pi.buf = pi.buf.substr(1);
 					if (pi.buf.length > 2 && pi.buf.substr(2, 1) === '=') {
 						pi.cType = pi.type;
-						pi.type = 'SYM_COMP_EQ';
+						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substr(1);
 					}
 				}
@@ -118,12 +118,12 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) !== '&') {
-				pi.type = 'SYM_AND';
+				pi.type = SYM_AND;
 				pi.concat = true;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
 				pi.cType = pi.type;
-				pi.type = 'SYM_COMP_EQ';
+				pi.type = SYM_COMP_EQ;
 				pi.buf = pi.buf.substr(1);
 			}
 			break;
@@ -133,12 +133,12 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) !== '|') {
-				pi.type = 'SYM_OR';
+				pi.type = SYM_OR;
 				pi.concat = true;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
 				pi.cType = pi.type;
-				pi.type = 'SYM_COMP_EQ';
+				pi.type = SYM_COMP_EQ;
 				pi.buf = pi.buf.substr(1);
 			}
 			break;
@@ -147,11 +147,11 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_XOR';
+			pi.type = SYM_XOR;
 			pi.concat = true;
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
 				pi.cType = pi.type;
-				pi.type = 'SYM_COMP_EQ';
+				pi.type = SYM_COMP_EQ;
 				pi.buf = pi.buf.substr(1);
 			}
 			break;
@@ -160,23 +160,23 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_BITNOT';
+			pi.type = SYM_BITNOT;
 			break;
 		case '+':
 			if (pi.concat) {
 				if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '+') {
-					pi.type = 'SYM_INC';
+					pi.type = SYM_INC;
 					pi.buf = pi.buf.substr(1);
 				}
 				break;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '+') {
-				pi.type = 'SYM_BINC';
+				pi.type = SYM_BINC;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = false;
 			} else if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_COMP_EQ';
-				pi.cType = 'SYM_ADD';
+				pi.type = SYM_COMP_EQ;
+				pi.cType = SYM_ADD;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = true;
 			}
@@ -184,18 +184,18 @@ function ScriptParse(options) {
 		case '-':
 			if (pi.concat) {
 				if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '-') {
-					pi.type = 'SYM_DEC';
+					pi.type = SYM_DEC;
 					pi.buf = pi.buf.substr(1);
 				}
 				break;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '-') {
-				pi.type = 'SYM_BDEC';
+				pi.type = SYM_BDEC;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = false;
 			} else if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_COMP_EQ';
-				pi.cType = 'SYM_SUB';
+				pi.type = SYM_COMP_EQ;
+				pi.cType = SYM_SUB;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = true;
 			}
@@ -205,8 +205,8 @@ function ScriptParse(options) {
 				break;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_COMP_EQ';
-				pi.cType = 'SYM_MULTI';
+				pi.type = SYM_COMP_EQ;
+				pi.cType = SYM_MULTI;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = true;
 			}
@@ -216,8 +216,8 @@ function ScriptParse(options) {
 				break;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_COMP_EQ';
-				pi.cType = 'SYM_DIV';
+				pi.type = SYM_COMP_EQ;
+				pi.cType = SYM_DIV;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = true;
 			}
@@ -227,8 +227,8 @@ function ScriptParse(options) {
 				break;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_COMP_EQ';
-				pi.cType = 'SYM_MOD';
+				pi.type = SYM_COMP_EQ;
+				pi.cType = SYM_MOD;
 				pi.buf = pi.buf.substr(1);
 				pi.concat = true;
 			}
@@ -241,7 +241,7 @@ function ScriptParse(options) {
 		
 		pi.buf = pi.buf.replace(/^[ \t　]+/, '');
 		if (!pi.buf) {
-			pi.type = 'SYM_EOF';
+			pi.type = SYM_EOF;
 			return;
 		}
 		let p = pi.buf.substr(0, 1);
@@ -257,15 +257,15 @@ function ScriptParse(options) {
 
 		switch(p) {
 		case '#':
-			pi.type = 'SYM_PREP';
+			pi.type = SYM_PREP;
 			pi.concat = true;
 			break;
 		case "\n":
 			pi.line++;
 			if (!pi.concat ||
-				prevType === 'SYM_EXIT' || prevType === 'SYM_RETURN' ||
-				prevType === 'SYM_BREAK' || prevType === 'SYM_CONTINUE') {
-				pi.type = 'SYM_LINEEND';
+				prevType === SYM_EXIT || prevType === SYM_RETURN ||
+				prevType === SYM_BREAK || prevType === SYM_CONTINUE) {
+				pi.type = SYM_LINEEND;
 				pi.concat = true;
 			} else {
 				pi.buf = pi.buf.substr(1);
@@ -274,11 +274,11 @@ function ScriptParse(options) {
 			}
 			break;
 		case ';':
-			pi.type = 'SYM_LINESEP';
+			pi.type = SYM_LINESEP;
 			pi.concat = true;
 			break;
 		case ',':
-			pi.type = 'SYM_WORDEND';
+			pi.type = SYM_WORDEND;
 			pi.concat = true;
 			break;
 		case '{':
@@ -286,11 +286,11 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE_PREV, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_BOPEN';
+			pi.type = SYM_BOPEN;
 			pi.concat = true;
 			break;
 		case '}':
-			pi.type = 'SYM_BCLOSE';
+			pi.type = SYM_BCLOSE;
 			pi.concat = false;
 			break;
 		case '(':
@@ -298,11 +298,11 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE_PREV, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_OPEN';
+			pi.type = SYM_OPEN;
 			pi.concat = true;
 			break;
 		case ')':
-			pi.type = 'SYM_CLOSE';
+			pi.type = SYM_CLOSE;
 			pi.concat = false;
 			break;
 		case '[':
@@ -310,11 +310,11 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_ARRAYOPEN';
+			pi.type = SYM_ARRAYOPEN;
 			pi.concat = true;
 			break;
 		case ']':
-			pi.type = 'SYM_ARRAYCLOSE';
+			pi.type = SYM_ARRAYCLOSE;
 			pi.concat = false;
 			break;
 		case '=':
@@ -323,20 +323,20 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_EQEQ';
+				pi.type = SYM_EQEQ;
 				pi.buf = pi.buf.substr(1);
 			} else {
-				pi.type = 'SYM_EQ';
+				pi.type = SYM_EQ;
 			}
 			pi.concat = true;
 			break;
 		case '!':
 			if (pi.concat) {
-				pi.type = 'SYM_NOT';
+				pi.type = SYM_NOT;
 				break;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_NTEQ';
+				pi.type = SYM_NTEQ;
 				pi.buf = pi.buf.substr(1);
 			} else {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -350,10 +350,10 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_LEFTEQ';
+				pi.type = SYM_LEFTEQ;
 				pi.buf = pi.buf.substr(1);
 			} else {
-				pi.type = 'SYM_LEFT';
+				pi.type = SYM_LEFT;
 			}
 			pi.concat = true;
 			break;
@@ -363,10 +363,10 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '=') {
-				pi.type = 'SYM_RIGHTEQ';
+				pi.type = SYM_RIGHTEQ;
 				pi.buf = pi.buf.substr(1);
 			} else {
-				pi.type = 'SYM_RIGHT';
+				pi.type = SYM_RIGHT;
 			}
 			pi.concat = true;
 			break;
@@ -379,7 +379,7 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '&') {
-				pi.type = 'SYM_CPAND';
+				pi.type = SYM_CPAND;
 				pi.buf = pi.buf.substr(1);
 			} else {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -393,7 +393,7 @@ function ScriptParse(options) {
 				return;
 			}
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '|') {
-				pi.type = 'SYM_CPOR';
+				pi.type = SYM_CPOR;
 				pi.buf = pi.buf.substr(1);
 			} else {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -406,7 +406,7 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_MULTI';
+			pi.type = SYM_MULTI;
 			pi.concat = true;
 			break;
 		case '/':
@@ -420,7 +420,7 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_DIV';
+			pi.type = SYM_DIV;
 			pi.concat = true;
 			break;
 		case '%':
@@ -428,7 +428,7 @@ function ScriptParse(options) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			pi.type = 'SYM_MOD';
+			pi.type = SYM_MOD;
 			pi.concat = true;
 			break;
 		case '+':
@@ -437,10 +437,10 @@ function ScriptParse(options) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 					return;
 				}
-				pi.type = 'SYM_PLUS';
+				pi.type = SYM_PLUS;
 				break;
 			}
-			pi.type = 'SYM_ADD';
+			pi.type = SYM_ADD;
 			pi.concat = true;
 			break;
 		case '-':
@@ -449,10 +449,10 @@ function ScriptParse(options) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 					return;
 				}
-				pi.type = 'SYM_MINS';
+				pi.type = SYM_MINS;
 				break;
 			}
-			pi.type = 'SYM_SUB';
+			pi.type = SYM_SUB;
 			pi.concat = true;
 			break;
 		}
@@ -466,7 +466,7 @@ function ScriptParse(options) {
 		}
 		pi.concat = false;
 		if (/^[0-9\.]/.test(p)) {
-			pi.type = 'SYM_CONST_INT';
+			pi.type = SYM_CONST_INT;
 			if (that.extension && /^0x/i.test(pi.buf)) {
 				const m = pi.buf.match(/0x[0-9a-f]+/i);
 				if (!m) {
@@ -484,7 +484,7 @@ function ScriptParse(options) {
 				pi.str = m[0];
 				pi.buf = pi.buf.substr(m[0].length);
 			} else if (that.extension && /^0\./.test(pi.buf)) {
-				pi.type = 'SYM_CONST_FLOAT';
+				pi.type = SYM_CONST_FLOAT;
 				const m = pi.buf.match(/0\.[0-9]+/);
 				if (!m) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -526,10 +526,10 @@ function ScriptParse(options) {
 		}
 
 		if (that.extension && /^\(/i.test(pi.buf)) {
-			pi.type = 'SYM_FUNC';
+			pi.type = SYM_FUNC;
 			pi.concat = true;
 		} else {
-			pi.type = 'SYM_VARIABLE';
+			pi.type = SYM_VARIABLE;
 		}
 	}
 
@@ -540,8 +540,8 @@ function ScriptParse(options) {
 	function primary(pi) {
 		let token;
 		switch (pi.type) {
-		case 'SYM_BOPEN':
-			token = createToken('SYM_BOPEN_PRIMARY', pi.line);
+		case SYM_BOPEN:
+			token = createToken(SYM_BOPEN_PRIMARY, pi.line);
 			pi.token.push(token);
 			getToken(pi);
 			if (pi.err) {
@@ -555,13 +555,13 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.type !== 'SYM_BCLOSE') {
+			if (pi.type !== SYM_BCLOSE) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
 			getToken(pi);
 			break;
-		case 'SYM_OPEN':
+		case SYM_OPEN:
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -570,18 +570,18 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.type !== 'SYM_CLOSE') {
+			if (pi.type !== SYM_CLOSE) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
 			getToken(pi);
 			break;
-		case 'SYM_FUNC':
+		case SYM_FUNC:
 			if (pi.str.substr(1, 1) === '&') {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			token = createToken('SYM_ARGSTART', -1);
+			token = createToken(SYM_ARGSTART, -1);
 			pi.token.push(token);
 			token = createToken(pi.type, pi.line);
 			token.buf = pi.str.toLowerCase();
@@ -589,7 +589,7 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.type !== 'SYM_OPEN') {
+			if (pi.type !== SYM_OPEN) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
@@ -601,7 +601,7 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.type !== 'SYM_CLOSE') {
+			if (pi.type !== SYM_CLOSE) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
@@ -611,9 +611,9 @@ function ScriptParse(options) {
 			}
 			pi.token.push(token);
 			break;
-		case 'SYM_VARIABLE':
+		case SYM_VARIABLE:
 			if (pi.decl) {
-				token = createToken('SYM_DECLVARIABLE', pi.line);
+				token = createToken(SYM_DECLVARIABLE, pi.line);
 			} else {
 				token = createToken(pi.type, pi.line);
 			}
@@ -621,7 +621,7 @@ function ScriptParse(options) {
 			pi.token.push(token);
 			getToken(pi);
 			break;
-		case 'SYM_CONST_INT':
+		case SYM_CONST_INT:
 			token = createToken(pi.type, pi.line);
 			if (/^0x/i.test(pi.str)) {
 				token.num = parseInt(pi.str, 16);
@@ -635,12 +635,12 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.decl || pi.type === 'SYM_EQ' || pi.type === 'SYM_COMP_EQ') {
+			if (pi.decl || pi.type === SYM_EQ || pi.type === SYM_COMP_EQ) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
 			break;
-		case 'SYM_CONST_FLOAT':
+		case SYM_CONST_FLOAT:
 			token = createToken(pi.type, pi.line);
 			token.num = parseFloat(pi.str);
 			pi.token.push(token);
@@ -648,12 +648,12 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.decl || pi.type === 'SYM_EQ' || pi.type === 'SYM_COMP_EQ') {
+			if (pi.decl || pi.type === SYM_EQ || pi.type === SYM_COMP_EQ) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
 			break;
-		case 'SYM_CONST_STRING':
+		case SYM_CONST_STRING:
 			token = createToken(pi.type, pi.line);
 			token.buf = pi.str;
 			pi.token.push(token);
@@ -661,7 +661,7 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.decl || pi.type === 'SYM_EQ' || pi.type === 'SYM_COMP_EQ') {
+			if (pi.decl || pi.type === SYM_EQ || pi.type === SYM_COMP_EQ) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
@@ -674,21 +674,21 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_ARRAYOPEN') {
+		while (pi.type === SYM_ARRAYOPEN) {
 			getToken(pi);
 			if (pi.err) {
 				return;
 			}
-			if (pi.type !== 'SYM_ARRAYCLOSE') {
+			if (pi.type !== SYM_ARRAYCLOSE) {
 				logicalOR(pi);
 				if (pi.err) {
 					return;
 				}
-				if (pi.type !== 'SYM_ARRAYCLOSE') {
+				if (pi.type !== SYM_ARRAYCLOSE) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 					return;
 				}
-				const token = createToken('SYM_ARRAY', pi.line);
+				const token = createToken(SYM_ARRAY, pi.line);
 				pi.token.push(token);
 			}
 			getToken(pi);
@@ -707,15 +707,15 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_NOT' || pi.type === 'SYM_BITNOT' ||
-			pi.type === 'SYM_PLUS' || pi.type === 'SYM_MINS' ||
-			pi.type === 'SYM_INC' || pi.type === 'SYM_DEC' ||
-			pi.type === 'SYM_BINC' || pi.type === 'SYM_BDEC') {
+		while (pi.type === SYM_NOT || pi.type === SYM_BITNOT ||
+			pi.type === SYM_PLUS || pi.type === SYM_MINS ||
+			pi.type === SYM_INC || pi.type === SYM_DEC ||
+			pi.type === SYM_BINC || pi.type === SYM_BDEC) {
 			const token = createToken(pi.type, pi.line);
 			if (pi.err) {
 				return;
 			}
-			if (pi.type === 'SYM_BINC' || pi.type === 'SYM_BDEC') {
+			if (pi.type === SYM_BINC || pi.type === SYM_BDEC) {
 				pi.token.push(token);
 				getToken(pi);
 				if (pi.err) {
@@ -744,7 +744,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_MULTI' || pi.type === 'SYM_DIV' || pi.type === 'SYM_MOD') {
+		while (pi.type === SYM_MULTI || pi.type === SYM_DIV || pi.type === SYM_MOD) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -763,7 +763,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_ADD' || pi.type === 'SYM_SUB') {
+		while (pi.type === SYM_ADD || pi.type === SYM_SUB) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -782,8 +782,8 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_LEFTSHIFT' || pi.type === 'SYM_RIGHTSHIFT' ||
-			pi.type === 'SYM_LEFTSHIFT_LOGICAL' || pi.type === 'SYM_RIGHTSHIFT_LOGICAL') {
+		while (pi.type === SYM_LEFTSHIFT || pi.type === SYM_RIGHTSHIFT ||
+			pi.type === SYM_LEFTSHIFT_LOGICAL || pi.type === SYM_RIGHTSHIFT_LOGICAL) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -802,8 +802,8 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_LEFT' || pi.type === 'SYM_LEFTEQ' ||
-			pi.type === 'SYM_RIGHT' || pi.type === 'SYM_RIGHTEQ') {
+		while (pi.type === SYM_LEFT || pi.type === SYM_LEFTEQ ||
+			pi.type === SYM_RIGHT || pi.type === SYM_RIGHTEQ) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -822,7 +822,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_EQEQ' || pi.type === 'SYM_NTEQ') {
+		while (pi.type === SYM_EQEQ || pi.type === SYM_NTEQ) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -841,7 +841,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_AND') {
+		while (pi.type === SYM_AND) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -860,7 +860,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_XOR') {
+		while (pi.type === SYM_XOR) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -879,7 +879,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_OR') {
+		while (pi.type === SYM_OR) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -898,8 +898,8 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_CPAND') {
-			let token = createToken('SYM_JZE', -1);
+		while (pi.type === SYM_CPAND) {
+			let token = createToken(SYM_JZE, -1);
 			pi.token.push(token);
 			const jmp_tk = token;
 			token = createToken(pi.type, pi.line);
@@ -912,7 +912,7 @@ function ScriptParse(options) {
 				return;
 			}
 			pi.token.push(token);
-			token = createToken('SYM_DAMMY', -1);
+			token = createToken(SYM_DAMMY, -1);
 			pi.token.push(token);
 			jmp_tk.link = pi.token.length - 1;
 		}
@@ -923,8 +923,8 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_CPOR') {
-			let token = createToken('SYM_JNZ', -1);
+		while (pi.type === SYM_CPOR) {
+			let token = createToken(SYM_JNZ, -1);
 			pi.token.push(token);
 			const jmp_tk = token;
 			token = createToken(pi.type, pi.line);
@@ -937,7 +937,7 @@ function ScriptParse(options) {
 				return;
 			}
 			pi.token.push(token);
-			token = createToken('SYM_DAMMY', -1);
+			token = createToken(SYM_DAMMY, -1);
 			pi.token.push(token);
 			jmp_tk.link = pi.token.length - 1;
 		}
@@ -951,7 +951,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_LABELEND') {
+		while (pi.type === SYM_LABELEND) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -970,10 +970,10 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_COMP_EQ') {
+		while (pi.type === SYM_COMP_EQ) {
 			const compEqTk = createToken(pi.type, pi.line);
 			const compTk = createToken(pi.cType, pi.line);
-			const eqTk = createToken('SYM_EQ', pi.line);
+			const eqTk = createToken(SYM_EQ, pi.line);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -997,7 +997,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_EQ') {
+		while (pi.type === SYM_EQ) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -1016,7 +1016,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		while (pi.type === 'SYM_WORDEND') {
+		while (pi.type === SYM_WORDEND) {
 			const token = createToken(pi.type, pi.line);
 			getToken(pi);
 			if (pi.err) {
@@ -1035,14 +1035,14 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type === 'SYM_EOF' || pi.type === 'SYM_BCLOSE') {
+		if (pi.type === SYM_EOF || pi.type === SYM_BCLOSE) {
 			return;
 		}
-		if (pi.type !== 'SYM_LINEEND' && pi.type !== 'SYM_LINESEP') {
+		if (pi.type !== SYM_LINEEND && pi.type !== SYM_LINESEP) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
-		const token = createToken(pi.type, pi.line - ((pi.type === 'SYM_LINEEND') ? 1 : 0));
+		const token = createToken(pi.type, pi.line - ((pi.type === SYM_LINEEND) ? 1 : 0));
 		pi.token.push(token);
 		getToken(pi);
 	}
@@ -1052,7 +1052,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type !== 'SYM_OPEN') {
+		if (pi.type !== SYM_OPEN) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1060,7 +1060,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type === 'SYM_CLOSE') {
+		if (pi.type === SYM_CLOSE) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1070,7 +1070,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type !== 'SYM_CLOSE') {
+		if (pi.type !== SYM_CLOSE) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1079,44 +1079,44 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (!isDo && pi.type !== 'SYM_BOPEN') {
+		if (!isDo && pi.type !== SYM_BOPEN) {
 			pi.err = {msg: errMsg.ERR_BLOCK, line: pi.line};
 			return;
 		}
 	}
 
 	function ifStatement(pi) {
-		let token = createToken('SYM_CMPSTART', pi.line);
+		let token = createToken(SYM_CMPSTART, pi.line);
 		pi.token.push(token);
 		condition(pi, false);
 		if (pi.err) {
 			return;
 		}
-		token = createToken('SYM_CMP', -1);
+		token = createToken(SYM_CMP, -1);
 		pi.token.push(token);
-		const else_tk = token = createToken('SYM_JUMP', -1);
+		const else_tk = token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
 		statementList(pi);
 		if (pi.err) {
 			return;
 		}
 		const line = pi.line;
-		const end_tk = token = createToken('SYM_JUMP', -1);
+		const end_tk = token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
 
-		token = createToken('SYM_ELSE', line);
+		token = createToken(SYM_ELSE, line);
 		pi.token.push(token);
 		else_tk.link = pi.token.length - 1;
-		if (pi.type === 'SYM_ELSE') {
+		if (pi.type === SYM_ELSE) {
 			pi.concat = true;
 			getToken(pi);
 			if (pi.err) {
 				return;
 			}
-			if (pi.extension && pi.type === 'SYM_IF') {
+			if (pi.extension && pi.type === SYM_IF) {
 				ifStatement(pi);
 			} else {
-				if (pi.type !== 'SYM_BOPEN') {
+				if (pi.type !== SYM_BOPEN) {
 					pi.err = {msg: errMsg.ERR_BLOCK, line: pi.line};
 					return;
 				}
@@ -1126,7 +1126,7 @@ function ScriptParse(options) {
 				}
 			}
 		}
-		token = createToken('SYM_CMPEND', -1);
+		token = createToken(SYM_CMPEND, -1);
 		pi.token.push(token);
 		end_tk.link = pi.token.length - 1;
 	}
@@ -1137,9 +1137,9 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		const token = createToken('SYM_SWITCH', line);
+		const token = createToken(SYM_SWITCH, line);
 		pi.token.push(token);
-		if (pi.type !== 'SYM_BOPEN') {
+		if (pi.type !== SYM_BOPEN) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1147,14 +1147,14 @@ function ScriptParse(options) {
 	}
 
 	function whileStatement(pi) {
-		let token = createToken('SYM_LOOPSTART', pi.line);
+		let token = createToken(SYM_LOOPSTART, pi.line);
 		pi.token.push(token);
 		const st_index = pi.token.length - 1;
 		condition(pi, false);
 		if (pi.err) {
 			return;
 		}
-		token = createToken('SYM_LOOP', -1);
+		token = createToken(SYM_LOOP, -1);
 		pi.token.push(token);
 
 		const tk = pi.token;
@@ -1166,27 +1166,27 @@ function ScriptParse(options) {
 		tk[tk.length - 1].target = pi.token;
 		pi.token = tk;
 
-		const end_tk = token = createToken('SYM_JUMP', -1);
+		const end_tk = token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
-		token = createToken('SYM_JUMP', -1);
+		token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
 		token.link = st_index;
-		token = createToken('SYM_LOOPEND', -1);
+		token = createToken(SYM_LOOPEND, -1);
 		pi.token.push(token);
 		end_tk.link = pi.token.length - 1;
 	}
 
 	function doWhileStatement(pi) {
-		let token = createToken('SYM_LOOPSTART', pi.line);
+		let token = createToken(SYM_LOOPSTART, pi.line);
 		pi.token.push(token);
 		const st_index = pi.token.length - 1;
-		token = createToken('SYM_LOOP', -1);
+		token = createToken(SYM_LOOP, -1);
 		pi.token.push(token);
 		getToken(pi);
 		if (pi.err) {
 			return;
 		}
-		if (pi.type !== 'SYM_BOPEN') {
+		if (pi.type !== SYM_BOPEN) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1200,9 +1200,9 @@ function ScriptParse(options) {
 		tk[tk.length - 1].target = pi.token;
 		pi.token = tk;
 
-		token = createToken('SYM_DAMMY', -1);
+		token = createToken(SYM_DAMMY, -1);
 		pi.token.push(token);
-		if (pi.type !== 'SYM_WHILE') {
+		if (pi.type !== SYM_WHILE) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1210,18 +1210,18 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		token = createToken('SYM_CMP', -1);
+		token = createToken(SYM_CMP, -1);
 		pi.token.push(token);
-		if (pi.type !== 'SYM_LINEEND' && pi.type !== 'SYM_LINESEP' && pi.type !== 'SYM_EOF' && pi.type !== 'SYM_BCLOSE') {
+		if (pi.type !== SYM_LINEEND && pi.type !== SYM_LINESEP && pi.type !== SYM_EOF && pi.type !== SYM_BCLOSE) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
-		const end_tk = token = createToken('SYM_JUMP', -1);
+		const end_tk = token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
-		token = createToken('SYM_JUMP', -1);
+		token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
 		token.link = st_index;
-		token = createToken('SYM_LOOPEND', -1);
+		token = createToken(SYM_LOOPEND, -1);
 		pi.token.push(token);
 		end_tk.link = pi.token.length - 1;
 	}
@@ -1232,7 +1232,8 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type !== 'SYM_OPEN') {
+		// (
+		if (pi.type !== SYM_OPEN) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1240,7 +1241,8 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type === 'SYM_VAR') {
+		// Initialisation
+		if (pi.type === SYM_VAR) {
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -1252,26 +1254,30 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type !== 'SYM_LINESEP') {
+		// ;
+		if (pi.type !== SYM_LINESEP) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
 		let token = createToken(pi.type, pi.line);
 		pi.token.push(token);
-		token = createToken('SYM_LOOPSTART', line);
+		// Loop start
+		token = createToken(SYM_LOOPSTART, line);
 		pi.token.push(token);
 		const st_index = pi.token.length - 1;
 		getToken(pi);
 		if (pi.err) {
 			return;
 		}
+		// Condition
 		pi.condition = true;
 		arrayKey(pi);
 		pi.condition = false;
 		if (pi.err) {
 			return;
 		}
-		if (pi.type !== 'SYM_LINESEP') {
+		// ;
+		if (pi.type !== SYM_LINESEP) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1279,7 +1285,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-
+		// Reinitialization
 		let tk = pi.token;
 		pi.token = [];
 		expression(pi);
@@ -1288,18 +1294,20 @@ function ScriptParse(options) {
 		}
 		const ret_tk = pi.token;
 		pi.token = tk;
-
-		if (pi.type !== 'SYM_CLOSE') {
+		// )
+		if (pi.type !== SYM_CLOSE) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
-		token = createToken('SYM_LOOP', -1);
+		// Loop
+		token = createToken(SYM_LOOP, -1);
 		pi.token.push(token);
 		pi.concat = true;
 		getToken(pi);
 		if (pi.err) {
 			return;
 		}
+		// Proccess
 		tk = pi.token;
 		pi.token = [];
 		statementList(pi);
@@ -1308,13 +1316,19 @@ function ScriptParse(options) {
 		}
 		tk[tk.length - 1].target = pi.token;
 		pi.token = tk;
-		const end_tk = token = createToken('SYM_JUMP', -1);
+		// Jump to loop end
+		const end_tk = token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
+		// Add reinitialization
 		pi.token = pi.token.concat(ret_tk);
-		token = createToken('SYM_JUMP', -1);
+		token = createToken(SYM_LINESEP, -1);
+		pi.token.push(token);
+		// Jump to loop start
+		token = createToken(SYM_JUMP, -1);
 		pi.token.push(token);
 		token.link = st_index;
-		token = createToken('SYM_LOOPEND', -1);
+		// Loop end
+		token = createToken(SYM_LOOPEND, -1);
 		pi.token.push(token);
 		end_tk.link = pi.token.length - 1;
 	}
@@ -1326,7 +1340,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (type === 'SYM_EXIT' || type === 'SYM_RETURN') {
+		if (type === SYM_EXIT || type === SYM_RETURN) {
 			pi.condition = true;
 			arrayKey(pi);
 			pi.condition = false;
@@ -1335,14 +1349,14 @@ function ScriptParse(options) {
 			}
 		}
 		pi.token.push(token);
-		if (pi.type === 'SYM_EOF' || pi.type === 'SYM_BCLOSE') {
+		if (pi.type === SYM_EOF || pi.type === SYM_BCLOSE) {
 			return;
 		}
-		if (pi.type !== 'SYM_LINEEND' && pi.type !== 'SYM_LINESEP') {
+		if (pi.type !== SYM_LINEEND && pi.type !== SYM_LINESEP) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
-		token = createToken(pi.type, pi.line - ((pi.type === 'SYM_LINEEND') ? 1 : 0));
+		token = createToken(pi.type, pi.line - ((pi.type === SYM_LINEEND) ? 1 : 0));
 		pi.token.push(token);
 		getToken(pi);
 	}
@@ -1355,7 +1369,7 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (type === 'SYM_CASE') {
+		if (type === SYM_CASE) {
 			pi.case_end = true;
 			pi.condition = true;
 			arrayKey(pi);
@@ -1365,7 +1379,7 @@ function ScriptParse(options) {
 				return;
 			}
 		}
-		if (pi.type !== 'SYM_LABELEND') {
+		if (pi.type !== SYM_LABELEND) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1379,13 +1393,13 @@ function ScriptParse(options) {
 			pi.decl = true;
 			array(pi);
 			pi.decl = false;
-			if (pi.type === 'SYM_EQ') {
+			if (pi.type === SYM_EQ) {
 				assignment(pi);
 				if (pi.err) {
 					return;
 				}
 			}
-			if (pi.type !== 'SYM_WORDEND') {
+			if (pi.type !== SYM_WORDEND) {
 				break;
 			}
 			const token = createToken(pi.type, pi.line);
@@ -1406,20 +1420,80 @@ function ScriptParse(options) {
 		if (pi.err) {
 			return;
 		}
-		if (pi.type === 'SYM_EOF' || pi.type === 'SYM_BCLOSE') {
+		if (pi.type === SYM_EOF || pi.type === SYM_BCLOSE) {
 			return;
 		}
-		if (pi.type !== 'SYM_LINEEND' && pi.type !== 'SYM_LINESEP') {
+		if (pi.type !== SYM_LINEEND && pi.type !== SYM_LINESEP) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
-		const token = createToken(pi.type, pi.line - ((pi.type === 'SYM_LINEEND') ? 1 : 0));
+		const token = createToken(pi.type, pi.line - ((pi.type === SYM_LINEEND) ? 1 : 0));
 		pi.token.push(token);
 		getToken(pi);
 	}
 
 	function funcDecl(pi) {
-		// TODO:
+		// Jump to function end
+		let token = createToken(SYM_JUMP, -1);
+		const end_tk = token;
+		pi.token.push(token);
+		// Function
+		token = createToken(pi.type, pi.line);
+		pi.token.push(token);
+		getToken(pi);
+		if (pi.err) {
+			return;
+		}
+		// Function name
+		if (pi.type !== SYM_FUNC) {
+			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
+			return;
+		}
+		token.buf = pi.str.toLowerCase();
+		token = createToken(pi.type, pi.line);
+		getToken(pi);
+		if (pi.err) {
+			return;
+		}
+		// (
+		if (pi.type !== SYM_OPEN) {
+			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
+			return;
+		}
+		getToken(pi);
+		if (pi.err) {
+			return;
+		}
+		// Arguments
+		varDeclList(pi);
+		if (pi.err) {
+			return;
+		}
+		// )
+		if (pi.type !== SYM_CLOSE) {
+			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
+			return;
+		}
+		pi.concat = true;
+		getToken(pi);
+		if (pi.err) {
+			return;
+		}
+		// Function name
+		pi.token.push(token);
+		// Function body
+		if (pi.type !== SYM_BOPEN) {
+			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
+			return;
+		}
+		compoundStatement(pi);
+		if (pi.err) {
+			return;
+		}
+		// Function end
+		token = createToken(SYM_FUNCEND, -1);
+		pi.token.push(token);
+		end_tk.link = pi.token.length - 1;
 	}
 
 	function compoundStatement(pi) {
@@ -1429,7 +1503,7 @@ function ScriptParse(options) {
 		}
 		const tk = pi.token;
 		pi.token = [];
-		while (pi.type !== 'SYM_EOF' && pi.type !== 'SYM_BCLOSE') {
+		while (pi.type !== SYM_EOF && pi.type !== SYM_BCLOSE) {
 			statementList(pi);
 			if (pi.err) {
 				return;
@@ -1438,7 +1512,7 @@ function ScriptParse(options) {
 		tk[tk.length - 1].target = pi.token;
 		pi.token = tk;
 		
-		if (pi.type !== 'SYM_BCLOSE') {
+		if (pi.type !== SYM_BCLOSE) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;
 		}
@@ -1452,9 +1526,9 @@ function ScriptParse(options) {
 	function statementList(pi) {
 		pi.level++;
 		switch (pi.type) {
-		case 'SYM_EOF':
+		case SYM_EOF:
 			break;
-		case 'SYM_PREP':
+		case SYM_PREP:
 			if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(pi.buf)) {
 				that.extension = true;
 			}
@@ -1468,58 +1542,58 @@ function ScriptParse(options) {
 				return;
 			}
 			break;
-		case 'SYM_BOPEN':
+		case SYM_BOPEN:
 			const token = createToken(pi.type, pi.line);
 			pi.token.push(token);
 			compoundStatement(pi);
 			break;
-		case 'SYM_IF':
+		case SYM_IF:
 			ifStatement(pi);
 			break;
-		case 'SYM_WHILE':
+		case SYM_WHILE:
 			whileStatement(pi);
 			break;
-		case 'SYM_SWITCH':
+		case SYM_SWITCH:
 			switchStatement(pi);
 			break;
-		case 'SYM_DO':
+		case SYM_DO:
 			doWhileStatement(pi);
 			break;
-		case 'SYM_FOR':
+		case SYM_FOR:
 			forStatement(pi);
 			break;
-		case 'SYM_BREAK':
-		case 'SYM_CONTINUE':
-		case 'SYM_RETURN':
+		case SYM_BREAK:
+		case SYM_CONTINUE:
+		case SYM_RETURN:
 			jumpStatement(pi);
 			break;
-		case 'SYM_CASE':
-		case 'SYM_DEFAULT':
+		case SYM_CASE:
+		case SYM_DEFAULT:
 			caseStatement(pi);
 			break;
-		case 'SYM_FUNCSTART':
+		case SYM_FUNCSTART:
 			funcDecl(pi);
 			break;
-		case 'SYM_EXIT':
+		case SYM_EXIT:
 			jumpStatement(pi);
 			break;
-		case 'SYM_VAR':
+		case SYM_VAR:
 			varDecl(pi);
 			break;
-		case 'SYM_VARIABLE':
-		case 'SYM_CONST_INT':
-		case 'SYM_CONST_FLOAT':
-		case 'SYM_OPEN':
-		case 'SYM_NOT':
-		case 'SYM_PLUS':
-		case 'SYM_MINS':
-		case 'SYM_WORDEND':
-		case 'SYM_LINEEND':
-		case 'SYM_LINESEP':
-		case 'SYM_FUNC':
-		case 'SYM_BITNOT':
-		case 'SYM_INC':
-		case 'SYM_DEC':
+		case SYM_VARIABLE:
+		case SYM_CONST_INT:
+		case SYM_CONST_FLOAT:
+		case SYM_OPEN:
+		case SYM_NOT:
+		case SYM_PLUS:
+		case SYM_MINS:
+		case SYM_WORDEND:
+		case SYM_LINEEND:
+		case SYM_LINESEP:
+		case SYM_FUNC:
+		case SYM_BITNOT:
+		case SYM_INC:
+		case SYM_DEC:
 			expressionStatement(pi);
 			break;
 		default:
@@ -1553,7 +1627,7 @@ function ScriptParse(options) {
 			return;
 		}
 		pi.token = [];
-		while (!pi.err && pi.type !== 'SYM_EOF') {
+		while (!pi.err && pi.type !== SYM_EOF) {
 			statementList(pi);
 		}
 		if (pi.err) {
