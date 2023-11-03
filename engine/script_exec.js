@@ -6,7 +6,43 @@ function ScriptExec(options) {
 	options = options || {};
 	const that = this;
 
-	function valueBoolean(v) {
+	this.getValueInt = function(v) {
+		if (v.type === TYPE_FLOAT) {
+			return parseInt(v.num);
+		}
+		if (v.type !== TYPE_INTEGER) {
+			return 0;
+		}
+		return v.num;
+	}
+
+	this.getValueString = function(v) {
+		let buf;
+		switch (v.type) {
+		case TYPE_ARRAY:
+			buf = '';
+			break;
+		case TYPE_STRING:
+			buf = v.str;
+			break;
+		default:
+			buf = '' + v.num;
+			break;
+		}
+		return buf;
+	}
+
+	this.getValueFloat = function(v) {
+		if (v.type === TYPE_INTEGER) {
+			return parseFloat(v.num);
+		}
+		if (v.type !== TYPE_FLOAT) {
+			return 0.0;
+		}
+		return v.num;
+	}
+
+	this.getValueBoolean = function(v) {
 		switch (v.type) {
 		case TYPE_STRING:
 			if (!v.str) {
@@ -25,6 +61,73 @@ function ScriptExec(options) {
 			break;
 		}
 		return 1;
+	}
+
+	function setValue(to_v, from_v) {
+		let type = from_v.type;
+		switch (from_v.type) {
+		case TYPE_ARRAY:
+			to_v.array = JSON.parse(JSON.stringify(from_v.array));
+			delete to_v.num;
+			delete to_v.str;
+			break;
+		case TYPE_STRING:
+			to_v.str = from_v.str;
+			delete to_v.num;
+			delete to_v.array;
+			break;
+		default:
+			to_v.num = from_v.num;
+			if (to_v.num === parseInt(to_v.num)) {
+				type = TYPE_INTEGER;
+			}
+			delete to_v.str;
+			delete to_v.array;
+			break;
+		}
+		to_v.type = type;
+	}
+
+	function indexToArray(ei, pvi, index) {
+		if (index < 0) {
+			ei.err = {msg: errMsg.ERR_INDEX, line: ei.token[ei.index].line};
+			return null;
+		}
+		if (!pvi.v.array || pvi.v.type !== TYPE_ARRAY) {
+			pvi.v.array = [];
+		}
+		pvi.v.type = TYPE_ARRAY;
+		delete pvi.v.num;
+		delete pvi.v.str;
+		for (let i = pvi.v.array.length; i <= index; i++) {
+			pvi.v.array[i] = {name: '', v: {type: TYPE_INTEGER, num: 0}};
+		}
+		return pvi.v.array[index];
+	}
+
+	function getArrayValue(ei, pvi, keyv) {
+		if (keyv.type !== TYPE_STRING) {
+			return indexToArray(ei, pvi, that.getValueInt(keyv));
+		}
+		const key = keyv.str;
+		if (pvi.v.type !== TYPE_ARRAY) {
+			pvi.v.type = TYPE_ARRAY;
+			delete pvi.v.num;
+			delete pvi.v.str;
+			pvi.v.array = [];
+			const vi = {name: key, v: {type: TYPE_INTEGER, num: 0}};
+			pvi.v.array.push(vi);
+			return vi;
+		}
+		const tmp_key = key.toLowerCase();
+		let vi = pvi.v.array.find(function(v) {
+			return v.name !== '' && tmp_key === v.name.toLowerCase();
+		});
+		if (!vi) {
+			vi = {name: key, v: {type: TYPE_INTEGER, num: 0}};
+			pvi.v.array.push(vi);
+		}
+		return vi;
 	}
 
 	function getVariable(ei, name) {
@@ -65,7 +168,7 @@ function ScriptExec(options) {
 			if (!vi) {
 				return -1;
 			}
-			if (valueBoolean(vi.v)) {
+			if (that.getValueBoolean(vi.v)) {
 				return i;
 			}
 		}
@@ -181,11 +284,77 @@ function ScriptExec(options) {
 		return {name: '', v: {type: TYPE_INTEGER, num: parseInt(i)}};
 	}
 
+	function stringCalcValue(ei, v1, v2, type) {
+		let p1, p2;
+		if (v1.v.type === TYPE_INTEGER || v1.v.type === TYPE_FLOAT) {
+			p1 = '' + v1.v.num;
+		} else {
+			p1 = v1.v.str;
+		}
+		if (v2.v.type === TYPE_INTEGER || v2.v.type === TYPE_FLOAT) {
+			p2 = '' + v2.v.num;
+		} else {
+			p2 = v2.v.str;
+		}
+		let i;
+		switch (type) {
+		case SYM_ADD:
+			return {name: '', v: {type: TYPE_STRING, str: p1 + p2}};
+		case SYM_EQEQ:
+			i = (p1 === p2) ? 1 : 0;
+			break;
+		case SYM_NTEQ:
+			i = (p1 === p2) ? 0 : 1;
+			break;
+		default:
+			ei.err = {msg: errMsg.ERR_OPERATOR, line: ei.token[ei.index].line};
+			return null;
+		}
+		return {name: '', v: {type: TYPE_INTEGER, num: i}};
+	}
+
+	function arrayCalcValue(ei, v1, v2, type) {
+		let result = 0;
+		switch (type) {
+		case SYM_ADD:
+			const vret = {name: '', v: {type: TYPE_ARRAY, array: []}};
+			if (v1.v.type === TYPE_ARRAY) {
+				vret.v.array = JSON.parse(JSON.stringify(v1.v.array));
+				if (v2.v.type === TYPE_ARRAY) {
+					vret.v.array = vret.v.array.concat(v2.v.array);
+				}
+			} else {
+				vret.v.array = JSON.parse(JSON.stringify(v2.v.array));
+			}
+			return vret;
+		case SYM_EQEQ:
+		case SYM_NTEQ:
+			if (v1.v.type === TYPE_ARRAY && v2.v.type === TYPE_ARRAY && v1.v.type.length === v2.v.type.length) {
+				result = 1;
+				for (let i = 0; i < v1.v.type.length; i++) {
+					const vi = calcValue(ei, v1, v2, SYM_EQEQ);
+					if (!getValueBoolean(vi.v)) {
+						result = 0;
+						break;
+					}
+				}
+			}
+			if (type === SYM_NTEQ) {
+				result = result ? 0 : 1;
+			}
+			break;
+		default:
+			ei.err = {msg: errMsg.ERR_ARRAYOPERATOR, line: ei.token[ei.index].line};
+			return null;
+		}
+		return {name: '', v: {type: TYPE_INTEGER, num: result}};
+	}
+
 	function calcValue(ei, v1, v2, type) {
 		if (v1.v.type === TYPE_ARRAY || v2.v.type === TYPE_ARRAY) {
-			// TODO:
+			return arrayCalcValue(ei, v1, v2, type);
 		} else if (v1.v.type === TYPE_STRING || v2.v.type === TYPE_STRING) {
-			// TODO:
+			return stringCalcValue(ei, v1, v2, type);
 		}
 		return integerCalcValue(ei, v1, v2, type);
 	}
@@ -221,6 +390,7 @@ function ScriptExec(options) {
 				if (ret === RET_ERROR || ret === RET_BREAK || ret === RET_CONTINUE) {
 					ei.err = cei.err;
 				}
+				stack.push({name: '', v: {type: TYPE_ARRAY, array: cei.stack}});
 				break;
 			case SYM_BCLOSE:
 			case SYM_DAMMY:
@@ -249,7 +419,7 @@ function ScriptExec(options) {
 					break;
 				}
 				vi = stack.pop();
-				cp = valueBoolean(vi.v);
+				cp = that.getValueBoolean(vi.v);
 				if ((token.type === SYM_JZE && !cp) ||
 					(token.type === SYM_JNZ && cp)) {
 					stack.push({name: '', v: {type: TYPE_INTEGER, num: cp}});
@@ -282,7 +452,7 @@ function ScriptExec(options) {
 					break;
 				}
 				vi = stack.pop();
-				if (valueBoolean(vi.v)) {
+				if (that.getValueBoolean(vi.v)) {
 					ei.index++;
 				}
 				break;
@@ -316,7 +486,7 @@ function ScriptExec(options) {
 			case SYM_LOOP:
 				if (stack.length > 0) {
 					vi = stack.pop();
-					if (!valueBoolean(vi.v)) {
+					if (!that.getValueBoolean(vi.v)) {
 						break;
 					}
 				}
@@ -381,19 +551,21 @@ function ScriptExec(options) {
 				}
 				v1 = stack.pop();
 				v2 = stack.pop();
-				// TODO:
+				vi = getArrayValue(ei, v2, v1.v);
+				if (!vi) {
+					ret = RET_ERROR;
+					break;
+				}
+				stack.push(vi);
 				break;
 			case SYM_CONST_INT:
-				vi = {name: '', v: {type: TYPE_INTEGER, num: token.num}};
-				stack.push(vi);
+				stack.push({name: '', v: {type: TYPE_INTEGER, num: token.num}});
 				break;
 			case SYM_CONST_FLOAT:
-				vi = {name: '', v: {type: TYPE_FLOAT, num: token.num}};
-				stack.push(vi);
+				stack.push({name: '', v: {type: TYPE_FLOAT, num: token.num}});
 				break;
 			case SYM_CONST_STRING:
-				vi = {name: '', v: {type: TYPE_STRING, str: token.buf}};
-				stack.push(vi);
+				stack.push({name: '', v: {type: TYPE_STRING, str: token.buf}});
 				break;
 			case SYM_NOT:
 				if (stack.length === 0) {
@@ -443,9 +615,7 @@ function ScriptExec(options) {
 				}
 				v1 = stack.pop();
 				v2 = stack.pop();
-				v2.v.type = v1.v.type;
-				v2.v.num = v1.v.num;
-				v2.v.str = v1.v.str;
+				setValue(v2.v, v1.v);
 				stack.push(v2);
 				break;
 			case SYM_COMP_EQ:
@@ -483,9 +653,9 @@ function ScriptExec(options) {
 				v1 = stack.pop();
 				v2 = stack.pop();
 				if (token.type === SYM_CPAND) {
-					cp = valueBoolean(v1.v) && valueBoolean(v2.v);
+					cp = that.getValueBoolean(v1.v) && that.getValueBoolean(v2.v);
 				} else {
-					cp = valueBoolean(v1.v) || valueBoolean(v2.v);
+					cp = that.getValueBoolean(v1.v) || that.getValueBoolean(v2.v);
 				}
 				stack.push({name: '', v: {type: TYPE_INTEGER, num: (cp ? 1 : 0)}});
 				break;
