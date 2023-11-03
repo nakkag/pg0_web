@@ -43,21 +43,10 @@
 <body>
 
 <textarea id="src" style="width:350px;height:200px;">
-var i = 2
-
-switch (i) {
-case 1:
- i = 100
- break
-case 2:
- i = 200
- break
-default:
- i = 300
- break
+function aaa(i, j, x=5) {
+  return i + j + x
 }
-
-exit i
+exit aaa(1,2)
 </textarea>
 <div><input type="button" value="Exec" onclick="exec();"></input></div>
 <div>Result: <span id="result"></span></div>

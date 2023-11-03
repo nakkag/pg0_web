@@ -2,66 +2,77 @@
 
 ScriptExec.noop = function() {};
 
+ScriptExec.lib = {};
+
+ScriptExec.lib['istype'] = function(ei, param, ret) {
+	if (!param) {
+		return -2;
+	}
+	ret.v.num = param[0].v.type;
+	ret.v.type = TYPE_INTEGER;
+	return 0;
+};
+
+ScriptExec.getValueInt = function(v) {
+	if (v.type === TYPE_FLOAT) {
+		return parseInt(v.num);
+	}
+	if (v.type !== TYPE_INTEGER) {
+		return 0;
+	}
+	return v.num;
+};
+
+ScriptExec.getValueString = function(v) {
+	let buf;
+	switch (v.type) {
+	case TYPE_ARRAY:
+		buf = '';
+		break;
+	case TYPE_STRING:
+		buf = v.str;
+		break;
+	default:
+		buf = '' + v.num;
+		break;
+	}
+	return buf;
+};
+
+ScriptExec.getValueFloat = function(v) {
+	if (v.type === TYPE_INTEGER) {
+		return parseFloat(v.num);
+	}
+	if (v.type !== TYPE_FLOAT) {
+		return 0.0;
+	}
+	return v.num;
+};
+
+ScriptExec.getValueBoolean = function(v) {
+	switch (v.type) {
+	case TYPE_STRING:
+		if (!v.str) {
+			return 0;
+		}
+		break;
+	case TYPE_FLOAT:
+		if (v.num == 0.0) {
+			return 0;
+		}
+		break;
+	default:
+		if (v.num == 0) {
+			return 0;
+		}
+		break;
+	}
+	return 1;
+};
+
 function ScriptExec(options) {
 	options = options || {};
 	const that = this;
-
-	this.getValueInt = function(v) {
-		if (v.type === TYPE_FLOAT) {
-			return parseInt(v.num);
-		}
-		if (v.type !== TYPE_INTEGER) {
-			return 0;
-		}
-		return v.num;
-	}
-
-	this.getValueString = function(v) {
-		let buf;
-		switch (v.type) {
-		case TYPE_ARRAY:
-			buf = '';
-			break;
-		case TYPE_STRING:
-			buf = v.str;
-			break;
-		default:
-			buf = '' + v.num;
-			break;
-		}
-		return buf;
-	}
-
-	this.getValueFloat = function(v) {
-		if (v.type === TYPE_INTEGER) {
-			return parseFloat(v.num);
-		}
-		if (v.type !== TYPE_FLOAT) {
-			return 0.0;
-		}
-		return v.num;
-	}
-
-	this.getValueBoolean = function(v) {
-		switch (v.type) {
-		case TYPE_STRING:
-			if (!v.str) {
-				return 0;
-			}
-			break;
-		case TYPE_FLOAT:
-			if (v.num == 0.0) {
-				return 0;
-			}
-			break;
-		default:
-			if (v.num == 0) {
-				return 0;
-			}
-			break;
-		}
-		return 1;
-	}
 
 	function setValue(to_v, from_v) {
 		let type = from_v.type;
@@ -107,7 +118,7 @@ function ScriptExec(options) {
 
 	function getArrayValue(ei, pvi, keyv) {
 		if (keyv.type !== TYPE_STRING) {
-			return indexToArray(ei, pvi, that.getValueInt(keyv));
+			return indexToArray(ei, pvi, ScriptExec.getValueInt(keyv));
 		}
 		const key = keyv.str;
 		if (pvi.v.type !== TYPE_ARRAY) {
@@ -154,7 +165,7 @@ function ScriptExec(options) {
 			if (token[i].type !== SYM_CASE) {
 				continue;
 			}
-			const cei = {parent: ei, vi: {}, token: token, index: i + 1, to_tk: SYM_LABELEND, stack: [], inc_vi: [], dec_vi: []};
+			const cei = {parent: ei, vi: {}, token: token, index: i + 1, to_tk: SYM_LABELEND, stack: [], inc_vi: [], dec_vi: [], fi: []};
 			const ret = execSentense(cei);
 			if (ret === RET_ERROR) {
 				ei.err = cei.err;
@@ -168,7 +179,7 @@ function ScriptExec(options) {
 			if (!vi) {
 				return -1;
 			}
-			if (that.getValueBoolean(vi.v)) {
+			if (ScriptExec.getValueBoolean(vi.v)) {
 				return i;
 			}
 		}
@@ -333,7 +344,7 @@ function ScriptExec(options) {
 				result = 1;
 				for (let i = 0; i < v1.v.type.length; i++) {
 					const vi = calcValue(ei, v1, v2, SYM_EQEQ);
-					if (!getValueBoolean(vi.v)) {
+					if (!ScriptExec.getValueBoolean(vi.v)) {
 						result = 0;
 						break;
 					}
@@ -385,7 +396,7 @@ function ScriptExec(options) {
 			case SYM_BOPEN:
 			case SYM_BOPEN_PRIMARY:
 				postfixValue(ei);
-				cei = {parent: ei, vi: {}, token: token.target, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
+				cei = {parent: ei, vi: {}, token: token.target, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
 				ret = execSentense(cei);
 				if (ret === RET_ERROR || ret === RET_BREAK || ret === RET_CONTINUE) {
 					ei.err = cei.err;
@@ -419,7 +430,7 @@ function ScriptExec(options) {
 					break;
 				}
 				vi = stack.pop();
-				cp = that.getValueBoolean(vi.v);
+				cp = ScriptExec.getValueBoolean(vi.v);
 				if ((token.type === SYM_JZE && !cp) ||
 					(token.type === SYM_JNZ && cp)) {
 					stack.push({name: '', v: {type: TYPE_INTEGER, num: cp}});
@@ -452,7 +463,7 @@ function ScriptExec(options) {
 					break;
 				}
 				vi = stack.pop();
-				if (that.getValueBoolean(vi.v)) {
+				if (ScriptExec.getValueBoolean(vi.v)) {
 					ei.index++;
 				}
 				break;
@@ -475,7 +486,7 @@ function ScriptExec(options) {
 					}
 					break;
 				}
-				cei = {parent: ei, vi: {}, token: ei.token[ei.index].target, index: tmp_tk, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
+				cei = {parent: ei, vi: {}, token: ei.token[ei.index].target, index: tmp_tk, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
 				ret = execSentense(cei);
 				if (ret !== RET_SUCCESS && ret !== RET_BREAK) {
 					ei.err = cei.err;
@@ -486,7 +497,7 @@ function ScriptExec(options) {
 			case SYM_LOOP:
 				if (stack.length > 0) {
 					vi = stack.pop();
-					if (!that.getValueBoolean(vi.v)) {
+					if (!ScriptExec.getValueBoolean(vi.v)) {
 						break;
 					}
 				}
@@ -512,10 +523,31 @@ function ScriptExec(options) {
 			case SYM_LOOPSTART:
 				break;
 			case SYM_ARGSTART:
-				// TODO:
+				stack.push({name: ''});
 				break;
 			case SYM_FUNC:
-				// TODO:
+				if (stack.length === 0) {
+					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+					ret = RET_ERROR;
+					break;
+				}
+				const arg = [];
+				while (stack.length > 0) {
+					vi = stack.pop();
+					if (!vi.v) {
+						break;
+					}
+					arg.push(vi);
+				}
+				v2 = execFunction(ei, token.buf, arg);
+				if (v2 === null || v2 === RET_ERROR) {
+					ret = RET_ERROR;
+					break;
+				}
+				if (ei.exit) {
+					ret = RET_EXIT;
+				}
+				stack.push(v2);
 				break;
 			case SYM_DECLVARIABLE:
 				vi = declVariable(ei, token.buf);
@@ -653,9 +685,9 @@ function ScriptExec(options) {
 				v1 = stack.pop();
 				v2 = stack.pop();
 				if (token.type === SYM_CPAND) {
-					cp = that.getValueBoolean(v1.v) && that.getValueBoolean(v2.v);
+					cp = ScriptExec.getValueBoolean(v1.v) && ScriptExec.getValueBoolean(v2.v);
 				} else {
-					cp = that.getValueBoolean(v1.v) || that.getValueBoolean(v2.v);
+					cp = ScriptExec.getValueBoolean(v1.v) || ScriptExec.getValueBoolean(v2.v);
 				}
 				stack.push({name: '', v: {type: TYPE_INTEGER, num: (cp ? 1 : 0)}});
 				break;
@@ -685,12 +717,133 @@ function ScriptExec(options) {
 		return ret;
 	}
 
+	function expandArgument(ei, index, param) {
+		let i = index;
+		let j = 0;
+		while (i < ei.token.length && ei.token[i].type !== SYM_FUNC && j < param.length) {
+			const token = ei.token[i];
+			if (token.type !== SYM_DECLVARIABLE) {
+				ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+				return RET_ERROR;
+			}
+			let vi;
+			if (token.buf.substr(0, 1) === '&') {
+				vi = declVariable(ei, token.buf.substr(1));
+				if (!vi) {
+					return RET_ERROR;
+				}
+				vi.v = param[j].v;
+			} else {
+				vi = declVariable(ei, token.buf);
+				if (!vi) {
+					return RET_ERROR;
+				}
+				setValue(vi.v, param[j].v);
+			}
+			j++;
+			while (i < ei.token.length && ei.token[i].type !== SYM_FUNC && ei.token[i].type !== SYM_WORDEND) {
+				i++;
+			}
+			if (ei.token[i].type === SYM_WORDEND) {
+				i++;
+			}
+		}
+
+		let eq = false;
+		if (i < ei.token.length && ei.token[i].type !== SYM_FUNC) {
+			ei.index = i;
+			ei.to_tk = SYM_FUNC;
+			if (execSentense(ei) == RET_ERROR) {
+				return RET_ERROR;
+			}
+			ei.index = 0;
+			ei.to_tk = -1;
+
+			for (; i < ei.token.length && ei.token[i].type !== SYM_FUNC; i++) {
+				switch (ei.token[i].type) {
+				case SYM_EQ:
+					eq = true;
+					break;
+				case SYM_WORDEND:
+					if (eq == false) {
+						ei.err = {msg: errMsg.ERR_ARGUMENTCNT, line: ei.token[ei.index].line};
+						return null;
+					}
+					eq = false;
+					break;
+				}
+			}
+			if (!eq) {
+				ei.err = {msg: errMsg.ERR_ARGUMENTCNT, line: ei.token[ei.index].line};
+				return RET_ERROR;
+			}
+		}
+		return i;
+	}
+
+	function execNameFunction(ei, index, param) {
+		const cei = {parent: ei, vi: {}, token: ei.token, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
+		const i = expandArgument(cei, index + 1, param);
+		if (i == RET_ERROR || !ei.token[i].target) {
+			ei.err = cei.err;
+			return RET_ERROR;
+		}
+		cei.token = ei.token[i].target;
+		const ret = execSentense(cei);
+		if (ret === RET_BREAK || ret === RET_CONTINUE) {
+			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+			return RET_ERROR;
+		}
+		if (ret === RET_ERROR) {
+			ei.err = cei.err;
+			return RET_ERROR;
+		}
+		if (ret === RET_EXIT) {
+			ei.exit = true;
+		}
+		if (cei.stack.length === 0) {
+			return {name: '', v: {type: TYPE_INTEGER, num: 0}};
+		}
+		return cei.stack.pop();
+	}
+
+	function execFunction(ei, name, param) {
+		const lname = name.toLowerCase();
+		if (lname in ei.fi) {
+			return execNameFunction(ei, ei.fi[lname], param);
+		}
+		for (let i = 0; i < ei.token.length; i++) {
+			if (ei.token[i].type === SYM_FUNCSTART && ei.token[i].buf === lname) {
+				ei.fi[lname] = i;
+				return execNameFunction(ei, i, param);
+			}
+		}
+		if (lname in ScriptExec.lib) {
+			const vret = {name: '', v: {type: TYPE_INTEGER, num: 0}};
+			const ret = ScriptExec.lib[lname](ei, param, vret);
+			if (ret < 0) {
+				switch (ret) {
+				case -1:
+					ei.err = {msg: errMsg.ERR_FUNCTION_EXEC, line: ei.token[ei.index].line};
+					break;
+				case -2:
+					ei.err = {msg: errMsg.ERR_ARGUMENTCNT, line: ei.token[ei.index].line};
+					break;
+				}
+				return RET_ERROR;
+			}
+			return vret;
+		}
+		ei.err = {msg: errMsg.ERR_FUNCTION, line: ei.token[ei.index].line};
+		return RET_ERROR;
+	}
+
 	this.exec = function(token, vi, callbacks) {
 		callbacks = callbacks || {};
 		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptExec.noop;
 		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptExec.noop;
 
-		const ei = {vi: vi, token: token, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
+		const ei = {vi: vi, token: token, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
 		let ret = execSentense(ei);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};

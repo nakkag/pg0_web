@@ -1572,6 +1572,10 @@ function ScriptParse(options) {
 			caseStatement(pi);
 			break;
 		case SYM_FUNCSTART:
+			if (pi.level > 1) {
+				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
+				return;
+			}
 			funcDecl(pi);
 			break;
 		case SYM_EXIT:
