@@ -43,10 +43,20 @@
 <body>
 
 <textarea id="src" style="width:350px;height:200px;">
-var i
-for (i = 0; i < 10; i++) {
-	i++
+var i = 2
+
+switch (i) {
+case 1:
+ i = 100
+ break
+case 2:
+ i = 200
+ break
+default:
+ i = 300
+ break
 }
+
 exit i
 </textarea>
 <div><input type="button" value="Exec" onclick="exec();"></input></div>

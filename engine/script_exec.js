@@ -45,6 +45,37 @@ function ScriptExec(options) {
 		return {name: name, v: ei.vi[name]};
 	}
 
+	function findCase(ei, v1) {
+		const token = ei.token[ei.index].target;
+		for (let i = 0; i < token.length; i++) {
+			if (token[i].type !== SYM_CASE) {
+				continue;
+			}
+			const cei = {parent: ei, vi: {}, token: token, index: i + 1, to_tk: SYM_LABELEND, stack: [], inc_vi: [], dec_vi: []};
+			const ret = execSentense(cei);
+			if (ret === RET_ERROR) {
+				return -1;
+			}
+			if (cei.stack.length === 0) {
+				return -1;
+			}
+			const v2 = cei.stack.pop();
+			const vi = calcValue(ei, v2, v1, SYM_EQEQ);
+			if (!vi) {
+				return -1;
+			}
+			if (valueBoolean(vi.v)) {
+				return i;
+			}
+		}
+		for (let i = ei.index; i < token.length; i++) {
+			if (token[i].type === SYM_DEFAULT) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	function unaryCalcValue(ei, vi, type) {
 		let i = vi.v.num;
 		switch (type) {
@@ -170,20 +201,21 @@ function ScriptExec(options) {
 	}
 
 	function execSentense(ei) {
+		let cei;
 		let ret = RET_SUCCESS;
 		let retSt;
 		let vi, v1, v2;
 		let stack = [];
 		let cp;
 
-		while (ei.index < ei.token.length) {
+		while (ei.index < ei.token.length && ei.token[ei.index].type != ei.to_tk) {
 			console.log('token=' + ei.token[ei.index].type + ', stack=' + JSON.stringify(stack) + ', vi=' + JSON.stringify(ei.vi));
 			const token = ei.token[ei.index];
 			switch (token.type) {
 			case SYM_BOPEN:
 			case SYM_BOPEN_PRIMARY:
 				postfixValue(ei);
-				const cei = {parent: ei, vi: {}, token: token.target, index: 0, stack: [], inc_vi: [], dec_vi: []};
+				cei = {parent: ei, vi: {}, token: token.target, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
 				ret = execSentense(cei);
 				if (ret === RET_ERROR || ret === RET_BREAK || ret === RET_CONTINUE) {
 					ei.err = cei.err;
@@ -258,7 +290,24 @@ function ScriptExec(options) {
 			case SYM_CMPEND:
 				break;
 			case SYM_SWITCH:
-				// TODO:
+				if (stack.length === 0) {
+					ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+					ret = RET_ERROR;
+					break;
+				}
+				vi = stack.pop();
+				ei.index++;
+				const tmp_tk = findCase(ei, vi);
+				if (tmp_tk < 0) {
+					break;
+				}
+				cei = {parent: ei, vi: {}, token: ei.token[ei.index].target, index: tmp_tk, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
+				ret = execSentense(cei);
+				if (ret !== RET_SUCCESS && ret !== RET_BREAK) {
+					ei.err = cei.err;
+					break;
+				}
+				ret = RET_SUCCESS;
 				break;
 			case SYM_LOOP:
 				if (stack.length > 0) {
@@ -467,7 +516,7 @@ function ScriptExec(options) {
 		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptExec.noop;
 		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptExec.noop;
 
-		const ei = {vi: vi, token: token, index: 0, stack: [], inc_vi: [], dec_vi: []};
+		const ei = {vi: vi, token: token, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
 		let ret = execSentense(ei);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
