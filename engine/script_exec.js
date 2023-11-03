@@ -54,6 +54,7 @@ function ScriptExec(options) {
 			const cei = {parent: ei, vi: {}, token: token, index: i + 1, to_tk: SYM_LABELEND, stack: [], inc_vi: [], dec_vi: []};
 			const ret = execSentense(cei);
 			if (ret === RET_ERROR) {
+				ei.err = cei.err;
 				return -1;
 			}
 			if (cei.stack.length === 0) {
@@ -299,6 +300,9 @@ function ScriptExec(options) {
 				ei.index++;
 				const tmp_tk = findCase(ei, vi);
 				if (tmp_tk < 0) {
+					if (ei.err) {
+						ret = RET_ERROR;
+					}
 					break;
 				}
 				cei = {parent: ei, vi: {}, token: ei.token[ei.index].target, index: tmp_tk, to_tk: -1, stack: [], inc_vi: [], dec_vi: []};
