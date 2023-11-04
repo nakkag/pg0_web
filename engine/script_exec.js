@@ -323,8 +323,9 @@ ScriptExec.getValueBoolean = function(v) {
 };
 
 function ScriptExec(options) {
-	options = options || {};
 	const that = this;
+	options = options || {};
+	this.callback = ScriptExec.noop;
 
 	function initExecInfo(token) {
 		return {token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
@@ -673,8 +674,11 @@ function ScriptExec(options) {
 		let cp;
 
 		while (ei.index < ei.token.length && ei.token[ei.index].type != ei.to_tk) {
-			//console.log('token=' + ei.token[ei.index].type + ', stack=' + JSON.stringify(stack) + ', vi=' + JSON.stringify(ei.vi));
 			const token = ei.token[ei.index];
+			if (that.callback(ei)) {
+				ret = RET_EXIT;
+				break;
+			}
 			switch (token.type) {
 			case SYM_BOPEN:
 			case SYM_BOPEN_PRIMARY:
@@ -708,6 +712,10 @@ function ScriptExec(options) {
 				break;
 			case SYM_JUMP:
 				ei.index = token.link;
+				if (that.callback(ei)) {
+					ret = RET_EXIT;
+					break;
+				}
 				break;
 			case SYM_JZE:
 			case SYM_JNZ:
@@ -724,6 +732,10 @@ function ScriptExec(options) {
 					vi.v.num = cp;
 					stack.push(vi);
 					ei.index = token.link;
+					if (that.callback(ei)) {
+						ret = RET_EXIT;
+						break;
+					}
 				} else {
 					stack.push(vi);
 				}
@@ -1157,6 +1169,7 @@ function ScriptExec(options) {
 		callbacks = callbacks || {};
 		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptExec.noop;
 		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptExec.noop;
+		that.callback = (typeof callbacks.callback == 'function') ? callbacks.callback : ScriptExec.noop;
 
 		const ei = initExecInfo(token);
 		ei.vi = vi;

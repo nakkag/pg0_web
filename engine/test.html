@@ -50,7 +50,7 @@
 			if (a.v.type === TYPE_ARRAY) {
 				ret += '{' + arrayToString(a.v.array) + '}';
 			} else if (a.v.type === TYPE_STRING) {
-				ret += '"' + a.v.str + "'";
+				ret += '"' + a.v.str + '"';
 			} else {
 				ret += a.v.num;
 			}
@@ -64,9 +64,13 @@
 			sp.parse(buf, {
 				success: function(token) {
 					console.log(token);
-					const ep = new ScriptExec({extension: sp.extension, strict_val: sp.strict_val});
+					const se = new ScriptExec({extension: sp.extension, strict_val: sp.strict_val});
 					try {
-						ep.exec(token, {}, {
+						se.exec(token, {}, {
+							callback: function(ei) {
+								//console.log('token=' + ei.token[ei.index].type + ', vi=' + JSON.stringify(ei.vi));
+								return 0;
+							},
 							success: function(value) {
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
 									document.getElementById('result').innerHTML += '<p>Result: ' + value.num + '</p><hr />';
