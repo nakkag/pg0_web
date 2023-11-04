@@ -115,6 +115,124 @@ ScriptExec.lib['int'] = function(ei, param, ret) {
 	return 0;
 };
 
+ScriptExec.lib['code'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	let index = 0;
+	if (param.length >= 2) {
+		switch (param[1].v.type) {
+		case TYPE_ARRAY:
+			const s = ScriptExec.arrayToString(param[1].v.array);
+			index = ScriptExec.stringToNumber(s);
+			break;
+		case TYPE_STRING:
+			index = ScriptExec.stringToNumber(param[1].v.str);
+			break;
+		default:
+			index = parseInt(param[1].v.num);
+			break;
+		}
+	}
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		ret.v.num = ScriptExec.arrayToString(param[0].v.array).codePointAt(index);
+		break;
+	case TYPE_STRING:
+		ret.v.num = param[0].v.str.codePointAt(index);
+		break;
+	default:
+		ret.v.num = ScriptExec.getValueString(param[0].v).codePointAt(index);
+		break;
+	}
+	if (!ret.v.num) {
+		ret.v.num = 0;
+	}
+	ret.v.type = TYPE_INTEGER;
+	return 0;
+};
+
+ScriptExec.lib['char'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	let code = 0;
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		const s = ScriptExec.arrayToString(param[0].v.array);
+		code = ScriptExec.stringToNumber(s);
+		break;
+	case TYPE_STRING:
+		code = ScriptExec.stringToNumber(param[0].v.str);
+		break;
+	default:
+		code = parseInt(param[0].v.num);
+		break;
+	}
+	ret.v.str = String.fromCharCode(code);
+	ret.v.type = TYPE_STRING;
+	return 0;
+};
+
+ScriptExec.lib['getkey'] = function(ei, param, ret) {
+	if (param.length < 2) {
+		return -2;
+	}
+	if (param[0].v.type !== TYPE_ARRAY) {
+		ret.v.str = '';
+	} else {
+		let i = 0;
+		switch (param[1].v.type) {
+		case TYPE_ARRAY:
+			const s = ScriptExec.arrayToString(param[1].v.array);
+			i = ScriptExec.stringToNumber(s);
+			break;
+		case TYPE_STRING:
+			i = ScriptExec.stringToNumber(param[1].v.str);
+			break;
+		default:
+			i = parseInt(param[1].v.num);
+			break;
+		}
+		if (param[0].v.array.length > i) {
+			ret.v.str = param[0].v.array[i].name;
+		} else {
+			ret.v.str = '';
+		}
+	}
+	ret.v.type = TYPE_STRING;
+	return 0;
+};
+
+ScriptExec.lib['setkey'] = function(ei, param, ret) {
+	if (param.length < 3) {
+		return -2;
+	}
+	if (param[0].v.type !== TYPE_ARRAY) {
+		return 0;
+	}
+	if (param[2].v.type !== TYPE_STRING || !param[2].v.str) {
+		return 0;
+	}
+	let index = 0;
+	switch (param[1].v.type) {
+	case TYPE_ARRAY:
+		const s = ScriptExec.arrayToString(param[1].v.array);
+		index = ScriptExec.stringToNumber(s);
+		break;
+	case TYPE_STRING:
+		index = ScriptExec.stringToNumber(param[1].v.str);
+		break;
+	default:
+		index = parseInt(param[1].v.num);
+		break;
+	}
+	if (param[0].v.array.length > index) {
+		param[0].v.array[index].name = param[2].v.str;
+	}
+	return 0;
+};
+
 ScriptExec.initValueInfo = function() {
 	return {name: '', v: {type: TYPE_INTEGER, num: 0}};
 };
@@ -290,13 +408,16 @@ function ScriptExec(options) {
 		return null;
 	}
 
-	function declVariable(ei, name) {
+	function declVariable(ei, name, v) {
 		if (name in ei.vi) {
 			ei.err = {msg: errMsg.ERR_DECLARE, line: ei.token[ei.index].line};
 			return null;
 		}
-		ei.vi[name] = {type: TYPE_INTEGER, num: 0};
-
+		if (v) {
+			ei.vi[name] = v;
+		} else {
+			ei.vi[name] = {type: TYPE_INTEGER, num: 0};
+		}
 		const vi = ScriptExec.initValueInfo();
 		vi.name = name;
 		vi.v = ei.vi[name];
@@ -676,13 +797,10 @@ function ScriptExec(options) {
 						break;
 					}
 				}
-				const _tk = ei.token;
-				const _tk_index = ei.index;
-				ei.token = token.target;
-				ei.index = 0;
-				ret = execSentense(ei, retvi);
-				ei.token = _tk;
-				ei.index = _tk_index;
+				cei = initExecInfo(token.target);
+				cei.parent = ei;
+				cei.index = 0;
+				ret = execSentense(cei, retvi);
 				if (ret !== RET_SUCCESS && ret !== RET_BREAK && ret !== RET_CONTINUE) {
 					break;
 				}
@@ -922,11 +1040,10 @@ function ScriptExec(options) {
 			}
 			let vi;
 			if (token.buf.substr(0, 1) === '&') {
-				vi = declVariable(ei, token.buf.substr(1));
+				vi = declVariable(ei, token.buf.substr(1), param[param.length - j - 1].v);
 				if (!vi) {
 					return RET_ERROR;
 				}
-				vi.v = param[param.length - j - 1].v;
 			} else {
 				vi = declVariable(ei, token.buf);
 				if (!vi) {
@@ -975,15 +1092,15 @@ function ScriptExec(options) {
 		return i;
 	}
 
-	function execNameFunction(ei, index, param) {
-		const cei = initExecInfo(ei.token);
-		cei.parent = ei;
+	function execNameFunction(ei, top, index, param) {
+		const cei = initExecInfo(top.token);
+		cei.parent = top;
 		const i = expandArgument(cei, index + 1, param);
-		if (i == RET_ERROR || !ei.token[i].target) {
+		if (i == RET_ERROR || !top.token[i].target) {
 			ei.err = cei.err;
 			return RET_ERROR;
 		}
-		cei.token = ei.token[i].target;
+		cei.token = top.token[i].target;
 		const retvi = ScriptExec.initValueInfo();
 		const ret = execSentense(cei, retvi);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
@@ -1000,31 +1117,37 @@ function ScriptExec(options) {
 		return retvi;
 	}
 
-	function execFunction(ei, name, param) {
-		if (name in ei.fi) {
-			return execNameFunction(ei, ei.fi[name], param);
+	function execLibFunction(ei, name, param) {
+		const vret = ScriptExec.initValueInfo();
+		const ret = ScriptExec.lib[name](ei, param.reverse(), vret);
+		if (ret < 0) {
+			switch (ret) {
+			case -1:
+				ei.err = {msg: errMsg.ERR_FUNCTION_EXEC, line: ei.token[ei.index].line};
+				break;
+			case -2:
+				ei.err = {msg: errMsg.ERR_ARGUMENTCNT, line: ei.token[ei.index].line};
+				break;
+			}
+			return RET_ERROR;
 		}
-		for (let i = 0; i < ei.token.length; i++) {
-			if (ei.token[i].type === SYM_FUNCSTART && ei.token[i].buf === name) {
-				ei.fi[name] = i;
-				return execNameFunction(ei, i, param);
+		return vret;
+	}
+
+	function execFunction(ei, name, param) {
+		let top = ei;
+		for (; top.parent; top = top.parent);
+		if (name in top.fi) {
+			return execNameFunction(ei, top, top.fi[name], param);
+		}
+		for (let i = 0; i < top.token.length; i++) {
+			if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
+				top.fi[name] = i;
+				return execNameFunction(ei, top, i, param);
 			}
 		}
 		if (name in ScriptExec.lib) {
-			const vret = ScriptExec.initValueInfo();;
-			const ret = ScriptExec.lib[name](ei, param, vret);
-			if (ret < 0) {
-				switch (ret) {
-				case -1:
-					ei.err = {msg: errMsg.ERR_FUNCTION_EXEC, line: ei.token[ei.index].line};
-					break;
-				case -2:
-					ei.err = {msg: errMsg.ERR_ARGUMENTCNT, line: ei.token[ei.index].line};
-					break;
-				}
-				return RET_ERROR;
-			}
-			return vret;
+			return execLibFunction(ei, name, param);
 		}
 		ei.err = {msg: errMsg.ERR_FUNCTION, line: ei.token[ei.index].line};
 		return RET_ERROR;

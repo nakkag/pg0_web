@@ -504,10 +504,12 @@ function ScriptParse(options) {
 			return;
 		}
 
-		if (that.extension && pi.buf.substr(0, 1) === '&') {
-			pi.buf = pi.buf.substr(1);
+		let m;
+		if (that.extension) {
+			m = pi.buf.match(/(&[a-z0-9_]+)|([a-z0-9_]+)/i);
+		} else {
+			m = pi.buf.match(/[a-z0-9_]+/i);
 		}
-		const m = pi.buf.match(/[a-z0-9_]+/i);
 		if (!m) {
 			pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 			return;

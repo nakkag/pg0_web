@@ -6,6 +6,19 @@
 	<script type="text/javascript" src="script_parse.js"></script>
 	<script type="text/javascript" src="script_exec.js"></script>
 	<script type="text/javascript">
+	ScriptExec.lib['print'] = function(ei, param, ret) {
+		if (param.length === 0) {
+			return -2;
+		}
+		let str = '';
+		if (param[0].v.type === TYPE_ARRAY) {
+			str = '{' + arrayToString(param[0].v.array) + '}'
+		} else {
+			str = ScriptExec.getValueString(param[0].v);
+		}
+		document.getElementById('result').innerHTML += str.replace(/\\n/, '<br />');
+		return 0;
+	};
 	function arrayToString(array) {
 		let ret = '';
 		array.forEach(function(a) {
@@ -15,13 +28,15 @@
 			if (a.v.type === TYPE_ARRAY) {
 				ret += '{' + arrayToString(a.v.array) + '}';
 			} else {
+				if (a.name) {
+					ret += '"' + a.name + '": ';
+				}
 				ret += ScriptExec.getValueString(a.v);
 			}
 		});
 		return ret;
 	}
 	function exec() {
-		document.getElementById('result').innerHTML = '';
 		const buf = document.getElementById('src').value;
 		const sp = new ScriptParse({extension: true, strict_val: false});
 		sp.parse(buf, {
@@ -31,26 +46,22 @@
 					const ep = new ScriptExec({extension: sp.extension, strict_val: sp.strict_val});
 					ep.exec(token, {}, {
 						success: function(value) {
-							if (value) {
-								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-									document.getElementById('result').innerHTML = 'Success: ' + value.num;
-								} else if (value.type === TYPE_STRING) {
-									document.getElementById('result').innerHTML = 'Success: ' + value.str;
-								} else if (value.type === TYPE_ARRAY) {
-									document.getElementById('result').innerHTML = 'Success: {' + arrayToString(value.array) + '}';
-								}
-							} else {
-								document.getElementById('result').innerHTML = 'Success';
+							if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
+								document.getElementById('result').innerHTML += '<p>Result: ' + value.num + '</p><hr />';
+							} else if (value.type === TYPE_STRING) {
+								document.getElementById('result').innerHTML += '<p>Result: ' + value.str + '</p><hr />';
+							} else if (value.type === TYPE_ARRAY) {
+								document.getElementById('result').innerHTML += '<p>Result: {' + arrayToString(value.array) + '}</p><hr />';
 							}
 						},
 						error: function(error) {
-							document.getElementById('result').innerHTML = 'Exec Error: ' + error.msg + ' (' + (error.line + 1) + ')';
+							document.getElementById('result').innerHTML += '<p>Exec Error: ' + error.msg + ' (' + (error.line + 1) + ')</p><hr />';
 						}
 					});
 				}
 			},
 			error: function(error) {
-				document.getElementById('result').innerHTML = 'Parse Error: ' + error.msg + ' (' + (error.line + 1) + ')';
+				document.getElementById('result').innerHTML += '<p>Parse Error: ' + error.msg + ' (' + (error.line + 1) + ')</p><hr />';
 			}
 		});
 	}
@@ -59,13 +70,15 @@
 <body>
 
 <textarea id="src" style="width:350px;height:200px;">
-function aaa(i, j, x=5) {
-  return i + j + x
+function a(&b) {
+  b = 2
 }
-exit aaa(1,2)
+x = 1
+a(x)
+return x
 </textarea>
 <div><input type="button" value="Exec" onclick="exec();"></input></div>
-<div>Result: <span id="result"></span></div>
+<div><span id="result"></span></div>
 
 </body>
 </html>
