@@ -260,9 +260,17 @@ ScriptExec.arrayToString = function(from) {
 };
 
 ScriptExec.stringToNumber = function(str) {
-	const l = str.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)|([0-9]+)/);
-	if (l) {
-		return Number(l[0]);
+	const f = str.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/);
+	if (f) {
+		return parseFloat(f[0]);
+	}
+	const i = str.match(/^[0-9]+/);
+	if (i) {
+		let n = parseInt(i[0], 10);
+		if (n > 0x7FFFFFFF) {
+			n = 0x7FFFFFFF;
+		}
+		return n | 0;
 	}
 	return 0;
 };
