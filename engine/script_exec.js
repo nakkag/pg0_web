@@ -28,6 +28,7 @@ ScriptExec.lib['length'] = function(ei, param, ret) {
 		ret.v.num = ('' + param[0].v.num).length;
 		break;
 	}
+	ret.v.num = ret.v.num | 0;
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
@@ -86,6 +87,7 @@ ScriptExec.lib['number'] = function(ei, param, ret) {
 	if (ret.v.num !== parseInt(ret.v.num)) {
 		ret.v.type = TYPE_FLOAT;
 	} else {
+		ret.v.num = parseInt(ret.v.num) | 0;
 		ret.v.type = TYPE_INTEGER;
 	}
 	return 0;
@@ -110,7 +112,7 @@ ScriptExec.lib['int'] = function(ei, param, ret) {
 	if (!ret.v.num) {
 		ret.v.num = 0;
 	}
-	ret.v.num = parseInt(ret.v.num);
+	ret.v.num = parseInt(ret.v.num) | 0;
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
@@ -124,10 +126,10 @@ ScriptExec.lib['code'] = function(ei, param, ret) {
 		switch (param[1].v.type) {
 		case TYPE_ARRAY:
 			const s = ScriptExec.arrayToString(param[1].v.array);
-			index = ScriptExec.stringToNumber(s);
+			index = parseInt(ScriptExec.stringToNumber(s));
 			break;
 		case TYPE_STRING:
-			index = ScriptExec.stringToNumber(param[1].v.str);
+			index = parseInt(ScriptExec.stringToNumber(param[1].v.str));
 			break;
 		default:
 			index = parseInt(param[1].v.num);
@@ -160,10 +162,10 @@ ScriptExec.lib['char'] = function(ei, param, ret) {
 	switch (param[0].v.type) {
 	case TYPE_ARRAY:
 		const s = ScriptExec.arrayToString(param[0].v.array);
-		code = ScriptExec.stringToNumber(s);
+		code = parseInt(ScriptExec.stringToNumber(s));
 		break;
 	case TYPE_STRING:
-		code = ScriptExec.stringToNumber(param[0].v.str);
+		code = parseInt(ScriptExec.stringToNumber(param[0].v.str));
 		break;
 	default:
 		code = parseInt(param[0].v.num);
@@ -185,10 +187,10 @@ ScriptExec.lib['getkey'] = function(ei, param, ret) {
 		switch (param[1].v.type) {
 		case TYPE_ARRAY:
 			const s = ScriptExec.arrayToString(param[1].v.array);
-			i = ScriptExec.stringToNumber(s);
+			i = parseInt(ScriptExec.stringToNumber(s));
 			break;
 		case TYPE_STRING:
-			i = ScriptExec.stringToNumber(param[1].v.str);
+			i = parseInt(ScriptExec.stringToNumber(param[1].v.str));
 			break;
 		default:
 			i = parseInt(param[1].v.num);
@@ -218,10 +220,10 @@ ScriptExec.lib['setkey'] = function(ei, param, ret) {
 	switch (param[1].v.type) {
 	case TYPE_ARRAY:
 		const s = ScriptExec.arrayToString(param[1].v.array);
-		index = ScriptExec.stringToNumber(s);
+		index = parseInt(ScriptExec.stringToNumber(s));
 		break;
 	case TYPE_STRING:
-		index = ScriptExec.stringToNumber(param[1].v.str);
+		index = parseInt(ScriptExec.stringToNumber(param[1].v.str));
 		break;
 	default:
 		index = parseInt(param[1].v.num);
@@ -258,7 +260,7 @@ ScriptExec.arrayToString = function(from) {
 };
 
 ScriptExec.stringToNumber = function(str) {
-	const l = str.match(/^([0-9]+\.[0-9]*)|([0-9]+)/);
+	const l = str.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)|([0-9]+)/);
 	if (l) {
 		return Number(l[0]);
 	}
@@ -267,12 +269,12 @@ ScriptExec.stringToNumber = function(str) {
 
 ScriptExec.getValueInt = function(v) {
 	if (v.type === TYPE_FLOAT) {
-		return parseInt(v.num);
+		return parseInt(v.num) | 0;
 	}
 	if (v.type !== TYPE_INTEGER) {
 		return 0;
 	}
-	return v.num;
+	return v.num | 0;
 };
 
 ScriptExec.getValueString = function(v) {
@@ -344,10 +346,19 @@ function ScriptExec(options) {
 			delete to_v.num;
 			delete to_v.array;
 			break;
-		default:
+		case TYPE_FLOAT:
 			to_v.num = from_v.num;
 			if (to_v.num === parseInt(to_v.num)) {
 				type = TYPE_INTEGER;
+			}
+			delete to_v.str;
+			delete to_v.array;
+			break;
+		default:
+			if (from_v.num > 0x7FFFFFFF) {
+				to_v.num = 0x7FFFFFFF | 0;
+			} else {
+				to_v.num = from_v.num | 0;
 			}
 			delete to_v.str;
 			delete to_v.array;
@@ -460,7 +471,7 @@ function ScriptExec(options) {
 		return -1;
 	}
 
-	function unaryCalcValue(ei, vi, type) {
+	function unaryCalcValueFloat(ei, vi, type) {
 		let i = vi.v.num;
 		switch (type) {
 		case SYM_NOT:
@@ -499,10 +510,57 @@ function ScriptExec(options) {
 			i = i ? 1 : 0;
 		}
 		let vret = ScriptExec.initValueInfo();
-		vret.v.num = i;
-		if (options.extension && i !== parseInt(i)) {
+		if (i === parseInt(i)) {
+			vret.v.num = i | 0;
+			vret.v.type = TYPE_INTEGER;
+		} else {
+			vret.v.num = i;
 			vret.v.type = TYPE_FLOAT;
 		}
+		return vret;
+	}
+
+	function unaryCalcValue(ei, vi, type) {
+		let i = vi.v.num | 0;
+		switch (type) {
+		case SYM_NOT:
+			i = !i;
+			break;
+		case SYM_PLUS:
+			i = +i;
+			break;
+		case SYM_MINS:
+			i = -i;
+			break;
+		case SYM_BITNOT:
+			i = ~i;
+			break;
+		case SYM_INC:
+			i++;
+			vi.v.num = i;
+			break;
+		case SYM_DEC:
+			i--;
+			vi.v.num = i;
+			break;
+		case SYM_BINC:
+		case SYM_BDEC:
+			switch (type) {
+			case SYM_BINC:
+				ei.inc_vi.push(vi);
+				break;
+			case SYM_BDEC:
+				ei.dec_vi.push(vi);
+				break;
+			}
+			return vi;
+		}
+		if (typeof i === 'boolean') {
+			i = i ? 1 : 0;
+		}
+		let vret = ScriptExec.initValueInfo();
+		vret.v.num = i | 0;
+		vret.v.type = TYPE_INTEGER;
 		return vret;
 	}
 
@@ -523,6 +581,54 @@ function ScriptExec(options) {
 	}
 
 	function integerCalcValue(ei, v1, v2, type) {
+		let i = v1.v.num | 0;
+		let j = v2.v.num | 0;
+		switch (type) {
+		case SYM_DIV:
+		case SYM_MOD:
+			if (j === 0) {
+				ei.err = {msg: errMsg.ERR_DIVZERO, line: ei.token[ei.index].line};
+				return null;
+			}
+			if (type === SYM_DIV) {
+				if (options.extension && (i % j) !== 0) {
+					return floatCalcValue(ei, v1, v2, type);
+				}
+				i /= j;
+			} else {
+				i %= j;
+			}
+			break;
+		case SYM_MULTI: i = Math.imul(i, j); break;
+		case SYM_ADD: i += j; break;
+		case SYM_SUB: i -= j; break;
+		case SYM_EQEQ: i = i === j; break;
+		case SYM_NTEQ: i = i !== j; break;
+		case SYM_LEFTEQ: i = i <= j; break;
+		case SYM_LEFT: i = i < j; break;
+		case SYM_RIGHTEQ: i = i >= j; break;
+		case SYM_RIGHT: i = i > j; break;
+		case SYM_AND: i &= j; break;
+		case SYM_OR: i |= j; break;
+		case SYM_XOR: i ^= j; break;
+		case SYM_LEFTSHIFT: i = i << j; break;
+		case SYM_RIGHTSHIFT: i = i >> j; break;
+		case SYM_LEFTSHIFT_LOGICAL: i = (i << j) >>> 0; break;
+		case SYM_RIGHTSHIFT_LOGICAL: i = i >>> j; break;
+		default:
+			ei.err = {msg: errMsg.ERR_OPERATOR, line: ei.token[ei.index].line};
+			return null;
+		}
+		if (typeof i === 'boolean') {
+			i = i ? 1 : 0;
+		}
+		const ret = ScriptExec.initValueInfo();
+		ret.v.num = i | 0;
+		ret.v.type = TYPE_INTEGER;
+		return ret;
+	}
+
+	function floatCalcValue(ei, v1, v2, type) {
 		let i = v1.v.num;
 		let j = v2.v.num;
 		switch (type) {
@@ -562,12 +668,13 @@ function ScriptExec(options) {
 			i = i ? 1 : 0;
 		}
 		const ret = ScriptExec.initValueInfo();
-		if (options.extension && i !== parseInt(i)) {
-			ret.v.type = TYPE_FLOAT;
+		if (i === parseInt(i)) {
+			ret.v.num = i | 0;
+			ret.v.type = TYPE_INTEGER;
+		} else {
 			ret.v.num = i;
-			return ret;
+			ret.v.type = TYPE_FLOAT;
 		}
-		ret.v.num = parseInt(i);
 		return ret;
 	}
 
@@ -650,6 +757,8 @@ function ScriptExec(options) {
 			return arrayCalcValue(ei, v1, v2, type);
 		} else if (v1.v.type === TYPE_STRING || v2.v.type === TYPE_STRING) {
 			return stringCalcValue(ei, v1, v2, type);
+		} else if (v1.v.type === TYPE_FLOAT || v2.v.type === TYPE_FLOAT) {
+			return floatCalcValue(ei, v1, v2, type);
 		}
 		return integerCalcValue(ei, v1, v2, type);
 	}
@@ -928,7 +1037,9 @@ function ScriptExec(options) {
 					break;
 				}
 				vi = stack.pop();
-				if (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT) {
+				if (vi.v.type === TYPE_FLOAT) {
+					vi = unaryCalcValueFloat(ei, vi, token.type);
+				} else if (vi.v.type === TYPE_INTEGER) {
 					vi = unaryCalcValue(ei, vi, token.type);
 				} else if (vi.v.type === TYPE_STRING) {
 					vi = unaryCalcString(ei, vi, token.type);
@@ -952,7 +1063,9 @@ function ScriptExec(options) {
 					break;
 				}
 				vi = stack.pop();
-				if (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT) {
+				if (vi.v.type === TYPE_FLOAT) {
+					vi = unaryCalcValueFloat(ei, vi, token.type);
+				} else if (vi.v.type === TYPE_INTEGER) {
 					vi = unaryCalcValue(ei, vi, token.type);
 				} else {
 					ei.err = {msg: errMsg.ERR_OPERATOR, line: ei.token[ei.index].line};

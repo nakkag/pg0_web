@@ -482,9 +482,9 @@ function ScriptParse(options) {
 				}
 				pi.str = m[0];
 				pi.buf = pi.buf.substr(m[0].length);
-			} else if (that.extension && /^0\./.test(pi.buf)) {
+			} else if (that.extension && /^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/.test(pi.buf)) {
 				pi.type = SYM_CONST_FLOAT;
-				const m = pi.buf.match(/0\.[0-9]+/);
+				const m = pi.buf.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/);
 				if (!m) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 					return;
@@ -625,11 +625,16 @@ function ScriptParse(options) {
 		case SYM_CONST_INT:
 			token = createToken(pi.type, pi.line);
 			if (/^0x/i.test(pi.str)) {
-				token.num = parseInt(pi.str, 16);
+				token.num = parseInt(pi.str, 16) | 0;
 			} else if (/^0/i.test(pi.str)) {
-				token.num = parseInt(pi.str, 8);
+				token.num = parseInt(pi.str, 8) | 0;
 			} else {
 				token.num = parseInt(pi.str, 10);
+				if (token.num > 0x7FFFFFFF) {
+					token.num = 0x7FFFFFFF | 0;
+				} else {
+					token.num = token.num | 0;
+				}
 			}
 			pi.token.push(token);
 			getToken(pi);
