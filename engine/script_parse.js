@@ -1610,8 +1610,8 @@ function ScriptParse(options) {
 
 	this.parse = function(buf, callbacks) {
 		callbacks = callbacks || {};
-		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptParse.noop;
-		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptParse.noop;
+		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : ScriptParse.noop;
+		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : ScriptParse.noop;
 
 		let pi = {
 			buf: buf,

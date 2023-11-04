@@ -538,7 +538,7 @@ function ScriptExec(options) {
 				i %= j;
 			}
 			break;
-		case SYM_MULTI: i *= j; break;
+		case SYM_MULTI: i = Math.imul(i, j); break;
 		case SYM_ADD: i += j; break;
 		case SYM_SUB: i -= j; break;
 		case SYM_EQEQ: i = i === j; break;
@@ -1167,9 +1167,9 @@ function ScriptExec(options) {
 
 	this.exec = function(token, vi, callbacks) {
 		callbacks = callbacks || {};
-		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptExec.noop;
-		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptExec.noop;
-		that.callback = (typeof callbacks.callback == 'function') ? callbacks.callback : ScriptExec.noop;
+		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : ScriptExec.noop;
+		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : ScriptExec.noop;
+		that.callback = (typeof callbacks.callback === 'function') ? callbacks.callback : ScriptExec.noop;
 
 		const ei = initExecInfo(token);
 		ei.vi = vi;
