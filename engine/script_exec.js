@@ -5,11 +5,132 @@ ScriptExec.noop = function() {};
 ScriptExec.lib = {};
 
 ScriptExec.lib['istype'] = function(ei, param, ret) {
-	if (!param) {
+	if (param.length === 0) {
 		return -2;
 	}
 	ret.v.num = param[0].v.type;
 	ret.v.type = TYPE_INTEGER;
+	return 0;
+};
+
+ScriptExec.lib['length'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		ret.v.num = param[0].v.array.length;
+		break;
+	case TYPE_STRING:
+		ret.v.num = param[0].v.str.length;
+		break;
+	default:
+		ret.v.num = ('' + param[0].v.num).length;
+		break;
+	}
+	ret.v.type = TYPE_INTEGER;
+	return 0;
+};
+
+ScriptExec.lib['array'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		ret.v.array = JSON.parse(JSON.stringify(param[0].v.array));
+		break;
+	case TYPE_STRING:
+		ret.v.array = ScriptExec.stringToArray(param[0].v.str);
+		break;
+	default:
+		ret.v.array = ScriptExec.stringToArray('' + param[0].v.num);
+		break;
+	}
+	ret.v.type = TYPE_ARRAY;
+	return 0;
+};
+
+ScriptExec.lib['string'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	if (param[0].v.type === TYPE_ARRAY) {
+		ret.v.str = ScriptExec.arrayToString(param[0].v.array);
+	} else {
+		ret.v.str = ScriptExec.getValueString(param[0].v);
+	}
+	ret.v.type = TYPE_STRING;
+	return 0;
+};
+
+ScriptExec.lib['number'] = function(ei, param, ret) {
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		const s = ScriptExec.arrayToString(param[0].v.array);
+		ret.v.num = ScriptExec.stringToNumber(s);
+		break;
+	case TYPE_STRING:
+		ret.v.num = ScriptExec.stringToNumber(param[0].v.str);
+		break;
+	default:
+		ret.v.num = param[0].v.num;
+		break;
+	}
+	if (!ret.v.num) {
+		ret.v.num = 0;
+	}
+	if (ret.v.num !== parseInt(ret.v.num)) {
+		ret.v.type = TYPE_FLOAT;
+	} else {
+		ret.v.type = TYPE_INTEGER;
+	}
+	return 0;
+};
+
+ScriptExec.lib['int'] = function(ei, param, ret) {
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		const s = ScriptExec.arrayToString(param[0].v.array);
+		ret.v.num = ScriptExec.stringToNumber(s);
+		break;
+	case TYPE_STRING:
+		ret.v.num = ScriptExec.stringToNumber(param[0].v.str);
+		break;
+	default:
+		ret.v.num = param[0].v.num;
+		break;
+	}
+	if (!ret.v.num) {
+		ret.v.num = 0;
+	}
+	ret.v.num = parseInt(ret.v.num);
+	ret.v.type = TYPE_INTEGER;
+	return 0;
+};
+
+ScriptExec.stringToArray = function(str) {
+	const ret = [];
+	let i = 0;
+	str.split('').forEach(function(s) {
+		ret[i++] = {name: '', v: {type: TYPE_STRING, str: s}};
+	});
+	return ret;
+};
+
+ScriptExec.arrayToString = function(from) {
+	let ret = '';
+	from.forEach(function(a) {
+		ret += ScriptExec.getValueString(a.v);
+	});
+	return ret;
+};
+
+ScriptExec.stringToNumber = function(str) {
+	const l = str.match(/^([0-9]+\.[0-9]*)|([0-9]+)/);
+	if (l) {
+		return Number(l[0]);
+	}
 	return 0;
 };
 
@@ -73,6 +194,10 @@ ScriptExec.getValueBoolean = function(v) {
 function ScriptExec(options) {
 	options = options || {};
 	const that = this;
+
+	function initExecInfo(token) {
+		return {token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
+	}
 
 	function setValue(to_v, from_v) {
 		let type = from_v.type;
@@ -165,7 +290,10 @@ function ScriptExec(options) {
 			if (token[i].type !== SYM_CASE) {
 				continue;
 			}
-			const cei = {parent: ei, vi: {}, token: token, index: i + 1, to_tk: SYM_LABELEND, stack: [], inc_vi: [], dec_vi: [], fi: []};
+			const cei = initExecInfo(token);
+			cei.parent = ei;
+			cei.index = i + 1;
+			cei.to_tk = SYM_LABELEND;
 			const ret = execSentense(cei);
 			if (ret === RET_ERROR) {
 				ei.err = cei.err;
@@ -396,7 +524,8 @@ function ScriptExec(options) {
 			case SYM_BOPEN:
 			case SYM_BOPEN_PRIMARY:
 				postfixValue(ei);
-				cei = {parent: ei, vi: {}, token: token.target, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
+				cei = initExecInfo(token.target);
+				cei.parent = ei;
 				ret = execSentense(cei);
 				if (ret === RET_ERROR || ret === RET_BREAK || ret === RET_CONTINUE) {
 					ei.err = cei.err;
@@ -486,7 +615,9 @@ function ScriptExec(options) {
 					}
 					break;
 				}
-				cei = {parent: ei, vi: {}, token: ei.token[ei.index].target, index: tmp_tk, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
+				cei = initExecInfo(ei.token[ei.index].target);
+				cei.parent = ei;
+				cei.index = tmp_tk;
 				ret = execSentense(cei);
 				if (ret !== RET_SUCCESS && ret !== RET_BREAK) {
 					ei.err = cei.err;
@@ -782,7 +913,8 @@ function ScriptExec(options) {
 	}
 
 	function execNameFunction(ei, index, param) {
-		const cei = {parent: ei, vi: {}, token: ei.token, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
+		const cei = initExecInfo(ei.token);
+		cei.parent = ei;
 		const i = expandArgument(cei, index + 1, param);
 		if (i == RET_ERROR || !ei.token[i].target) {
 			ei.err = cei.err;
@@ -808,19 +940,18 @@ function ScriptExec(options) {
 	}
 
 	function execFunction(ei, name, param) {
-		const lname = name.toLowerCase();
-		if (lname in ei.fi) {
-			return execNameFunction(ei, ei.fi[lname], param);
+		if (name in ei.fi) {
+			return execNameFunction(ei, ei.fi[name], param);
 		}
 		for (let i = 0; i < ei.token.length; i++) {
-			if (ei.token[i].type === SYM_FUNCSTART && ei.token[i].buf === lname) {
-				ei.fi[lname] = i;
+			if (ei.token[i].type === SYM_FUNCSTART && ei.token[i].buf === name) {
+				ei.fi[name] = i;
 				return execNameFunction(ei, i, param);
 			}
 		}
-		if (lname in ScriptExec.lib) {
+		if (name in ScriptExec.lib) {
 			const vret = {name: '', v: {type: TYPE_INTEGER, num: 0}};
-			const ret = ScriptExec.lib[lname](ei, param, vret);
+			const ret = ScriptExec.lib[name](ei, param, vret);
 			if (ret < 0) {
 				switch (ret) {
 				case -1:
@@ -843,7 +974,8 @@ function ScriptExec(options) {
 		callbacks.success = (typeof callbacks.success == 'function') ? callbacks.success : ScriptExec.noop;
 		callbacks.error = (typeof callbacks.error == 'function') ? callbacks.error : ScriptExec.noop;
 
-		const ei = {vi: vi, token: token, index: 0, to_tk: -1, stack: [], inc_vi: [], dec_vi: [], fi: []};
+		const ei = initExecInfo(token);
+		ei.vi = vi;
 		let ret = execSentense(ei);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};

@@ -6,6 +6,20 @@
 	<script type="text/javascript" src="script_parse.js"></script>
 	<script type="text/javascript" src="script_exec.js"></script>
 	<script type="text/javascript">
+	function arrayToString(array) {
+		let ret = '';
+		array.forEach(function(a) {
+			if (ret) {
+				ret = ret + ', ';
+			}
+			if (a.v.type === TYPE_ARRAY) {
+				ret += '{' + arrayToString(a.v.array) + '}';
+			} else {
+				ret += ScriptExec.getValueString(a.v);
+			}
+		});
+		return ret;
+	}
 	function exec() {
 		document.getElementById('result').innerHTML = '';
 		const buf = document.getElementById('src').value;
@@ -22,6 +36,8 @@
 									document.getElementById('result').innerHTML = 'Success: ' + value.num;
 								} else if (value.type === TYPE_STRING) {
 									document.getElementById('result').innerHTML = 'Success: ' + value.str;
+								} else if (value.type === TYPE_ARRAY) {
+									document.getElementById('result').innerHTML = 'Success: {' + arrayToString(value.array) + '}';
 								}
 							} else {
 								document.getElementById('result').innerHTML = 'Success';

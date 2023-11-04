@@ -1113,7 +1113,7 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (pi.extension && pi.type === SYM_IF) {
+			if (that.extension && pi.type === SYM_IF) {
 				ifStatement(pi);
 			} else {
 				if (pi.type !== SYM_BOPEN) {
