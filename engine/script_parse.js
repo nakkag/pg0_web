@@ -411,8 +411,7 @@ function ScriptParse(options) {
 			break;
 		case '/':
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '/') {
-				pi.buf = pi.buf.replace(/^\/\/.*\n/, '');
-				pi.line++;
+				pi.buf = pi.buf.replace(/^\/\/.*\n/, "\n");
 				getToken(pi);
 				return;
 			}

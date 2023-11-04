@@ -309,12 +309,12 @@ ScriptExec.getValueBoolean = function(v) {
 		}
 		break;
 	case TYPE_FLOAT:
-		if (v.num == 0.0) {
+		if (v.num === 0.0) {
 			return 0;
 		}
 		break;
 	default:
-		if (v.num == 0) {
+		if (v.num === 0) {
 			return 0;
 		}
 		break;
@@ -527,11 +527,11 @@ function ScriptExec(options) {
 		switch (type) {
 		case SYM_DIV:
 		case SYM_MOD:
-			if (j == 0) {
+			if (j === 0) {
 				ei.err = {msg: errMsg.ERR_DIVZERO, line: ei.token[ei.index].line};
 				return null;
 			}
-			if (type == SYM_DIV) {
+			if (type === SYM_DIV) {
 				i /= j;
 			} else {
 				i %= j;
@@ -540,8 +540,8 @@ function ScriptExec(options) {
 		case SYM_MULTI: i *= j; break;
 		case SYM_ADD: i += j; break;
 		case SYM_SUB: i -= j; break;
-		case SYM_EQEQ: i = i == j; break;
-		case SYM_NTEQ: i = i != j; break;
+		case SYM_EQEQ: i = i === j; break;
+		case SYM_NTEQ: i = i !== j; break;
 		case SYM_LEFTEQ: i = i <= j; break;
 		case SYM_LEFT: i = i < j; break;
 		case SYM_RIGHTEQ: i = i >= j; break;
@@ -673,7 +673,7 @@ function ScriptExec(options) {
 		let cp;
 
 		while (ei.index < ei.token.length && ei.token[ei.index].type != ei.to_tk) {
-			console.log('token=' + ei.token[ei.index].type + ', stack=' + JSON.stringify(stack) + ', vi=' + JSON.stringify(ei.vi));
+			//console.log('token=' + ei.token[ei.index].type + ', stack=' + JSON.stringify(stack) + ', vi=' + JSON.stringify(ei.vi));
 			const token = ei.token[ei.index];
 			switch (token.type) {
 			case SYM_BOPEN:
@@ -1064,7 +1064,7 @@ function ScriptExec(options) {
 		if (i < ei.token.length && ei.token[i].type !== SYM_FUNC) {
 			ei.index = i;
 			ei.to_tk = SYM_FUNC;
-			if (execSentense(ei, null) == RET_ERROR) {
+			if (execSentense(ei, null) === RET_ERROR) {
 				return RET_ERROR;
 			}
 			ei.index = 0;
@@ -1076,7 +1076,7 @@ function ScriptExec(options) {
 					eq = true;
 					break;
 				case SYM_WORDEND:
-					if (eq == false) {
+					if (!eq) {
 						ei.err = {msg: errMsg.ERR_ARGUMENTCNT, line: ei.token[ei.index].line};
 						return null;
 					}
@@ -1096,7 +1096,7 @@ function ScriptExec(options) {
 		const cei = initExecInfo(top.token);
 		cei.parent = top;
 		const i = expandArgument(cei, index + 1, param);
-		if (i == RET_ERROR || !top.token[i].target) {
+		if (i === RET_ERROR || !top.token[i].target) {
 			ei.err = cei.err;
 			return RET_ERROR;
 		}
