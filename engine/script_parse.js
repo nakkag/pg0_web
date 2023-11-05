@@ -1536,12 +1536,12 @@ function ScriptParse(sci) {
 		return m[1];
 	}
 
-	function preprocessor(buf) {
+	async function preprocessor(buf) {
 		if (/^import/i.test(buf)) {
-			that.import(getFileName(buf.substr('import'.length)));
+			await that.import(getFileName(buf.substr('import'.length)));
 		}
 		if (/^library/i.test(buf)) {
-			that.library(getFileName(buf.substr('library'.length)));
+			await that.library(getFileName(buf.substr('library'.length)));
 		}
 		if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(buf)) {
 			sci.extension = true;
@@ -1551,7 +1551,7 @@ function ScriptParse(sci) {
 		}
 	}
 
-	function statementList(pi) {
+	async function statementList(pi) {
 		pi.level++;
 		switch (pi.type) {
 		case SYM_EOF:
@@ -1562,7 +1562,7 @@ function ScriptParse(sci) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			preprocessor(m[0].replace(/\n/, ''));
+			await preprocessor(m[0].replace(/\n/, ''));
 			if (pi.err) {
 				return;
 			}
@@ -1637,7 +1637,7 @@ function ScriptParse(sci) {
 		pi.level--;
 	}
 
-	this.parse = function(buf, callbacks) {
+	this.parse = async function(buf, callbacks) {
 		callbacks = callbacks || {};
 		that.import = (typeof callbacks.import === 'function') ? callbacks.import : Script.noop;
 		that.library = (typeof callbacks.library === 'function') ? callbacks.library : Script.noop;
@@ -1659,17 +1659,17 @@ function ScriptParse(sci) {
 
 		getToken(pi);
 		if (pi.err) {
-			callbacks.error(pi.err);
+			await callbacks.error(pi.err);
 			return;
 		}
 		pi.token = [];
 		while (!pi.err && pi.type !== SYM_EOF) {
-			statementList(pi);
+			await statementList(pi);
 		}
 		if (pi.err) {
-			callbacks.error(pi.err);
+			await callbacks.error(pi.err);
 			return;
 		}
-		callbacks.success(pi.token);
+		await callbacks.success(pi.token);
 	};
 }

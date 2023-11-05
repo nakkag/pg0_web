@@ -462,7 +462,7 @@ function ScriptExec(scis, sci) {
 		return vi;
 	}
 
-	function findCase(ei, v1) {
+	async function findCase(ei, v1) {
 		const token = ei.token[ei.index].target;
 		for (let i = 0; i < token.length; i++) {
 			if (token[i].type !== SYM_CASE) {
@@ -472,7 +472,7 @@ function ScriptExec(scis, sci) {
 			cei.parent = ei;
 			cei.index = i + 1;
 			cei.to_tk = SYM_LABELEND;
-			const ret = execSentense(cei, null);
+			const ret = await execSentense(cei, null);
 			if (ret === RET_ERROR) {
 				ei.err = cei.err;
 				return -1;
@@ -800,7 +800,7 @@ function ScriptExec(scis, sci) {
 		ei.dec_vi = [];
 	}
 
-	function execSentense(ei, retvi) {
+	async function execSentense(ei, retvi) {
 		let cei;
 		let ret = RET_SUCCESS;
 		let retSt;
@@ -810,7 +810,7 @@ function ScriptExec(scis, sci) {
 
 		while (ei.index < ei.token.length && ei.token[ei.index].type != ei.to_tk) {
 			const token = ei.token[ei.index];
-			if (that.callback(ei)) {
+			if (await that.callback(ei)) {
 				ret = RET_EXIT;
 				break;
 			}
@@ -820,7 +820,7 @@ function ScriptExec(scis, sci) {
 				postfixValue(ei);
 				cei = initExecInfo(token.target);
 				cei.parent = ei;
-				ret = execSentense(cei, retvi);
+				ret = await execSentense(cei, retvi);
 				if (ret === RET_ERROR || ret === RET_BREAK || ret === RET_CONTINUE) {
 					ei.err = cei.err;
 				}
@@ -847,7 +847,7 @@ function ScriptExec(scis, sci) {
 				break;
 			case SYM_JUMP:
 				ei.index = token.link;
-				if (that.callback(ei)) {
+				if (await that.callback(ei)) {
 					ret = RET_EXIT;
 					break;
 				}
@@ -867,7 +867,7 @@ function ScriptExec(scis, sci) {
 					vi.v.num = cp;
 					stack.push(vi);
 					ei.index = token.link;
-					if (that.callback(ei)) {
+					if (await that.callback(ei)) {
 						ret = RET_EXIT;
 						break;
 					}
@@ -920,7 +920,7 @@ function ScriptExec(scis, sci) {
 				}
 				vi = stack.pop();
 				ei.index++;
-				const tmp_tk = findCase(ei, vi);
+				const tmp_tk = await findCase(ei, vi);
 				if (tmp_tk < 0) {
 					if (ei.err) {
 						ret = RET_ERROR;
@@ -930,7 +930,7 @@ function ScriptExec(scis, sci) {
 				cei = initExecInfo(ei.token[ei.index].target);
 				cei.parent = ei;
 				cei.index = tmp_tk;
-				ret = execSentense(cei, retvi);
+				ret = await execSentense(cei, retvi);
 				if (ret !== RET_SUCCESS && ret !== RET_BREAK) {
 					ei.err = cei.err;
 					break;
@@ -947,7 +947,7 @@ function ScriptExec(scis, sci) {
 				cei = initExecInfo(token.target);
 				cei.parent = ei;
 				cei.index = 0;
-				ret = execSentense(cei, retvi);
+				ret = await execSentense(cei, retvi);
 				if (ret !== RET_SUCCESS && ret !== RET_BREAK && ret !== RET_CONTINUE) {
 					break;
 				}
@@ -981,7 +981,7 @@ function ScriptExec(scis, sci) {
 					}
 					arg.push(vi);
 				}
-				v2 = execFunction(ei, token.buf, arg);
+				v2 = await execFunction(ei, token.buf, arg);
 				if (v2 === null || v2 === RET_ERROR) {
 					ret = RET_ERROR;
 					break;
@@ -1180,7 +1180,7 @@ function ScriptExec(scis, sci) {
 		return ret;
 	}
 
-	function expandArgument(ei, index, param) {
+	async function expandArgument(ei, index, param) {
 		let i = index;
 		let j = 0;
 		while (i < ei.token.length && ei.token[i].type !== SYM_FUNC && j < param.length) {
@@ -1215,7 +1215,7 @@ function ScriptExec(scis, sci) {
 		if (i < ei.token.length && ei.token[i].type !== SYM_FUNC) {
 			ei.index = i;
 			ei.to_tk = SYM_FUNC;
-			if (execSentense(ei, null) === RET_ERROR) {
+			if (await execSentense(ei, null) === RET_ERROR) {
 				return RET_ERROR;
 			}
 			ei.index = 0;
@@ -1243,17 +1243,17 @@ function ScriptExec(scis, sci) {
 		return i;
 	}
 
-	function execNameFunction(ei, top, index, param) {
+	async function execNameFunction(ei, top, index, param) {
 		const cei = initExecInfo(top.token);
 		cei.parent = top;
-		const i = expandArgument(cei, index + 1, param);
+		const i = await expandArgument(cei, index + 1, param);
 		if (i === RET_ERROR || !top.token[i].target) {
 			ei.err = cei.err;
 			return RET_ERROR;
 		}
 		cei.token = top.token[i].target;
 		const retvi = ScriptExec.initValueInfo();
-		const ret = execSentense(cei, retvi);
+		const ret = await execSentense(cei, retvi);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
 			return RET_ERROR;
@@ -1268,9 +1268,9 @@ function ScriptExec(scis, sci) {
 		return retvi;
 	}
 
-	function execLibFunction(ei, name, param) {
+	async function execLibFunction(ei, name, param) {
 		const vret = ScriptExec.initValueInfo();
-		const ret = ScriptExec.lib[name](ei, param.reverse(), vret);
+		const ret = await ScriptExec.lib[name](ei, param.reverse(), vret);
 		if (ret < 0) {
 			switch (ret) {
 			case -1:
@@ -1285,16 +1285,16 @@ function ScriptExec(scis, sci) {
 		return vret;
 	}
 
-	function execFunction(ei, name, param) {
+	async function execFunction(ei, name, param) {
 		let top = ei;
 		for (; top.parent; top = top.parent);
 		if (name in top.fi) {
-			return execNameFunction(ei, top, top.fi[name], param);
+			return await execNameFunction(ei, top, top.fi[name], param);
 		}
 		for (let i = 0; i < top.token.length; i++) {
 			if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
 				top.fi[name] = i;
-				return execNameFunction(ei, top, i, param);
+				return await execNameFunction(ei, top, i, param);
 			}
 		}
 		for (let i = 0; i < scis.length; i++) {
@@ -1303,23 +1303,27 @@ function ScriptExec(scis, sci) {
 			}
 			top = scis[i].ei;
 			if (name in top.fi) {
-				return execNameFunction(scis[i].ei, top, top.fi[name], param);
+				return await execNameFunction(scis[i].ei, top, top.fi[name], param);
 			}
 			for (let i = 0; i < top.token.length; i++) {
 				if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
 					top.fi[name] = i;
-					return execNameFunction(scis[i].ei, top, i, param);
+					const ret = await execNameFunction(scis[i].ei, top, i, param);
+					if (ret === RET_ERROR) {
+						ei.err = scis[i].ei.err;
+					}
+					return ret;
 				}
 			}
 		}
 		if (name in ScriptExec.lib) {
-			return execLibFunction(ei, name, param);
+			return await execLibFunction(ei, name, param);
 		}
 		ei.err = {msg: errMsg.ERR_FUNCTION, line: ei.token[ei.index].line};
 		return RET_ERROR;
 	}
 
-	this.exec = function(token, vi, callbacks) {
+	this.exec = async function(token, vi, callbacks) {
 		callbacks = callbacks || {};
 		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : Script.noop;
 		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : Script.noop;
@@ -1328,16 +1332,16 @@ function ScriptExec(scis, sci) {
 		sci.ei = initExecInfo(token);
 		sci.ei.vi = vi;
 		const retvi = ScriptExec.initValueInfo();
-		let ret = execSentense(sci.ei, retvi);
+		let ret = await execSentense(sci.ei, retvi);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			sci.ei.err = {msg: errMsg.ERR_SENTENCE, line: sci.ei.token[sci.ei.index].line};
 			ret = RET_ERROR;
 		}
 		if (ret === RET_ERROR) {
-			callbacks.error(sci.ei.err);
+			await callbacks.error(sci.ei.err);
 			return;
 		}
-		callbacks.success(retvi.v);
+		await callbacks.success(retvi.v);
 	};
 }
 
