@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>PG0(Web)</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+	<meta name="description" content="PG0(Web) - PG0 is a programming language for programming learning." />
+
+	<link rel="stylesheet" type="text/css" href="reset.css">
+	<link rel="stylesheet" type="text/css" href="pg0.css?v=1">
+	<script type="text/javascript" src="engine/script_common.js?v=1"></script>
+	<script type="text/javascript" src="engine/script_parse.js?v=1"></script>
+	<script type="text/javascript" src="engine/script_exec.js?v=1"></script>
+	<script type="text/javascript" src="pg0.js?v=1"></script>
+</head>
+<body>
+
+<div><input type="button" id="exec_button" value="Start" onclick="exec();"></input> <input type="button" id="step_button" value="Step" onclick="stepExec();"></input> <input type="button" id="stop_button" value="Stop" onclick="stop();"></input></div>
+<textarea id="src" style="width:350px;height:200px;">
+</textarea>
+<span id="variable"></span>
+<div><input type="button" value="Clear" onclick="clearResult();"></input></div>
+<hr />
+<div><span id="result"></span></div>
+
+</body>
+</html>
+
