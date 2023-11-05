@@ -1,5 +1,11 @@
 "use strict";
 
+const Script = {};
+Script.noop = function() {};
+Script.initScriptInfo = function() {
+	return {name: '', ei: null, extension: false, strict_val: false};
+};
+
 // Error message
 let errMsg = {
 	ERR_SENTENCE: 'Syntax error',

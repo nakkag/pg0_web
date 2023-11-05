@@ -59,12 +59,25 @@
 	}
 	function exec() {
 		const buf = document.getElementById('src').value;
-		const sp = new ScriptParse({extension: true, strict_val: false});
+		const sci = Script.initScriptInfo();
+		scis = [sci];
+		_exec(scis, sci, buf, false);
+	}
+	function _exec(scis, sci, buf, imp) {
+		const sp = new ScriptParse(sci);
 		try {
 			sp.parse(buf, {
+				import: function(file) {
+					const _buf = document.getElementById('src2').value;
+					const _sci = Script.initScriptInfo();
+					scis.push(_sci);
+					_exec(scis, _sci, _buf, true);
+				},
+				library: function(file) {
+				},
 				success: function(token) {
 					console.log(token);
-					const se = new ScriptExec({extension: sp.extension, strict_val: sp.strict_val});
+					const se = new ScriptExec(scis, sci);
 					try {
 						se.exec(token, {}, {
 							callback: function(ei) {
@@ -72,6 +85,9 @@
 								return 0;
 							},
 							success: function(value) {
+								if (imp) {
+									return;
+								}
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
 									document.getElementById('result').innerHTML += '<p>Result: ' + value.num + '</p><hr />';
 								} else if (value.type === TYPE_STRING) {
@@ -104,6 +120,17 @@
 <body>
 
 <textarea id="src" style="width:350px;height:200px;">
+#option("PG0.5")
+#import("hoge")
+
+a()
+</textarea>
+<textarea id="src2" style="width:350px;height:200px;">
+#option("PG0.5")
+
+function a() {
+print("aaa")
+}
 </textarea>
 <div><input type="button" value="Exec" onclick="exec();"></input> <input type="button" value="Clear" onclick="clearResult();"></input></div>
 <div><span id="result"></span></div>

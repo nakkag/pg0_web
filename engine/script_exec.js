@@ -1,7 +1,5 @@
 "use strict";
 
-ScriptExec.noop = function() {};
-
 ScriptExec.lib = {};
 
 ScriptExec.lib['istype'] = function(ei, param, ret) {
@@ -84,7 +82,7 @@ ScriptExec.lib['number'] = function(ei, param, ret) {
 	if (!ret.v.num) {
 		ret.v.num = 0;
 	}
-	if (ret.v.num !== parseInt(ret.v.num)) {
+	if (!ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_FLOAT;
 	} else {
 		ret.v.num = parseInt(ret.v.num) | 0;
@@ -112,7 +110,13 @@ ScriptExec.lib['int'] = function(ei, param, ret) {
 	if (!ret.v.num) {
 		ret.v.num = 0;
 	}
-	ret.v.num = parseInt(ret.v.num) | 0;
+	ret.v.num = parseInt(ret.v.num);
+	if (ret.v.num > 0x7FFFFFFF) {
+		ret.v.num = 0x7FFFFFFF;
+	} else if (ret.v.num < (0x80000000 | 0)) {
+		ret.v.num = 0x80000000;
+	}
+	ret.v.num = ret.v.num | 0;
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
@@ -239,6 +243,17 @@ ScriptExec.initValueInfo = function() {
 	return {name: '', v: {type: TYPE_INTEGER, num: 0}};
 };
 
+ScriptExec.checkInt = function(n) {
+	let i = parseInt(n);
+	if (n > 0x7FFFFFFF) {
+		n = 0x7FFFFFFF;
+	} else if (n < (0x80000000 | 0)) {
+		n = 0x80000000;
+	}
+	n = n | 0;
+	return n === i;
+};
+
 ScriptExec.stringToArray = function(str) {
 	const ret = [];
 	let i = 0;
@@ -260,15 +275,17 @@ ScriptExec.arrayToString = function(from) {
 };
 
 ScriptExec.stringToNumber = function(str) {
-	const f = str.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/);
+	const f = str.match(/^(\-|)(([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+))/);
 	if (f) {
 		return parseFloat(f[0]);
 	}
-	const i = str.match(/^[0-9]+/);
+	const i = str.match(/^(\-|)[0-9]+/);
 	if (i) {
 		let n = parseInt(i[0], 10);
 		if (n > 0x7FFFFFFF) {
 			n = 0x7FFFFFFF;
+		} else if (n < (0x80000000 | 0)) {
+			n = 0x80000000;
 		}
 		return n | 0;
 	}
@@ -332,10 +349,9 @@ ScriptExec.getValueBoolean = function(v) {
 	return 1;
 };
 
-function ScriptExec(options) {
+function ScriptExec(scis, sci) {
 	const that = this;
-	options = options || {};
-	this.callback = ScriptExec.noop;
+	this.callback = Script.noop;
 
 	function initExecInfo(token) {
 		return {token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
@@ -356,7 +372,7 @@ function ScriptExec(options) {
 			break;
 		case TYPE_FLOAT:
 			to_v.num = from_v.num;
-			if (to_v.num === parseInt(to_v.num)) {
+			if (ScriptExec.checkInt(to_v.num)) {
 				type = TYPE_INTEGER;
 			}
 			delete to_v.str;
@@ -365,6 +381,8 @@ function ScriptExec(options) {
 		default:
 			if (from_v.num > 0x7FFFFFFF) {
 				to_v.num = 0x7FFFFFFF | 0;
+			} else if (from_v.num < (0x80000000 | 0)) {
+				to_v.num = 0x80000000 | 0;
 			} else {
 				to_v.num = from_v.num | 0;
 			}
@@ -518,7 +536,7 @@ function ScriptExec(options) {
 			i = i ? 1 : 0;
 		}
 		let vret = ScriptExec.initValueInfo();
-		if (i === parseInt(i)) {
+		if (ScriptExec.checkInt(i)) {
 			vret.v.num = i | 0;
 			vret.v.type = TYPE_INTEGER;
 		} else {
@@ -599,7 +617,7 @@ function ScriptExec(options) {
 				return null;
 			}
 			if (type === SYM_DIV) {
-				if (options.extension && (i % j) !== 0) {
+				if (sci.extension && (i % j) !== 0) {
 					return floatCalcValue(ei, v1, v2, type);
 				}
 				i /= j;
@@ -652,7 +670,7 @@ function ScriptExec(options) {
 				i %= j;
 			}
 			break;
-		case SYM_MULTI: i = Math.imul(i, j); break;
+		case SYM_MULTI: i *= j; break;
 		case SYM_ADD: i += j; break;
 		case SYM_SUB: i -= j; break;
 		case SYM_EQEQ: i = i === j; break;
@@ -676,7 +694,7 @@ function ScriptExec(options) {
 			i = i ? 1 : 0;
 		}
 		const ret = ScriptExec.initValueInfo();
-		if (i === parseInt(i)) {
+		if (ScriptExec.checkInt(i)) {
 			ret.v.num = i | 0;
 			ret.v.type = TYPE_INTEGER;
 		} else {
@@ -988,7 +1006,7 @@ function ScriptExec(options) {
 			case SYM_VARIABLE:
 				vi = getVariable(ei, token.buf);
 				if (!vi) {
-					if (options.strict_val) {
+					if (sci.strict_val) {
 						ei.err = {msg: token.buf + errMsg.ERR_NOTDECLARE, line: ei.token[ei.index].line};
 						ret = RET_ERROR;
 						break;
@@ -1279,6 +1297,21 @@ function ScriptExec(options) {
 				return execNameFunction(ei, top, i, param);
 			}
 		}
+		for (let i = 0; i < scis.length; i++) {
+			if (!scis[i].ei) {
+				continue;
+			}
+			top = scis[i].ei;
+			if (name in top.fi) {
+				return execNameFunction(scis[i].ei, top, top.fi[name], param);
+			}
+			for (let i = 0; i < top.token.length; i++) {
+				if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
+					top.fi[name] = i;
+					return execNameFunction(scis[i].ei, top, i, param);
+				}
+			}
+		}
 		if (name in ScriptExec.lib) {
 			return execLibFunction(ei, name, param);
 		}
@@ -1288,20 +1321,20 @@ function ScriptExec(options) {
 
 	this.exec = function(token, vi, callbacks) {
 		callbacks = callbacks || {};
-		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : ScriptExec.noop;
-		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : ScriptExec.noop;
-		that.callback = (typeof callbacks.callback === 'function') ? callbacks.callback : ScriptExec.noop;
+		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : Script.noop;
+		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : Script.noop;
+		that.callback = (typeof callbacks.callback === 'function') ? callbacks.callback : Script.noop;
 
-		const ei = initExecInfo(token);
-		ei.vi = vi;
+		sci.ei = initExecInfo(token);
+		sci.ei.vi = vi;
 		const retvi = ScriptExec.initValueInfo();
-		let ret = execSentense(ei, retvi);
+		let ret = execSentense(sci.ei, retvi);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
-			ei.err = {msg: errMsg.ERR_SENTENCE, line: ei.token[ei.index].line};
+			sci.ei.err = {msg: errMsg.ERR_SENTENCE, line: sci.ei.token[sci.ei.index].line};
 			ret = RET_ERROR;
 		}
 		if (ret === RET_ERROR) {
-			callbacks.error(ei.err);
+			callbacks.error(sci.ei.err);
 			return;
 		}
 		callbacks.success(retvi.v);

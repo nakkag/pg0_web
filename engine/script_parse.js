@@ -1,13 +1,9 @@
 "use strict";
 
-ScriptParse.noop = function() {};
-
-function ScriptParse(options) {
-	options = options || {};
+function ScriptParse(sci) {
 	const that = this;
-
-	this.extension = options.extension || false;
-	this.strict_val = options.strict_val || false;
+	this.import = Script.noop;
+	this.library = Script.noop;
 
 	this.keyword = {
 		'var': SYM_VAR,
@@ -111,7 +107,7 @@ function ScriptParse(options) {
 			break;
 		case '&':
 			if (pi.concat) {
-				if (that.extension) {
+				if (sci.extension) {
 					break;
 				}
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -247,7 +243,7 @@ function ScriptParse(options) {
 		let p = pi.buf.substr(0, 1);
 		pi.type = '';
 
-		if (that.extension) {
+		if (sci.extension) {
 			getExtensionToken(pi, p);
 			if (pi.type) {
 				pi.buf = pi.buf.substr(1);
@@ -372,7 +368,7 @@ function ScriptParse(options) {
 			break;
 		case '&':
 			if (pi.concat) {
-				if (that.extension) {
+				if (sci.extension) {
 					break;
 				}
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -411,7 +407,7 @@ function ScriptParse(options) {
 			break;
 		case '/':
 			if (pi.buf.length > 1 && pi.buf.substr(1, 1) === '/') {
-				pi.buf = pi.buf.replace(/^\/\/.*\n/, "\n");
+				pi.buf = pi.buf.replace(/^\/\/.*(\n|$)/, "\n");
 				getToken(pi);
 				return;
 			}
@@ -466,7 +462,7 @@ function ScriptParse(options) {
 		pi.concat = false;
 		if (/^[0-9\.]/.test(p)) {
 			pi.type = SYM_CONST_INT;
-			if (that.extension && /^0x/i.test(pi.buf)) {
+			if (sci.extension && /^0x/i.test(pi.buf)) {
 				const m = pi.buf.match(/0x[0-9a-f]+/i);
 				if (!m) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -474,7 +470,7 @@ function ScriptParse(options) {
 				}
 				pi.str = m[0];
 				pi.buf = pi.buf.substr(m[0].length);
-			} else if (that.extension && /^0[0-9]/i.test(pi.buf)) {
+			} else if (sci.extension && /^0[0-9]/i.test(pi.buf)) {
 				const m = pi.buf.match(/[0-9]+/);
 				if (!m) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
@@ -482,7 +478,7 @@ function ScriptParse(options) {
 				}
 				pi.str = m[0];
 				pi.buf = pi.buf.substr(m[0].length);
-			} else if (that.extension && /^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/.test(pi.buf)) {
+			} else if (sci.extension && /^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/.test(pi.buf)) {
 				pi.type = SYM_CONST_FLOAT;
 				const m = pi.buf.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/);
 				if (!m) {
@@ -504,7 +500,7 @@ function ScriptParse(options) {
 		}
 
 		let m;
-		if (that.extension) {
+		if (sci.extension) {
 			m = pi.buf.match(/(&[a-z0-9_]+)|([a-z0-9_]+)/i);
 		} else {
 			m = pi.buf.match(/[a-z0-9_]+/i);
@@ -518,7 +514,7 @@ function ScriptParse(options) {
 		pi.buf = pi.buf.replace(/^[ \t　]+/, '');
 
 		pi.type = that.keyword[pi.str];
-		if (that.extension && !pi.type) {
+		if (sci.extension && !pi.type) {
 			pi.type = that.extensionKeyword[pi.str];
 		}
 		if (pi.type) {
@@ -526,7 +522,7 @@ function ScriptParse(options) {
 			return;
 		}
 
-		if (that.extension && /^\(/i.test(pi.buf)) {
+		if (sci.extension && /^\(/i.test(pi.buf)) {
 			pi.type = SYM_FUNC;
 			pi.concat = true;
 		} else {
@@ -1119,7 +1115,7 @@ function ScriptParse(options) {
 			if (pi.err) {
 				return;
 			}
-			if (that.extension && pi.type === SYM_IF) {
+			if (sci.extension && pi.type === SYM_IF) {
 				ifStatement(pi);
 			} else {
 				if (pi.type !== SYM_BOPEN) {
@@ -1529,20 +1525,48 @@ function ScriptParse(options) {
 		getToken(pi);
 	}
 
+	function getFileName(buf) {
+		let m = buf.match(/^ *\( *"(.+)" *\) *$/);
+		if (!m || m.length < 2) {
+			m = buf.match(/^ *\( *'(.+)' *\) *$/);
+			if (!m || m.length < 2) {
+				return '';
+			}
+		}
+		return m[1];
+	}
+
+	function preprocessor(buf) {
+		if (/^import/i.test(buf)) {
+			that.import(getFileName(buf.substr('import'.length)));
+		}
+		if (/^library/i.test(buf)) {
+			that.library(getFileName(buf.substr('library'.length)));
+		}
+		if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(buf)) {
+			sci.extension = true;
+		}
+		if (/^(option\ *\( *"strict" *\))|(option\ *\( *'strict' *\))/i.test(buf)) {
+			sci.strict_val = true;
+		}
+	}
+
 	function statementList(pi) {
 		pi.level++;
 		switch (pi.type) {
 		case SYM_EOF:
 			break;
 		case SYM_PREP:
-			if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(pi.buf)) {
-				that.extension = true;
+			const m = pi.buf.match(/^.+(\n|$)/);
+			if (!m) {
+				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
+				return;
 			}
-			if (/^(option\ *\( *"strict" *\))|(option\ *\( *'strict' *\))/i.test(pi.buf)) {
-				that.strict_val = true;
+			preprocessor(m[0].replace(/\n/, ''));
+			if (pi.err) {
+				return;
 			}
-			pi.buf = pi.buf.replace(/^.*\n/, '');
-			pi.line++;
+			pi.buf = pi.buf.replace(/^.*(\n|$)/, "\n");
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -1615,8 +1639,10 @@ function ScriptParse(options) {
 
 	this.parse = function(buf, callbacks) {
 		callbacks = callbacks || {};
-		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : ScriptParse.noop;
-		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : ScriptParse.noop;
+		that.import = (typeof callbacks.import === 'function') ? callbacks.import : Script.noop;
+		that.library = (typeof callbacks.library === 'function') ? callbacks.library : Script.noop;
+		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : Script.noop;
+		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : Script.noop;
 
 		let pi = {
 			buf: buf,
