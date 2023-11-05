@@ -59,7 +59,7 @@
 	}
 	function exec() {
 		const buf = document.getElementById('src').value;
-		const sci = Script.initScriptInfo();
+		const sci = Script.initScriptInfo({extension: true});
 		scis = [sci];
 		_exec(scis, sci, buf, false);
 	}
@@ -69,7 +69,7 @@
 			sp.parse(buf, {
 				import: function(file) {
 					const _buf = document.getElementById('src2').value;
-					const _sci = Script.initScriptInfo();
+					const _sci = Script.initScriptInfo({extension: true});
 					scis.push(_sci);
 					_exec(scis, _sci, _buf, true);
 				},
@@ -120,14 +120,11 @@
 <body>
 
 <textarea id="src" style="width:350px;height:200px;">
-#option("PG0.5")
 #import("hoge")
 
 a()
 </textarea>
 <textarea id="src2" style="width:350px;height:200px;">
-#option("PG0.5")
-
 function a() {
 print("aaa")
 }
