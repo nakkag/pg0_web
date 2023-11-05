@@ -3,7 +3,7 @@
 const Script = {};
 Script.noop = function() {};
 Script.initScriptInfo = function(options) {
-	return {name: '', ei: null, extension: (options.extension ? true : false), strict_val: (options.strict_val ? true : false)};
+	return {name: '', ei: null, extension: (options.extension || false), strict_val: (options.strict_val || false)};
 };
 
 // Error message
