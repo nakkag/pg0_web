@@ -58,10 +58,17 @@
 		});
 		return ret;
 	}
+	let run = false;
 	async function exec() {
+		if (document.getElementById("exec_button").value === 'Stop') {
+			run = false;
+			return;
+		}
+		run = true;
+		document.getElementById("exec_button").value = 'Stop';
 		const elm = document.getElementsByClassName('lib');
 		if (0 < elm.length) {
-			[...elm].forEach(function(v) {
+			Array.from(elm).forEach(function(v) {
 				return v.remove();
 			});
 		}
@@ -70,6 +77,8 @@
 		scis = [sci];
 		await _exec(scis, sci, buf, false);
 		document.getElementById('result').innerHTML += '<hr />';
+		document.getElementById("exec_button").value = 'Exec';
+		run = false;
 	}
 	async function loadScript(file) {
 		return new Promise((resolve, reject) => {
@@ -95,12 +104,21 @@
 					await loadScript(file);
 				},
 				success: async function(token) {
-					console.log(token);
+					//console.log(token);
 					const se = new ScriptExec(scis, sci);
 					try {
+						let syncCnt = 0;
 						await se.exec(token, {}, {
 							callback: async function(ei) {
 								//console.log('token=' + ei.token[ei.index].type + ', vi=' + JSON.stringify(ei.vi));
+								syncCnt++;
+								if (syncCnt > 1000) {
+									await new Promise(resolve => setTimeout(resolve, 0));
+									syncCnt = 0;
+								}
+								if (!run) {
+									return 1;
+								}
 								return 0;
 							},
 							success: async function(value) {
@@ -149,7 +167,7 @@ function a() {
 debug("aaa")
 }
 </textarea>
-<div><input type="button" value="Exec" onclick="exec();"></input> <input type="button" value="Clear" onclick="clearResult();"></input></div>
+<div><input type="button" id="exec_button" value="Exec" onclick="exec();"></input> <input type="button" value="Clear" onclick="clearResult();"></input></div>
 <hr />
 <div><span id="result"></span></div>
 
