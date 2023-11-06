@@ -144,13 +144,22 @@ async function _exec(scis, sci, buf, imp) {
 	try {
 		await sp.parse(buf, {
 			import: async function(file) {
+				if (!document.getElementById(file)) {
+					return -1;
+				}
 				const _buf = document.getElementById(file).value;
 				const _sci = Script.initScriptInfo({extension: true});
 				scis.push(_sci);
 				await _exec(scis, _sci, _buf, false, true);
+				return 0;
 			},
 			library: async function(file) {
-				await loadScript(file);
+				try {
+					await loadScript(file);
+				} catch(e) {
+					return -1;
+				}
+				return 0;
 			},
 			success: async function(token) {
 				//console.log(token);
@@ -210,6 +219,7 @@ async function _exec(scis, sci, buf, imp) {
 		});
 	} catch(e) {
 		document.getElementById('result').innerHTML += '<p class="error">Parse Error: ' + e + '</p>';
+		throw e;
 	}
 }
 

@@ -1536,12 +1536,18 @@ function ScriptParse(sci) {
 		return m[1];
 	}
 
-	async function preprocessor(buf) {
+	async function preprocessor(pi, buf) {
 		if (/^import/i.test(buf)) {
-			await that.import(getFileName(buf.substr('import'.length)));
+			if (await that.import(getFileName(buf.substr('import'.length)))) {
+				pi.err = {msg: errMsg.ERR_SCRIPT, line: pi.line};
+				return;
+			}
 		}
 		if (/^library/i.test(buf)) {
-			await that.library(getFileName(buf.substr('library'.length)));
+			if (await that.library(getFileName(buf.substr('library'.length)))) {
+				pi.err = {msg: errMsg.ERR_SCRIPT, line: pi.line};
+				return;
+			}
 		}
 		if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(buf)) {
 			sci.extension = true;
@@ -1562,7 +1568,7 @@ function ScriptParse(sci) {
 				pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 				return;
 			}
-			await preprocessor(m[0].replace(/\n/, ''));
+			await preprocessor(pi, m[0].replace(/\n/, ''));
 			if (pi.err) {
 				return;
 			}
