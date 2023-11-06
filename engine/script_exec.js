@@ -19,11 +19,8 @@ ScriptExec.lib['length'] = function(ei, param, ret) {
 	case TYPE_ARRAY:
 		ret.v.num = param[0].v.array.length;
 		break;
-	case TYPE_STRING:
-		ret.v.num = param[0].v.str.length;
-		break;
 	default:
-		ret.v.num = ('' + param[0].v.num).length;
+		ret.v.num = ScriptExec.getValueString(param[0].v).length;
 		break;
 	}
 	ret.v.num = ret.v.num | 0;
@@ -39,11 +36,8 @@ ScriptExec.lib['array'] = function(ei, param, ret) {
 	case TYPE_ARRAY:
 		ret.v.array = JSON.parse(JSON.stringify(param[0].v.array));
 		break;
-	case TYPE_STRING:
-		ret.v.array = ScriptExec.stringToArray(param[0].v.str);
-		break;
 	default:
-		ret.v.array = ScriptExec.stringToArray('' + param[0].v.num);
+		ret.v.array = ScriptExec.stringToArray(ScriptExec.getValueString(param[0].v));
 		break;
 	}
 	ret.v.type = TYPE_ARRAY;
@@ -144,9 +138,6 @@ ScriptExec.lib['code'] = function(ei, param, ret) {
 	case TYPE_ARRAY:
 		ret.v.num = ScriptExec.arrayToString(param[0].v.array).codePointAt(index);
 		break;
-	case TYPE_STRING:
-		ret.v.num = param[0].v.str.codePointAt(index);
-		break;
 	default:
 		ret.v.num = ScriptExec.getValueString(param[0].v).codePointAt(index);
 		break;
@@ -244,6 +235,9 @@ ScriptExec.initValueInfo = function() {
 };
 
 ScriptExec.checkInt = function(n) {
+	if (!Number.isInteger(n)) {
+		return false;
+	}
 	let i = parseInt(n);
 	if (n > 0x7FFFFFFF) {
 		n = 0x7FFFFFFF;
@@ -275,7 +269,7 @@ ScriptExec.arrayToString = function(from) {
 };
 
 ScriptExec.stringToNumber = function(str) {
-	const f = str.match(/^(\-|)(([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+))/);
+	const f = str.match(/(^(\-|)([0-9]+\.[0-9]*))|(^(\-|)([0-9]*\.[0-9]+))/);
 	if (f) {
 		return parseFloat(f[0]);
 	}
@@ -310,6 +304,14 @@ ScriptExec.getValueString = function(v) {
 		break;
 	case TYPE_STRING:
 		buf = v.str;
+		break;
+	case TYPE_FLOAT:
+		if (Number.isInteger(v.num)) {
+			buf = v.num + '.0000000000000000';
+		} else {
+			const len = ('' +  parseInt(v.num)).length + 1 + 16;
+			buf = (v.num + '0000000000000000').substr(0, len);
+		}
 		break;
 	default:
 		buf = '' + v.num;
@@ -705,17 +707,8 @@ function ScriptExec(scis, sci) {
 	}
 
 	function stringCalcValue(ei, v1, v2, type) {
-		let p1, p2;
-		if (v1.v.type === TYPE_INTEGER || v1.v.type === TYPE_FLOAT) {
-			p1 = '' + v1.v.num;
-		} else {
-			p1 = v1.v.str;
-		}
-		if (v2.v.type === TYPE_INTEGER || v2.v.type === TYPE_FLOAT) {
-			p2 = '' + v2.v.num;
-		} else {
-			p2 = v2.v.str;
-		}
+		let p1 = ScriptExec.getValueString(v1.v);
+		let p2 = ScriptExec.getValueString(v2.v);
 		let i;
 		const ret = ScriptExec.initValueInfo();
 		switch (type) {
@@ -949,6 +942,7 @@ function ScriptExec(scis, sci) {
 				cei.index = 0;
 				ret = await execSentense(cei, retvi);
 				if (ret !== RET_SUCCESS && ret !== RET_BREAK && ret !== RET_CONTINUE) {
+					ei.err = cei.err;
 					break;
 				}
 				if (ret === RET_BREAK) {

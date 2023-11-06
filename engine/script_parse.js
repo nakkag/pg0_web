@@ -478,9 +478,9 @@ function ScriptParse(sci) {
 				}
 				pi.str = m[0];
 				pi.buf = pi.buf.substr(m[0].length);
-			} else if (sci.extension && /^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/.test(pi.buf)) {
+			} else if (sci.extension && /(^[0-9]+\.[0-9]*)|(^[0-9]*\.[0-9]+)/.test(pi.buf)) {
 				pi.type = SYM_CONST_FLOAT;
-				const m = pi.buf.match(/^([0-9]+\.[0-9]*)|([0-9]*\.[0-9]+)/);
+				const m = pi.buf.match(/(^[0-9]+\.[0-9]*)|(^[0-9]*\.[0-9]+)/);
 				if (!m) {
 					pi.err = {msg: errMsg.ERR_SENTENCE, line: pi.line};
 					return;
@@ -1530,7 +1530,10 @@ function ScriptParse(sci) {
 		if (!m || m.length < 2) {
 			m = buf.match(/^ *\( *'(.+)' *\) *$/);
 			if (!m || m.length < 2) {
-				return '';
+				m = buf.match(/^ *\( *(.+) *\) *$/);
+				if (!m || m.length < 2) {
+					return '';
+				}
 			}
 		}
 		return m[1];
@@ -1538,13 +1541,23 @@ function ScriptParse(sci) {
 
 	async function preprocessor(pi, buf) {
 		if (/^import/i.test(buf)) {
-			if (await that.import(getFileName(buf.substr('import'.length)))) {
-				pi.err = {msg: errMsg.ERR_SCRIPT, line: pi.line};
-				return;
+			let fn = getFileName(buf.substr('import'.length));
+			if (await that.import(fn)) {
+				if (!/\.js$/i.test(fn)) {
+					fn += '.js';
+				}
+				if (await that.library(fn)) {
+					pi.err = {msg: errMsg.ERR_SCRIPT, line: pi.line};
+					return;
+				}
 			}
 		}
 		if (/^library/i.test(buf)) {
-			if (await that.library(getFileName(buf.substr('library'.length)))) {
+			let fn = getFileName(buf.substr('library'.length));
+			if (!/\.js$/i.test(fn)) {
+				fn += '.js';
+			}
+			if (await that.library(fn)) {
 				pi.err = {msg: errMsg.ERR_SCRIPT, line: pi.line};
 				return;
 			}

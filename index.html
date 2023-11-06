@@ -15,7 +15,14 @@
 </head>
 <body>
 
-<div><input type="button" id="exec_button" value="Start" onclick="exec();"></input> <input type="button" id="step_button" value="Step" onclick="stepExec();"></input> <input type="button" id="stop_button" value="Stop" onclick="stop();"></input></div>
+<div><input type="button" id="exec_button" value="Start" onclick="exec();"></input> <input type="button" id="step_button" value="Step" onclick="stepExec();"></input> <input type="button" id="stop_button" value="Stop" onclick="stop();"></input> 
+<select name="speed" id="speed">
+  <option value="0">No Wait</option>
+  <option value="1">Fast</option>
+  <option value="250">Normal</option>
+  <option value="500">Slow</option>
+</select>
+</div>
 <textarea id="src" style="width:350px;height:200px;">
 </textarea>
 <span id="variable"></span>

@@ -44,9 +44,9 @@ function arrayToString(array) {
 		if (a.v.type === TYPE_ARRAY) {
 			ret += '{' + arrayToString(a.v.array) + '}';
 		} else if (a.v.type === TYPE_STRING) {
-			ret += '"' + a.v.str + '"';
+			ret += '"' + ScriptExec.getValueString(a.v) + '"';
 		} else {
-			ret += a.v.num;
+			ret += ScriptExec.getValueString(a.v);
 		}
 	});
 	return ret;
@@ -65,9 +65,9 @@ function showVariable(ei) {
 		if (v.type === TYPE_ARRAY) {
 			buf += '{' + escapeHTML(arrayToString(v.array)) + '}'
 		} else if (v.type === TYPE_STRING) {
-			buf += '"' + escapeHTML(v.str) + '"'
+			buf += '"' + escapeHTML(ScriptExec.getValueString(v)) + '"'
 		} else {
-			buf += v.num;
+			buf += escapeHTML(ScriptExec.getValueString(v));
 		}
 		buf += '<br />';
 	}
@@ -169,21 +169,28 @@ async function _exec(scis, sci, buf, imp) {
 					await se.exec(token, {}, {
 						callback: async function(ei) {
 							//console.log('line=' + ei.token[ei.index].line + ', token=' + ei.token[ei.index].type + ', vi=' + JSON.stringify(ei.vi));
-							if (step) {
-								if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
-									execLine = ei.token[ei.index].line;
+							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
+								execLine = ei.token[ei.index].line;
+								if (step) {
 									document.getElementById('variable').innerHTML = '';
 									showVariable(ei);
 									while (!nextStep && run) {
 										await new Promise(resolve => setTimeout(resolve, 100));
 									}
 									nextStep = false;
-								}
-							} else {
-								syncCnt++;
-								if (syncCnt > 1000) {
-									await new Promise(resolve => setTimeout(resolve, 0));
-									syncCnt = 0;
+								} else {
+									const speed = parseInt(document.getElementById('speed').value);
+									if (speed === 0) {
+										syncCnt++;
+										if (syncCnt > 1000) {
+											await new Promise(resolve => setTimeout(resolve, 0));
+											syncCnt = 0;
+										}
+									} else {
+										document.getElementById('variable').innerHTML = '';
+										showVariable(ei);
+										await new Promise(resolve => setTimeout(resolve, speed));
+									}
 								}
 							}
 							if (!run) {
@@ -196,9 +203,9 @@ async function _exec(scis, sci, buf, imp) {
 								return;
 							}
 							if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-								document.getElementById('result').innerHTML += '<p>Result: ' + value.num + '</p>';
+								document.getElementById('result').innerHTML += '<p>Result: ' + escapeHTML(ScriptExec.getValueString(value)) + '</p>';
 							} else if (value.type === TYPE_STRING) {
-								document.getElementById('result').innerHTML += '<p>Result: ' + escapeHTML(value.str) + '</p>';
+								document.getElementById('result').innerHTML += '<p>Result: "' + escapeHTML(ScriptExec.getValueString(value)) + '"</p>';
 							} else if (value.type === TYPE_ARRAY) {
 								document.getElementById('result').innerHTML += '<p>Result: {' + escapeHTML(arrayToString(value.array)) + '}</p>';
 							}
@@ -206,20 +213,19 @@ async function _exec(scis, sci, buf, imp) {
 							showVariable(sci.ei);
 						},
 						error: async function(error) {
-							document.getElementById('result').innerHTML += '<p class="error">Exec Error: ' + error.msg + ' (' + (error.line + 1) + ')</p>';
+							document.getElementById('result').innerHTML += '<p class="error">Error: ' + error.msg + ' (' + (error.line + 1) + ')</p>';
 						}
 					});
 				} catch(e) {
-					document.getElementById('result').innerHTML += '<p class="error">Exec Error: ' + e + '</p>';
+					document.getElementById('result').innerHTML += '<p class="error">Error: ' + e + '</p>';
 				}
 			},
 			error: async function(error) {
-				document.getElementById('result').innerHTML += '<p class="error">Parse Error: ' + error.msg + ' (' + (error.line + 1) + ')</p>';
+				document.getElementById('result').innerHTML += '<p class="error">Error: ' + error.msg + ' (' + (error.line + 1) + ')</p>';
 			}
 		});
 	} catch(e) {
-		document.getElementById('result').innerHTML += '<p class="error">Parse Error: ' + e + '</p>';
-		throw e;
+		document.getElementById('result').innerHTML += '<p class="error">Error: ' + e + '</p>';
 	}
 }
 
