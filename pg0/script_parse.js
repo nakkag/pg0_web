@@ -1525,14 +1525,14 @@ function ScriptParse(sci) {
 		getToken(pi);
 	}
 
-	function getFileName(buf) {
+	function getContent(buf) {
 		let m = buf.match(/^ *\( *"(.+)" *\) *$/);
 		if (!m || m.length < 2) {
 			m = buf.match(/^ *\( *'(.+)' *\) *$/);
 			if (!m || m.length < 2) {
 				m = buf.match(/^ *\( *(.+) *\) *$/);
 				if (!m || m.length < 2) {
-					return '';
+					return null;
 				}
 			}
 		}
@@ -1540,23 +1540,42 @@ function ScriptParse(sci) {
 	}
 
 	async function preprocessor(pi, buf) {
-		if (/^import/i.test(buf)) {
-			let fn = getFileName(buf.substr('import'.length));
-			if (await that.import(fn)) {
-				if (!/\.js$/i.test(fn)) {
-					fn += '.js';
+		const c = buf.match(/^[^\(]+/);
+		if (!c) {
+			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			return;
+		}
+		const cmd = c[0].trim().toLowerCase();
+		let content = getContent(buf.replace(/^[^\(]+/, ''));
+		if (!content) {
+			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			return;
+		}
+		switch(cmd) {
+		case 'import':
+			if (await that.import(content)) {
+				if (!/\.js$/i.test(content)) {
+					content += '.js';
 				}
-				if (await that.library(fn)) {
+				if (await that.library(content)) {
 					pi.err = Script.error(sci, errMsg.ERR_SCRIPT, pi.line);
 					return;
 				}
 			}
-		}
-		if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(buf)) {
-			sci.extension = true;
-		}
-		if (/^(option\ *\( *"strict" *\))|(option\ *\( *'strict' *\))/i.test(buf)) {
-			sci.strict_val = true;
+			break;
+		case 'option':
+			content = content.toLowerCase();
+			if (content === 'pg0.5') {
+				sci.extension = true;
+			} else if (content === 'strict') {
+				sci.strict_val = true;
+			} else {
+				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			}
+			break;
+		default:
+			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			break;
 		}
 	}
 
