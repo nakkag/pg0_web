@@ -22,36 +22,3 @@ body {
 	opacity: 0.5;
 	filter: grayscale(1);
 }
-
-.time {
-	color: #808080;
-}
-
-.info {
-	color: #0000ff;
-}
-
-.error {
-	color: red;
-}
-
-#console_container {
-	position: absolute;
-	bottom: 0;
-	width: 100%;
-}
-
-#console_wrapper {
-	overflow-x: hidden;
-	overflow-y: scroll;
-	height: 300px;
-}
-
-#console {
-	line-height: 1.3;
-}
-
-#console hr {
-	margin: 0.5em 0;
-}
-

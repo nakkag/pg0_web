@@ -10,7 +10,7 @@ ScriptExec.lib['error'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	putConsoleTime(`<span class="error">${escapeHTML(str)}</span>`);
+	consoleView.error(`${escapeHTML(str)}`);
 	return 0;
 };
 
@@ -24,7 +24,7 @@ ScriptExec.lib['print'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	putConsole(escapeHTML(str).replace(/\\n/, '<br />'));
+	consoleView.put(escapeHTML(str).replace(/\\n/, '<br />'));
 	return 0;
 };
 
@@ -36,22 +36,6 @@ ScriptExec.lib['input'] = async function(ei, param, ret) {
 	}
 	return 0;
 };
-
-function putConsole(msg) {
-	const console = document.getElementById('console');
-	const wrapper = document.getElementById('console_wrapper');
-	const toBottom = wrapper.scrollTop + wrapper.clientHeight >= console.offsetHeight;
-	console.innerHTML += msg;
-	if (toBottom) {
-		wrapper.scrollTop = wrapper.scrollHeight - wrapper.clientHeight;
-	}
-}
-
-function putConsoleTime(msg) {
-	const time = date_format.formatTime(new Date(), navigator.language);
-	msg = `<div><span class="time">${time}</span> ${msg}</div>`;
-	putConsole(msg);
-}
 
 function escapeHTML(str) {
 	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -123,9 +107,9 @@ async function exec(_step) {
 	execLine = -1;
 	nextStep = false;
 	if (document.getElementById('console').childElementCount > 0) {
-		putConsole('<hr />');
+		consoleView.put('<hr />');
 	}
-	putConsoleTime(`<span class="info">${runMsg.CONSOLE_START}</span>`);
+	consoleView.info(runMsg.CONSOLE_START);
 	document.getElementById('stop_button').removeAttribute('disabled');
 	document.getElementById('variable').innerHTML = '';
 	const elm = document.getElementsByClassName('lib');
@@ -135,9 +119,9 @@ async function exec(_step) {
 		});
 	}
 	const extension = document.getElementById('kind').value === 'PG0' ? false : true;
-	const sci = Script.initScriptInfo({extension: extension});
+	const sci = Script.initScriptInfo(buf, {extension: extension});
 	const scis = [sci];
-	await _exec(scis, sci, buf, false);
+	await _exec(scis, sci, false);
 	document.getElementById('stop_button').setAttribute('disabled', true);
 	run = false;
 }
@@ -153,18 +137,21 @@ async function loadScript(file) {
 	});
 }
 
-async function _exec(scis, sci, buf, imp) {
+async function _exec(scis, sci, imp) {
 	const sp = new ScriptParse(sci);
 	try {
-		await sp.parse(buf, {
+		await sp.parse(sci.src, {
 			import: async function(file) {
 				if (!document.getElementById(file)) {
 					return -1;
 				}
 				const _buf = document.getElementById(file).value;
-				const _sci = Script.initScriptInfo({extension: true});
+				if (!_buf) {
+					return 0;
+				}
+				const _sci = Script.initScriptInfo(_buf, {extension: true});
 				scis.push(_sci);
-				await _exec(scis, _sci, _buf, false, true);
+				await _exec(scis, _sci, false, true);
 				return 0;
 			},
 			library: async function(file) {
@@ -217,17 +204,17 @@ async function _exec(scis, sci, buf, imp) {
 								return;
 							}
 							if (run) {
-								putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+								consoleView.info(runMsg.CONSOLE_END);
 							} else {
-								putConsoleTime(`<span class="info">${runMsg.CONSOLE_STOP}</span>`);
+								consoleView.info(runMsg.CONSOLE_STOP);
 							}
 							if (value) {
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> ${escapeHTML(ScriptExec.getValueString(value))}`);
+									consoleView.info(runMsg.CONSOLE_RESULT, escapeHTML(ScriptExec.getValueString(value)));
 								} else if (value.type === TYPE_STRING) {
-									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> "${escapeHTML(ScriptExec.getValueString(value))}"`);
+									consoleView.info(runMsg.CONSOLE_RESULT, `"${escapeHTML(ScriptExec.getValueString(value))}"`);
 								} else if (value.type === TYPE_ARRAY) {
-									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> {${escapeHTML(arrayToString(value.array))}}`);
+									consoleView.info(runMsg.CONSOLE_RESULT, `{${escapeHTML(arrayToString(value.array))}}`);
 								}
 							}
 							if (run) {
@@ -236,23 +223,23 @@ async function _exec(scis, sci, buf, imp) {
 							}
 						},
 						error: async function(error) {
-							putConsoleTime(`<span class="error">Error: ${error.msg} (${error.line + 1})</span>`);
-							putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${error.src}`);
+							consoleView.info(runMsg.CONSOLE_END);
 						}
 					});
 				} catch(e) {
-					putConsoleTime(`<span class="error">Error: ${e}</span>`);
-					putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+					consoleView.error(`Error: ${e.message}`);
+					consoleView.info(runMsg.CONSOLE_END);
 				}
 			},
 			error: async function(error) {
-				putConsoleTime(`<span class="error">Error: ${error.msg} (${error.line + 1})</span>`);
-				putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${error.src}`);
+				consoleView.info(runMsg.CONSOLE_END);
 			}
 		});
 	} catch(e) {
-		putConsoleTime(`<span class="error">Error: ${e}</span>`);
-		putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+		consoleView.error(`Error: ${e.message}`);
+		consoleView.info(runMsg.CONSOLE_END);
 	}
 }
 

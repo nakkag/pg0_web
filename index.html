@@ -8,9 +8,11 @@
 
 	<link rel="stylesheet" type="text/css" href="reset.css">
 	<link rel="stylesheet" type="text/css" href="pg0.css?v=1">
-	<script type="text/javascript" src="engine/script_common.js?v=1"></script>
-	<script type="text/javascript" src="engine/script_parse.js?v=1"></script>
-	<script type="text/javascript" src="engine/script_exec.js?v=1"></script>
+	<link rel="stylesheet" type="text/css" href="view/console.css?v=1">
+	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
+	<script type="text/javascript" src="pg0/script_parse.js?v=1"></script>
+	<script type="text/javascript" src="pg0/script_exec.js?v=1"></script>
+	<script type="text/javascript" src="view/console.js?v=1"></script>
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/message.js?v=1"></script>
 	<script type="text/javascript" src="pg0.js?v=1"></script>
@@ -25,9 +27,9 @@
 			<option value="PG0.5" selected>PG0.5</option>
 		</select>
 		<select name="speed" id="speed">
-			<option value="0">No Wait</option>
+			<option value="0" selected>No Wait</option>
 			<option value="1">Fast</option>
-			<option value="250" selected>Normal</option>
+			<option value="250">Normal</option>
 			<option value="500">Slow</option>
 		</select>
 		<input type="button" value="Clear console" onclick="clearConsole();"></input>
