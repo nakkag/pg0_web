@@ -1,9 +1,5 @@
 "use strict";
 
-function escapeHTML(str) {
-	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 ScriptExec.lib['error'] = async function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
@@ -14,7 +10,7 @@ ScriptExec.lib['error'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	document.getElementById('result').innerHTML += '<p class="error">' + escapeHTML(str) + '</p>';
+	putConsoleTime(`<span class="error">${escapeHTML(str)}</span>`);
 	return 0;
 };
 
@@ -28,9 +24,38 @@ ScriptExec.lib['print'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	document.getElementById('result').innerHTML += escapeHTML(str).replace(/\\n/, '<br />');
+	putConsole(escapeHTML(str).replace(/\\n/, '<br />'));
 	return 0;
 };
+
+ScriptExec.lib['input'] = async function(ei, param, ret) {
+	const str = window.prompt('input');
+	if (str !== null) {
+		ret.v.str = str;
+		ret.v.type = TYPE_STRING;
+	}
+	return 0;
+};
+
+function putConsole(msg) {
+	const console = document.getElementById('console');
+	const wrapper = document.getElementById('console_wrapper');
+	const toBottom = wrapper.scrollTop + wrapper.clientHeight >= console.offsetHeight;
+	console.innerHTML += msg;
+	if (toBottom) {
+		wrapper.scrollTop = wrapper.scrollHeight - wrapper.clientHeight;
+	}
+}
+
+function putConsoleTime(msg) {
+	const time = date_format.formatTime(new Date(), navigator.language);
+	msg = `<div><span class="time">${time}</span> ${msg}</div>`;
+	putConsole(msg);
+}
+
+function escapeHTML(str) {
+	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 function arrayToString(array) {
 	let ret = '';
@@ -79,40 +104,29 @@ let step = false;
 let execLine = -1;
 let nextStep = true;
 
-async function exec() {
-	if (run && step) {
-		step = false;
-		nextStep = true;
-		return;
-	}
-	run = true;
-	step = false;
-	execLine = -1;
-	nextStep = false;
-	document.getElementById('variable').innerHTML = '';
-	const elm = document.getElementsByClassName('lib');
-	if (0 < elm.length) {
-		Array.from(elm).forEach(function(v) {
-			return v.remove();
-		});
-	}
-	const buf = document.getElementById('src').value;
-	const sci = Script.initScriptInfo({extension: true});
-	const scis = [sci];
-	await _exec(scis, sci, buf, false);
-	document.getElementById('result').innerHTML += '<hr />';
-	run = false;
-}
-
-async function stepExec() {
+async function exec(_step) {
 	if (run) {
+		if (_step) {
+			step = true;
+		} else if (step) {
+			step = false;
+		}
 		nextStep = true;
 		return;
 	}
+	const buf = document.getElementById('src').value;
+	if (!buf) {
+		return;
+	}
 	run = true;
-	step = true;
+	step = _step;
 	execLine = -1;
 	nextStep = false;
+	if (document.getElementById('console').childElementCount > 0) {
+		putConsole('<hr />');
+	}
+	putConsoleTime(`<span class="info">${runMsg.CONSOLE_START}</span>`);
+	document.getElementById('stop_button').removeAttribute('disabled');
 	document.getElementById('variable').innerHTML = '';
 	const elm = document.getElementsByClassName('lib');
 	if (0 < elm.length) {
@@ -120,11 +134,11 @@ async function stepExec() {
 			return v.remove();
 		});
 	}
-	const buf = document.getElementById('src').value;
-	const sci = Script.initScriptInfo({extension: true});
+	const extension = document.getElementById('kind').value === 'PG0' ? false : true;
+	const sci = Script.initScriptInfo({extension: extension});
 	const scis = [sci];
 	await _exec(scis, sci, buf, false);
-	document.getElementById('result').innerHTML += '<hr />';
+	document.getElementById('stop_button').setAttribute('disabled', true);
 	run = false;
 }
 
@@ -168,7 +182,7 @@ async function _exec(scis, sci, buf, imp) {
 					let syncCnt = 0;
 					await se.exec(token, {}, {
 						callback: async function(ei) {
-							//console.log('line=' + ei.token[ei.index].line + ', token=' + ei.token[ei.index].type + ', vi=' + JSON.stringify(ei.vi));
+							//console.log(`line=${ei.token[ei.index].line}, token=${ei.token[ei.index].type}, vi=${JSON.stringify(ei.vi)}`);
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
 								execLine = ei.token[ei.index].line;
 								if (step) {
@@ -202,30 +216,37 @@ async function _exec(scis, sci, buf, imp) {
 							if (imp) {
 								return;
 							}
-							if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-								document.getElementById('result').innerHTML += '<p>Result: ' + escapeHTML(ScriptExec.getValueString(value)) + '</p>';
-							} else if (value.type === TYPE_STRING) {
-								document.getElementById('result').innerHTML += '<p>Result: "' + escapeHTML(ScriptExec.getValueString(value)) + '"</p>';
-							} else if (value.type === TYPE_ARRAY) {
-								document.getElementById('result').innerHTML += '<p>Result: {' + escapeHTML(arrayToString(value.array)) + '}</p>';
+							putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+							if (value) {
+								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
+									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> ${escapeHTML(ScriptExec.getValueString(value))}`);
+								} else if (value.type === TYPE_STRING) {
+									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> "${escapeHTML(ScriptExec.getValueString(value))}"`);
+								} else if (value.type === TYPE_ARRAY) {
+									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> {${escapeHTML(arrayToString(value.array))}}`);
+								}
 							}
 							document.getElementById('variable').innerHTML = '';
 							showVariable(sci.ei);
 						},
 						error: async function(error) {
-							document.getElementById('result').innerHTML += '<p class="error">Error: ' + error.msg + ' (' + (error.line + 1) + ')</p>';
+							putConsoleTime(`<span class="error">Error: ${error.msg} (${error.line + 1})</span>`);
+							putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
 						}
 					});
 				} catch(e) {
-					document.getElementById('result').innerHTML += '<p class="error">Error: ' + e + '</p>';
+					putConsoleTime(`<span class="error">Error: ${e}</span>`);
+					putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
 				}
 			},
 			error: async function(error) {
-				document.getElementById('result').innerHTML += '<p class="error">Error: ' + error.msg + ' (' + (error.line + 1) + ')</p>';
+				putConsoleTime(`<span class="error">Error: ${error.msg} (${error.line + 1})</span>`);
+				putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
 			}
 		});
 	} catch(e) {
-		document.getElementById('result').innerHTML += '<p class="error">Error: ' + e + '</p>';
+		putConsoleTime(`<span class="error">Error: ${e}</span>`);
+		putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
 	}
 }
 
@@ -233,7 +254,7 @@ function stop() {
 	run = false;
 }
 
-function clearResult() {
+function clearConsole() {
 	document.getElementById('variable').innerHTML = '';
-	document.getElementById('result').innerHTML = '';
+	document.getElementById('console').innerHTML = '';
 }

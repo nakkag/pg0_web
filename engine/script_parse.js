@@ -1552,16 +1552,6 @@ function ScriptParse(sci) {
 				}
 			}
 		}
-		if (/^library/i.test(buf)) {
-			let fn = getFileName(buf.substr('library'.length));
-			if (!/\.js$/i.test(fn)) {
-				fn += '.js';
-			}
-			if (await that.library(fn)) {
-				pi.err = {msg: errMsg.ERR_SCRIPT, line: pi.line};
-				return;
-			}
-		}
 		if (/^(option\ *\( *"PG0.5" *\))|(option\ *\( *'PG0.5' *\))/i.test(buf)) {
 			sci.extension = true;
 		}

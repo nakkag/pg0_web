@@ -1326,6 +1326,7 @@ function ScriptExec(scis, sci) {
 		sci.ei = initExecInfo(token);
 		sci.ei.vi = vi;
 		const retvi = ScriptExec.initValueInfo();
+		retvi.v.num = null;
 		let ret = await execSentense(sci.ei, retvi);
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			sci.ei.err = {msg: errMsg.ERR_SENTENCE, line: sci.ei.token[sci.ei.index].line};
@@ -1335,7 +1336,11 @@ function ScriptExec(scis, sci) {
 			await callbacks.error(sci.ei.err);
 			return;
 		}
-		await callbacks.success(retvi.v);
+		if (retvi.v.type === TYPE_INTEGER && retvi.v.num === null) {
+			await callbacks.success(null);
+		} else {
+			await callbacks.success(retvi.v);
+		}
 	};
 }
 

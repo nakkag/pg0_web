@@ -11,25 +11,36 @@
 	<script type="text/javascript" src="engine/script_common.js?v=1"></script>
 	<script type="text/javascript" src="engine/script_parse.js?v=1"></script>
 	<script type="text/javascript" src="engine/script_exec.js?v=1"></script>
+	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
+	<script type="text/javascript" src="utils/message.js?v=1"></script>
 	<script type="text/javascript" src="pg0.js?v=1"></script>
 </head>
 <body>
-
-<div><input type="button" id="exec_button" value="Start" onclick="exec();"></input> <input type="button" id="step_button" value="Step" onclick="stepExec();"></input> <input type="button" id="stop_button" value="Stop" onclick="stop();"></input> 
-<select name="speed" id="speed">
-  <option value="0">No Wait</option>
-  <option value="1">Fast</option>
-  <option value="250">Normal</option>
-  <option value="500">Slow</option>
-</select>
-</div>
-<textarea id="src" style="width:350px;height:200px;">
-</textarea>
-<span id="variable"></span>
-<div><input type="button" value="Clear" onclick="clearResult();"></input></div>
-<hr />
-<div><span id="result"></span></div>
-
+	<div id="ctrl_container">
+		<input type="image" class="ctrl_icon" id="exec_button" src="image/play.svg" title="Exec" onclick="exec(false);"></input>
+		<input type="image" class="ctrl_icon" id="step_button" src="image/step.svg" title="Step exec" onclick="exec(true);"></input>
+		<input type="image" class="ctrl_icon" id="stop_button" src="image/stop.svg" title="Stop" onclick="stop();" disabled></input> 
+		<select name="kind" id="kind">
+			<option value="PG0">PG0</option>
+			<option value="PG0.5" selected>PG0.5</option>
+		</select>
+		<select name="speed" id="speed">
+			<option value="0">No Wait</option>
+			<option value="1">Fast</option>
+			<option value="250" selected>Normal</option>
+			<option value="500">Slow</option>
+		</select>
+		<input type="button" value="Clear console" onclick="clearConsole();"></input>
+	</div>
+	<div id="src_container">
+		<textarea id="src" style="width:350px;height:200px;"></textarea>
+	</div>
+	<div id="var_container">
+		<span id="variable"></span>
+	</div>
+	<div id="console_container">
+		<div id="console_wrapper"><span id="console"></span></div>
+	</div>
 </body>
 </html>
 
