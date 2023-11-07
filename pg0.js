@@ -216,7 +216,11 @@ async function _exec(scis, sci, buf, imp) {
 							if (imp) {
 								return;
 							}
-							putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+							if (run) {
+								putConsoleTime(`<span class="info">${runMsg.CONSOLE_END}</span>`);
+							} else {
+								putConsoleTime(`<span class="info">${runMsg.CONSOLE_STOP}</span>`);
+							}
 							if (value) {
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
 									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> ${escapeHTML(ScriptExec.getValueString(value))}`);
@@ -226,8 +230,10 @@ async function _exec(scis, sci, buf, imp) {
 									putConsoleTime(`<span class="info">${runMsg.CONSOLE_RESULT}</span> {${escapeHTML(arrayToString(value.array))}}`);
 								}
 							}
-							document.getElementById('variable').innerHTML = '';
-							showVariable(sci.ei);
+							if (run) {
+								document.getElementById('variable').innerHTML = '';
+								showVariable(sci.ei);
+							}
 						},
 						error: async function(error) {
 							putConsoleTime(`<span class="error">Error: ${error.msg} (${error.line + 1})</span>`);
