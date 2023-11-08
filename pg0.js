@@ -1,14 +1,17 @@
 "use strict";
 
+let verX = 400;
 let verY = 150;
 let consoleY = 150;
 
 window.onload = function() {
+	const resizeWith = document.body.style.getPropertyValue('--rezie-with') || '10px';
+
 	document.getElementById('var_resizer_x').addEventListener('mousedown', function(e) {
 		e.preventDefault();
 		function resize(e) {
-			let x = window.innerWidth - e.x - 2;
-			document.getElementById('container').style.gridTemplateColumns = `1fr 4px ${x}px`;
+			verX = window.innerWidth - e.x - 2;
+			document.getElementById('container').style.gridTemplateColumns = `1fr ${resizeWith} ${verX}px`;
 		}
 		document.addEventListener('mousemove', resize, false);
 		['mouseup', 'mouseleave'].forEach(function(e) {
@@ -22,7 +25,7 @@ window.onload = function() {
 		e.preventDefault();
 		function resize(e) {
 			verY = (window.innerHeight - consoleY) - e.y - 2;
-			document.getElementById('container').style.gridTemplateRows = `58px 1fr 4px ${verY}px 4px ${consoleY}px`;
+			document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${verY}px ${resizeWith} ${consoleY}px`;
 		}
 		document.addEventListener('mousemove', resize, false);
 		['mouseup', 'mouseleave'].forEach(function(e) {
@@ -37,7 +40,7 @@ window.onload = function() {
 		console.log('touchstart');
 		function resize(e) {
 			verY = (window.innerHeight - consoleY) - e.touches[0].pageY - 2;
-			document.getElementById('container').style.gridTemplateRows = `58px 1fr 4px ${verY}px 4px ${consoleY}px`;
+			document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${verY}px ${resizeWith} ${consoleY}px`;
 		}
 		document.addEventListener('touchmove', resize, false);
 		['touchend'].forEach(function(e) {
@@ -54,10 +57,10 @@ window.onload = function() {
 				const tmp = consoleY;
 				consoleY = window.innerHeight - e.y - 2;
 				verY = verY - (consoleY - tmp);
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr 4px ${verY}px 4px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${verY}px ${resizeWith} ${consoleY}px`;
 			} else {
 				consoleY = window.innerHeight - e.y - 2;
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr 4px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${consoleY}px`;
 			}
 		}
 		document.addEventListener('mousemove', resize, false);
@@ -76,10 +79,10 @@ window.onload = function() {
 				const tmp = consoleY;
 				consoleY = window.innerHeight - e.touches[0].pageY - 2;
 				verY = verY - (consoleY - tmp);
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr 4px ${verY}px 4px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${verY}px ${resizeWith} ${consoleY}px`;
 			} else {
 				consoleY = window.innerHeight - e.touches[0].pageY - 2;
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr 4px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${consoleY}px`;
 			}
 		}
 		document.addEventListener('touchmove', resize, false);
@@ -89,6 +92,22 @@ window.onload = function() {
 			}, false);
 		});
 	}, false);
+
+	let prev_orientation;
+	window.addEventListener("resize", function(e) {
+		if (window.orientation !== prev_orientation) {
+			prev_orientation = window.orientation;
+			if (window.orientation === 0) {
+				document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${verY}px ${resizeWith} ${consoleY}px`;
+			} else {
+				document.getElementById('container').style.gridTemplateRows = `${getCtrlHeight()}px 1fr ${resizeWith} ${consoleY}px`;
+			}
+		}
+	}, false);
+}
+
+function getCtrlHeight() {
+	return document.getElementById('ctrl_container').offsetHeight;
 }
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {

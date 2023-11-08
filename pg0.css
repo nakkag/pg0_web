@@ -1,6 +1,9 @@
 body {
 	overflow: hidden;
 	font-size: 20px;
+	font-family: Menlo, Monaco, 'Courier New', monospace;
+
+	--rezie-with: 10px;
 }
 
 #ctrl_container {
@@ -26,11 +29,13 @@ body {
 
 #container {
 	overflow: hidden;
-	width: 100%;
-	height: 100vh;
+	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
+	margin-left: env(safe-area-inset-left);
+	margin-right: env(safe-area-inset-right);
+	height: calc(100dvh - env(safe-area-inset-bottom));
 	display: grid;
-	grid-template-rows: 58px 1fr 4px 150px;
-	grid-template-columns: 1fr 4px 400px;
+	grid-template-rows: 58px 1fr var(--rezie-with) 150px;
+	grid-template-columns: 1fr var(--rezie-with) 400px;
 	grid-template-areas: "ctrl ctrl ctrl"
 		"src var_resizer_x var"
 		"console_resizer console_resizer console_resizer"
@@ -52,6 +57,7 @@ body {
 	border: 0px;
 	resize: none;
 	font-size: 20px;
+	font-family: Menlo, Monaco, 'Courier New', monospace;
 }
 
 #var_resizer_x {
@@ -59,6 +65,7 @@ body {
 	grid-area: var_resizer_x;
 	border-left: 1px solid #aaa;
 	cursor: ew-resize;
+	z-index: 2;
 }
 #var_resizer_y {
 	display: none;
@@ -67,7 +74,8 @@ body {
 #var_container {
 	grid-area: var;
 	overflow: scroll;
-	margin-left: -3px;
+	margin-left: calc(1px - var(--rezie-with));
+	z-index: 1;
 }
 
 #variable {
@@ -79,6 +87,7 @@ body {
 	grid-area: console_resizer;
 	border-top: 1px solid #aaa;
 	cursor: ns-resize;
+	z-index: 2;
 }
 
 #console_container {
@@ -86,12 +95,13 @@ body {
 
 	overflow-x: hidden;
 	overflow-y: scroll;
-	margin-top: -3px;
+	margin-top: calc(1px - var(--rezie-with));
+	z-index: 1;
 }
 
 @media screen and (max-width: 480px) {
 	#container {
-		grid-template-rows: 58px 1fr 4px 150px 4px 150px;
+		grid-template-rows: 58px 1fr var(--rezie-with) 150px var(--rezie-with) 150px;
 		grid-template-columns: auto;
 		grid-template-areas: "ctrl"
 			"src"
@@ -109,10 +119,11 @@ body {
 		grid-area: var_resizer_y;
 		border-top: 1px solid #aaa;
 		cursor: ns-resize;
+		z-index: 2;
 	}
 	#var_container {
 		border-left: unset;
 		margin-left: 0px;
-		margin-TOP: -3px;
+		margin-top: calc(1px - var(--rezie-with));
 	}
 }
