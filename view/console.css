@@ -10,19 +10,8 @@
 	color: red;
 }
 
-#console_container {
-	position: absolute;
-	bottom: 0;
-	width: 100%;
-}
-
-#console_wrapper {
-	overflow-x: hidden;
-	overflow-y: scroll;
-	height: 300px;
-}
-
 #console {
+	margin: 2px;
 	line-height: 1.3;
 }
 

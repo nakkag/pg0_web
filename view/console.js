@@ -3,7 +3,7 @@ const consoleView = (function () {
 
 	me.put = function(msg) {
 		const consoleObj = document.getElementById('console');
-		const wrapper = document.getElementById('console_wrapper');
+		const wrapper = document.getElementById('console_container');
 		const toBottom = wrapper.scrollTop + wrapper.clientHeight >= consoleObj.offsetHeight;
 		consoleObj.innerHTML += msg;
 		if (toBottom) {
