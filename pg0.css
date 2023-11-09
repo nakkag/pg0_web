@@ -35,7 +35,7 @@ body::before {
 	overflow: hidden;
 	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
 	margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
-	height: calc(100dvh - env(safe-area-inset-bottom));
+	height: 100dvh;
 	display: grid;
 	grid-template-rows: 42px 1fr var(--rezie-with) 0;
 	grid-template-columns: 1fr var(--rezie-with) 0;
