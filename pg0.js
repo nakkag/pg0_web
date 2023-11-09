@@ -1,5 +1,6 @@
 "use strict";
 
+let src = '';
 let verX = 400;
 let verY = 150;
 let consoleY = 150;
@@ -95,7 +96,6 @@ window.onload = function() {
 
 	touchend.forEach(function(e) {
 		document.addEventListener(e, function() {
-			console.log('touchend');
 			if (resizeFunc) {
 				document.removeEventListener(touchmove, resizeFunc, false);
 			}
@@ -132,6 +132,61 @@ window.onload = function() {
 		}
 	}
 	setGridTemplate();
+
+	let keydown = false;
+	function input() {
+		const src_input = document.getElementById('src_input');
+		if (src_input.value) {
+			src += src_input.value;
+			document.getElementById('src').innerHTML = src;
+			src_input.value = '';
+		} else if (keydown) {
+			setTimeout(function() {
+				input();
+			}, 10);
+		}
+	}
+
+	let isComposing = false;
+	window.addEventListener('compositionstart', function(e) {
+		isComposing = true;
+	}, false);
+	window.addEventListener('compositionend', function(e) {
+		isComposing = false;
+		input();
+	}, false);
+
+	document.getElementById('src_input').addEventListener('keydown', function(e) {
+		if (isComposing || e.isComposing || e.key === 'Process' || e.keyCode === 229) {
+			return;
+		}
+		keydown = true;
+		console.log(e.key);
+		switch(e.key.toLowerCase()) {
+		case 'backspace':
+			src = src.slice(0, -1);
+			document.getElementById('src').innerHTML = src;
+			break;
+		case 'tab':
+			if (e.cancelable) {
+				e.preventDefault();
+			}
+			src += "\t";
+			document.getElementById('src').innerHTML = src;
+			break;
+		default:
+			input();
+			break;
+		}
+	}, false);
+
+	document.getElementById('src_input').addEventListener('keyup', function(e) {
+		if (isComposing || e.isComposing || e.key === 'Process' || e.keyCode === 229) {
+			return;
+		}
+		input();
+		keydown = false;
+	}, false);
 }
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {
@@ -232,7 +287,7 @@ async function exec(_step) {
 		nextStep = true;
 		return;
 	}
-	const buf = document.getElementById('src').value;
+	const buf = src;
 	if (!buf) {
 		return;
 	}

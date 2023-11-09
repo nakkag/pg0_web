@@ -1,7 +1,7 @@
 body {
 	overflow: hidden;
 	background-color: #eee;
-	font-size: 14px;
+	font-size: 16px;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 
 	-webkit-text-size-adjust: 100%;
@@ -56,14 +56,18 @@ body::before {
 #src_container {
 	grid-area: src;
 	margin: 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2) 0;
+	position: relative;
 }
 
-#src {
-	width: calc(100% - 5px);
-	height: calc(100% - 5px);
+#src_input {
+	position: absolute;
+	width: 100px;
+	height: 100px;
+	top: 0;
+	right: 5px;
 	border: 0px;
 	resize: none;
-	font-size: 14px;
+	font-size: 16px;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 }
 
