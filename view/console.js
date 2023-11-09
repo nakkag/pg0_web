@@ -1,15 +1,26 @@
 const consoleView = (function () {
 	const me = {};
 
-	me.put = function(msg) {
+	me.toBottom = function() {
+		const containerObj = document.getElementById('console_container');
+		containerObj.scrollTop = containerObj.scrollHeight - containerObj.clientHeight;
+	};
+
+	me.fixBottom = function(callback) {
 		const consoleObj = document.getElementById('console');
 		const containerObj = document.getElementById('console_container');
-		const toBottom = containerObj.scrollTop + containerObj.clientHeight >= consoleObj.offsetHeight;
-		consoleObj.innerHTML += msg;
-		if (toBottom) {
-			containerObj.scrollTop = containerObj.scrollHeight - containerObj.clientHeight;
+		const _toBottom = containerObj.scrollTop + containerObj.clientHeight >= consoleObj.offsetHeight;
+		callback();
+		if (_toBottom) {
+			me.toBottom();
 		}
-	}
+	};
+	
+	me.put = function(msg) {
+		me.fixBottom(function() {
+			document.getElementById('console').innerHTML += msg;
+		});
+	};
 
 	me.info = function(msg, detail) {
 		const time = date_format.formatTime(new Date(), navigator.language);
@@ -19,13 +30,13 @@ const consoleView = (function () {
 		}
 		msg += '</div>';
 		me.put(msg);
-	}
+	};
 
 	me.error = function(msg) {
 		const time = date_format.formatTime(new Date(), navigator.language);
 		msg = `<div><span class="time">${time}</span> <span class="error">${msg}</span></div>`;
 		me.put(msg);
-	}
+	};
 
 	return me;
 })();

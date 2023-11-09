@@ -1,9 +1,12 @@
 body {
 	overflow: hidden;
-	font-size: 20px;
-	font-family: Menlo, Monaco, 'Courier New', monospace;
+	background-color: #eee;
+	font-size: 14px;
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 
-	--rezie-with: 10px;
+	-webkit-text-size-adjust: 100%;
+
+	--rezie-with: 8px;
 }
 
 #ctrl_container {
@@ -11,7 +14,7 @@ body {
 }
 
 .ctrl_icon {
-	width: 48px;
+	width: 32px;
 }
 .ctrl_icon:hover {
 	background-color: rgba(0, 191, 255, 0.2);
@@ -28,14 +31,14 @@ body {
 }
 
 #container {
+	background-color: #fff;
 	overflow: hidden;
 	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
-	margin-left: env(safe-area-inset-left);
-	margin-right: env(safe-area-inset-right);
+	margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 	height: calc(100dvh - env(safe-area-inset-bottom));
 	display: grid;
-	grid-template-rows: 58px 1fr var(--rezie-with) 150px;
-	grid-template-columns: 1fr var(--rezie-with) 400px;
+	grid-template-rows: 42px 1fr var(--rezie-with) 0;
+	grid-template-columns: 1fr var(--rezie-with) 0;
 	grid-template-areas: "ctrl ctrl ctrl"
 		"src var_resizer_x var"
 		"console_resizer console_resizer console_resizer"
@@ -49,23 +52,34 @@ body {
 
 #src_container {
 	grid-area: src;
+	margin: 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2) 0;
 }
 
 #src {
-	width: 100%;
-	height: 100%;
+	width: calc(100% - 5px);
+	height: calc(100% - 5px);
 	border: 0px;
 	resize: none;
-	font-size: 20px;
-	font-family: Menlo, Monaco, 'Courier New', monospace;
+	font-size: 14px;
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 }
 
 #var_resizer_x {
 	display: block;
 	grid-area: var_resizer_x;
-	border-left: 1px solid #aaa;
 	cursor: ew-resize;
 	z-index: 2;
+	position: relative;
+	margin: 0 0 calc(var(--rezie-with) / -2) 0;
+}
+#var_resizer_x::after {
+	content: "";
+	position: absolute;
+	top: 0px;
+	left: calc(var(--rezie-with) / 2);
+	width: 4px;
+	height: 100%;
+	background-color: #ccc;
 }
 #var_resizer_y {
 	display: none;
@@ -74,7 +88,7 @@ body {
 #var_container {
 	grid-area: var;
 	overflow: scroll;
-	margin-left: calc(1px - var(--rezie-with));
+	margin: 0 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2 + 4px);
 	z-index: 1;
 }
 
@@ -85,9 +99,18 @@ body {
 
 #console_resizer {
 	grid-area: console_resizer;
-	border-top: 1px solid #aaa;
 	cursor: ns-resize;
 	z-index: 2;
+	position: relative;
+}
+#console_resizer::after {
+	content: "";
+	position: absolute;
+	top: calc(var(--rezie-with) / 2);
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background-color: #ccc;
 }
 
 #console_container {
@@ -95,13 +118,16 @@ body {
 
 	overflow-x: hidden;
 	overflow-y: scroll;
-	margin-top: calc(1px - var(--rezie-with));
+	margin: calc(var(--rezie-with) / -2 + 4px) 0 0 0;
 	z-index: 1;
 }
 
-@media screen and (max-width: 480px) {
+@media (orientation: portrait) {
+	.ctrl_icon {
+		width: 48px;
+	}
 	#container {
-		grid-template-rows: 58px 1fr var(--rezie-with) 150px var(--rezie-with) 150px;
+		grid-template-rows: 58px 1fr var(--rezie-with) 0 var(--rezie-with) 0;
 		grid-template-columns: auto;
 		grid-template-areas: "ctrl"
 			"src"
@@ -111,19 +137,30 @@ body {
 			"console";
 	}
 
+	#src_container {
+		margin: 0 0 calc(var(--rezie-with) / -2) 0;
+	}
 	#var_resizer_x {
 		display: none;
 	}
 	#var_resizer_y {
 		display: block;
 		grid-area: var_resizer_y;
-		border-top: 1px solid #aaa;
 		cursor: ns-resize;
 		z-index: 2;
+		position: relative;
+	}
+	#var_resizer_y::after {
+		content: "";
+		position: absolute;
+		top: calc(var(--rezie-with) / 2);
+		left: 0;
+		width: 100%;
+		height: 4px;
+		background-color: #ccc;
 	}
 	#var_container {
 		border-left: unset;
-		margin-left: 0px;
-		margin-top: calc(1px - var(--rezie-with));
+		margin: calc(var(--rezie-with) / -2 + 4px) 0 calc(var(--rezie-with) / -2) 0;
 	}
 }
