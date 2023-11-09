@@ -13,17 +13,13 @@ window.onload = function() {
 		document.body.style.setProperty('--rezie-with', rw + 'px');
 	}
 
-	let touchstart;
-	let touchmove;
-	let touchend;
+	let touchstart = 'mousedown';
+	let touchmove = 'mousemove';
+	let touchend = ['mouseup', 'mouseleave'];
 	if ('ontouchstart' in window) {
 		touchstart = 'touchstart';
 		touchmove = 'touchmove';
 		touchend = ['touchend'];
-	} else {
-		touchstart = 'mousedown';
-		touchmove = 'mousemove';
-		touchend = ['mouseup', 'mouseleave'];
 	}
 	let resizeFunc;
 
