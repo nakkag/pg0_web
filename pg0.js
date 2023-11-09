@@ -13,6 +13,111 @@ window.onload = function() {
 		document.body.style.setProperty('--rezie-with', rw + 'px');
 	}
 
+	let touchstart;
+	let touchmove;
+	let touchend;
+	if ('ontouchstart' in window) {
+		touchstart = 'touchstart';
+		touchmove = 'touchmove';
+		touchend = ['touchend'];
+	} else {
+		touchstart = 'mousedown';
+		touchmove = 'mousemove';
+		touchend = ['mouseup', 'mouseleave'];
+	}
+	let resizeFunc;
+
+	document.getElementById('var_resizer_x').addEventListener(touchstart, function(e) {
+		if (e.cancelable) {
+			e.preventDefault();
+		}
+		let x = e.x ? e.x : e.touches[0].clientX;
+		resizeFunc = function(e) {
+			const ex = e.x ? e.x : e.touches[0].clientX;
+			verX += x - ex;
+			if (verX < 0) {
+				verX = 0;
+			} else if (verX > window.innerWidth - 100) {
+				verX = window.innerWidth - 100;
+			} else {
+				x = ex;
+			}
+			setGridTemplate();
+		};
+		document.addEventListener(touchmove, resizeFunc, false);
+	}, false);
+
+	document.getElementById('var_resizer_y').addEventListener(touchstart, function(e) {
+		if (e.cancelable) {
+			e.preventDefault();
+		}
+		let y = e.y ? e.y : e.touches[0].clientY;
+		resizeFunc = function(e) {
+			const ey = e.y ? e.y : e.touches[0].clientY;
+			verY += y - ey;
+			if (verY < 0) {
+				verY = 0;
+			} else if (verY > window.innerHeight - 100) {
+				verY = window.innerHeight - 100;
+			} else {
+				y = ey;
+			}
+			setGridTemplate();
+		}
+		document.addEventListener(touchmove, resizeFunc, false);
+	}, false);
+
+	document.getElementById('console_resizer').addEventListener(touchstart, function(e) {
+		if (e.cancelable) {
+			e.preventDefault();
+		}
+		let y = e.y ? e.y : e.touches[0].clientY;
+		resizeFunc = function(e) {
+			const ey = e.y ? e.y : e.touches[0].clientY;
+			if (checkOrientation() === 0) {
+				const wk = consoleY;
+				consoleY += y - ey;
+				if (consoleY >= 0 && consoleY <= window.innerHeight - 100) {
+					verY = verY - (consoleY - wk);
+				}
+			} else {
+				consoleY += y - ey;
+			}
+			if (consoleY < 0) {
+				consoleY = 0;
+			} else if (consoleY > window.innerHeight - 100) {
+				consoleY = window.innerHeight - 100;
+			} else {
+				y = ey;
+			}
+			consoleView.fixBottom(function() {
+				setGridTemplate();
+			});
+		}
+		document.addEventListener(touchmove, resizeFunc, false);
+	}, false);
+
+	touchend.forEach(function(e) {
+		document.addEventListener(e, function() {
+			console.log('touchend');
+			if (resizeFunc) {
+				document.removeEventListener(touchmove, resizeFunc, false);
+			}
+		}, false);
+	});
+
+	let prev_orientation;
+	window.addEventListener('resize', function(e) {
+		const orientation = checkOrientation();
+		if (orientation !== prev_orientation) {
+			prev_orientation = orientation;
+			setGridTemplate();
+			setTimeout(function() {
+				consoleView.toBottom();
+			}, 1);
+		}
+	}, false);
+
 	function checkOrientation() {
 		const o = window.getComputedStyle(document.body, '::before').getPropertyValue('content');
 		if (/portrait/i.test(o)) {
@@ -31,182 +136,6 @@ window.onload = function() {
 		}
 	}
 	setGridTemplate();
-
-	document.getElementById('var_resizer_x').addEventListener('mousedown', function(e) {
-		if (e.cancelable) {
-			e.preventDefault();
-		}
-		let x = e.x;
-		function resize(e) {
-			verX += x - e.x;
-			if (verX < 0) {
-				verX = 0;
-			} else if (verX > window.innerWidth - 100) {
-				verX = window.innerWidth - 100;
-			} else {
-				x = e.x;
-			}
-			setGridTemplate();
-		}
-		document.addEventListener('mousemove', resize, false);
-		['mouseup', 'mouseleave'].forEach(function(e) {
-			document.addEventListener(e, function() {
-				document.removeEventListener('mousemove', resize, false);
-			}, false);
-		});
-	}, false);
-
-	document.getElementById('var_resizer_x').addEventListener('touchstart', function(e) {
-		if (e.cancelable) {
-			e.preventDefault();
-		}
-		let x = e.touches[0].clientX;
-		function resize(e) {
-			verX += x - e.touches[0].clientX;
-			if (verX < 0) {
-				verX = 0;
-			} else if (verX > window.innerWidth - 100) {
-				verX = window.innerWidth - 100;
-			} else {
-				x = e.touches[0].clientX;
-			}
-			setGridTemplate();
-		}
-		document.addEventListener('touchmove', resize, false);
-		['touchend'].forEach(function(e) {
-			document.addEventListener(e, function() {
-				document.removeEventListener('touchmove', resize, false);
-			}, false);
-		});
-	}, false);
-
-	document.getElementById('var_resizer_y').addEventListener('mousedown', function(e) {
-		if (e.cancelable) {
-			e.preventDefault();
-		}
-		let y = e.y;
-		function resize(e) {
-			verY += y - e.y;
-			if (verY < 0) {
-				verY = 0;
-			} else if (verY > window.innerHeight - 100) {
-				verY = window.innerHeight - 100;
-			} else {
-				y = e.y;
-			}
-			setGridTemplate();
-		}
-		document.addEventListener('mousemove', resize, false);
-		['mouseup', 'mouseleave'].forEach(function(e) {
-			document.addEventListener(e, function() {
-				document.removeEventListener('mousemove', resize, false);
-			}, false);
-		});
-	}, false);
-
-	document.getElementById('var_resizer_y').addEventListener('touchstart', function(e) {
-		if (e.cancelable) {
-			e.preventDefault();
-		}
-		let y = e.touches[0].clientY;
-		function resize(e) {
-			verY += y - e.touches[0].clientY;
-			if (verY < 0) {
-				verY = 0;
-			} else if (verY > window.innerHeight - 100) {
-				verY = window.innerHeight - 100;
-			} else {
-				y = e.touches[0].clientY;
-			}
-			setGridTemplate();
-		}
-		document.addEventListener('touchmove', resize, false);
-		['touchend'].forEach(function(e) {
-			document.addEventListener(e, function() {
-				document.removeEventListener('touchmove', resize, false);
-			}, false);
-		});
-	}, false);
-
-	document.getElementById('console_resizer').addEventListener('mousedown', function(e) {
-		if (e.cancelable) {
-			e.preventDefault();
-		}
-		let y = e.y;
-		function resize(e) {
-			if (checkOrientation() === 0) {
-				const wk = consoleY;
-				consoleY += y - e.y;
-				if (consoleY >= 0 && consoleY <= window.innerHeight - 100) {
-					verY = verY - (consoleY - wk);
-				}
-			} else {
-				consoleY += y - e.y;
-			}
-			if (consoleY < 0) {
-				consoleY = 0;
-			} else if (consoleY > window.innerHeight - 100) {
-				consoleY = window.innerHeight - 100;
-			} else {
-				y = e.y;
-			}
-			consoleView.fixBottom(function() {
-				setGridTemplate();
-			});
-		}
-		document.addEventListener('mousemove', resize, false);
-		['mouseup', 'mouseleave'].forEach(function(e) {
-			document.addEventListener(e, function() {
-				document.removeEventListener('mousemove', resize, false);
-			}, false);
-		});
-	}, false);
-
-	document.getElementById('console_resizer').addEventListener('touchstart', function(e) {
-		if (e.cancelable) {
-			e.preventDefault();
-		}
-		let y = e.touches[0].clientY;
-		function resize(e) {
-			if (checkOrientation() === 0) {
-				const wk = consoleY;
-				consoleY += y - e.touches[0].clientY;
-				if (consoleY >= 0 && consoleY <= window.innerHeight - 100) {
-					verY = verY - (consoleY - wk);
-				}
-			} else {
-				consoleY += y - e.touches[0].clientY;
-			}
-			if (consoleY < 0) {
-				consoleY = 0;
-			} else if (consoleY > window.innerHeight - 100) {
-				consoleY = window.innerHeight - 100;
-			} else {
-				y = e.touches[0].clientY;
-			}
-			consoleView.fixBottom(function() {
-				setGridTemplate();
-			});
-		}
-		document.addEventListener('touchmove', resize, false);
-		['touchend'].forEach(function(e) {
-			document.addEventListener(e, function() {
-				document.removeEventListener('touchmove', resize, false);
-			}, false);
-		});
-	}, false);
-
-	let prev_orientation;
-	window.addEventListener('resize', function(e) {
-		const orientation = checkOrientation();
-		if (orientation !== prev_orientation) {
-			prev_orientation = orientation;
-			setGridTemplate();
-			setTimeout(function() {
-				consoleView.toBottom();
-			}, 1);
-		}
-	}, false);
 }
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {

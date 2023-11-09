@@ -13,10 +13,6 @@ body::before {
 	content: "landscape";
 }
 
-#ctrl_container {
-	padding: 5px 10px;
-}
-
 .ctrl_icon {
 	width: 32px;
 }
@@ -47,11 +43,14 @@ body::before {
 		"src var_resizer_x var"
 		"console_resizer console_resizer console_resizer"
 		"console console console";
+	outline: 1px solid #ccc;
 }
 
 #ctrl_container {
 	grid-area: ctrl;
-	border-bottom: 1px solid #aaa;
+	padding: 5px 10px;
+	border-bottom: 1px solid #ccc;
+	background-color: #eee;
 }
 
 #src_container {
