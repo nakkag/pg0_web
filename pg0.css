@@ -8,6 +8,10 @@ body {
 
 	--rezie-with: 8px;
 }
+body::before {
+	display: none;
+	content: "landscape";
+}
 
 #ctrl_container {
 	padding: 5px 10px;
@@ -123,6 +127,9 @@ body {
 }
 
 @media (orientation: portrait) {
+	body::before {
+		content: "portrait";
+	}
 	.ctrl_icon {
 		width: 48px;
 	}

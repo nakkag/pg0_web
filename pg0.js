@@ -13,8 +13,16 @@ window.onload = function() {
 		document.body.style.setProperty('--rezie-with', rw + 'px');
 	}
 
+	function checkOrientation() {
+		const o = window.getComputedStyle(document.body, '::before').getPropertyValue('content');
+		if (/portrait/i.test(o)) {
+			return 0;
+		}
+		return 1;
+	}
+	
 	function setGridTemplate() {
-		if (window.orientation !== undefined && window.orientation === 0) {
+		if (checkOrientation() === 0) {
 			document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px`;
 			document.getElementById('container').style.gridTemplateColumns = 'auto';
 		} else {
@@ -126,7 +134,7 @@ window.onload = function() {
 		}
 		let y = e.y;
 		function resize(e) {
-			if (window.orientation !== undefined && window.orientation === 0) {
+			if (checkOrientation() === 0) {
 				const wk = consoleY;
 				consoleY += y - e.y;
 				if (consoleY >= 0 && consoleY <= window.innerHeight - 100) {
@@ -160,7 +168,7 @@ window.onload = function() {
 		}
 		let y = e.touches[0].clientY;
 		function resize(e) {
-			if (window.orientation !== undefined && window.orientation === 0) {
+			if (checkOrientation() === 0) {
 				const wk = consoleY;
 				consoleY += y - e.touches[0].clientY;
 				if (consoleY >= 0 && consoleY <= window.innerHeight - 100) {
@@ -190,8 +198,9 @@ window.onload = function() {
 
 	let prev_orientation;
 	window.addEventListener('resize', function(e) {
-		if (window.orientation !== undefined && window.orientation !== prev_orientation) {
-			prev_orientation = window.orientation;
+		const orientation = checkOrientation();
+		if (orientation !== prev_orientation) {
+			prev_orientation = orientation;
 			setGridTemplate();
 			setTimeout(function() {
 				consoleView.toBottom();
