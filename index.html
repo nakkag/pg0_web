@@ -10,10 +10,12 @@
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
 	<link rel="stylesheet" type="text/css" href="pg0.css?v=36">
+	<link rel="stylesheet" type="text/css" href="view/editor.css?v=1">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=3">
 	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=1"></script>
+	<script type="text/javascript" src="view/editor.js?v=1"></script>
 	<script type="text/javascript" src="view/console.js?v=5"></script>
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/user_agent.js?v=1"></script>
@@ -38,17 +40,17 @@
 			</select>
 			<input type="button" value="Clear console" onclick="clearConsole();"></input>
 		</div>
-		<div id="src_container">
-			<div id="src"></div>
-			<textarea id="src_input"></textarea>
+		<div id="editor_container" tabindex="0">
+			<div id="editor"></div>
+			<textarea id="hidden-textarea" aria-hidden="true"></textarea>
 		</div>
 		<div id="var_resizer_x"></div>
 		<div id="var_resizer_y"></div>
-		<div id="var_container">
+		<div id="var_container" tabindex="0">
 			<div id="variable"></div>
 		</div>
 		<div id="console_resizer"></div>
-		<div id="console_container">
+		<div id="console_container" tabindex="0">
 			<div id="console"></div>
 		</div>
 	</div>

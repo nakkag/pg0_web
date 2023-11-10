@@ -1,0 +1,50 @@
+#editor {
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	white-space: pre;
+	position: relative;
+	cursor: text;
+	overflow-y: auto;
+}
+
+#editor .line {
+	position: relative;
+	height: 1em;
+}
+
+#editor .caret {
+	position: absolute;
+	left: 0;
+	background-color: black;
+	width: 2px;
+	height: 1em;
+	animation: blink-caret 0.7s steps(1) infinite;
+}
+
+@keyframes blink-caret {
+	50% {
+		opacity: 0;
+	}
+}
+
+#hidden-textarea {
+	position: absolute;
+	opacity: 0;
+	z-index: -1;
+	top: 0;
+	left: 0;
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	font-size: 16px;
+}
+
+::selection {
+	background: #b3d4fc;
+}
+
+.highlight {
+	background-color: #b3d4fc;
+}
+
+.keyword {
+	color: blue;
+}
+

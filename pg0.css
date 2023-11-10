@@ -40,7 +40,7 @@ body::before {
 	grid-template-rows: 42px 1fr var(--rezie-with) 0;
 	grid-template-columns: 1fr var(--rezie-with) 0;
 	grid-template-areas: "ctrl ctrl ctrl"
-		"src var_resizer_x var"
+		"editor var_resizer_x var"
 		"console_resizer console_resizer console_resizer"
 		"console console console";
 	outline: 1px solid #ccc;
@@ -53,22 +53,11 @@ body::before {
 	background-color: #eee;
 }
 
-#src_container {
-	grid-area: src;
+#editor_container {
+	grid-area: editor;
 	margin: 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2) 0;
 	position: relative;
-}
-
-#src_input {
-	position: absolute;
-	width: 100px;
-	height: 100px;
-	top: 0;
-	right: 5px;
-	border: 0px;
-	resize: none;
-	font-size: 16px;
-	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	overflow: scroll;
 }
 
 #var_resizer_x {
@@ -140,14 +129,14 @@ body::before {
 		grid-template-rows: 58px 1fr var(--rezie-with) 0 var(--rezie-with) 0;
 		grid-template-columns: auto;
 		grid-template-areas: "ctrl"
-			"src"
+			"editor"
 			"var_resizer_y"
 			"var"
 			"console_resizer"
 			"console";
 	}
 
-	#src_container {
+	#editor_container {
 		margin: 0 0 calc(var(--rezie-with) / -2) 0;
 	}
 	#var_resizer_x {
