@@ -3,12 +3,12 @@
 	white-space: pre;
 	position: relative;
 	cursor: text;
-	overflow-y: auto;
 }
 
 #editor .line {
 	position: relative;
 	height: 1em;
+	tab-size: 4;
 }
 
 #editor .caret {
@@ -34,6 +34,11 @@
 	left: 0;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 	font-size: 16px;
+	tab-size: 4;
+	resize: none;
+	outline: 0px;
+	border: 0px;
+	padding: 0px;
 }
 
 ::selection {

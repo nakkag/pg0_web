@@ -10,12 +10,12 @@
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
 	<link rel="stylesheet" type="text/css" href="pg0.css?v=36">
-	<link rel="stylesheet" type="text/css" href="view/editor.css?v=1">
+	<link rel="stylesheet" type="text/css" href="view/editor.css?v=3">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=3">
 	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=1"></script>
-	<script type="text/javascript" src="view/editor.js?v=1"></script>
+	<script type="text/javascript" src="view/editor.js?v=2"></script>
 	<script type="text/javascript" src="view/console.js?v=5"></script>
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/user_agent.js?v=1"></script>
@@ -24,7 +24,7 @@
 </head>
 <body>
 	<div id="container">
-		<div id="ctrl_container">
+		<div id="ctrl_container" tabindex="0">
 			<input type="image" class="ctrl_icon" id="exec_button" src="image/play.svg" title="Exec" onclick="exec(false);"></input>
 			<input type="image" class="ctrl_icon" id="step_button" src="image/step.svg" title="Step exec" onclick="exec(true);"></input>
 			<input type="image" class="ctrl_icon" id="stop_button" src="image/stop.svg" title="Stop" onclick="stop();" disabled></input> 
@@ -42,7 +42,7 @@
 		</div>
 		<div id="editor_container" tabindex="0">
 			<div id="editor"></div>
-			<textarea id="hidden-textarea" aria-hidden="true"></textarea>
+			<textarea id="hidden-textarea" aria-hidden="true" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
 		</div>
 		<div id="var_resizer_x"></div>
 		<div id="var_resizer_y"></div>

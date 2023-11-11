@@ -28,8 +28,22 @@ document.addEventListener('DOMContentLoaded', function() {
 		const currentLineText = lines[lines.length - 1];
 		const context = document.createElement('canvas').getContext('2d');
 		context.font = getComputedStyle(textarea).font;
-		const metrics = context.measureText(currentLineText);
-		return metrics.width;
+
+		const text = currentLineText.split('');
+		let pixelPosition = 0;
+		let currentPosition = 0;
+		const tabSize = 4;
+		for (let i = 0; i < text.length; i++) {
+			if (text[i] === '\t') {
+				const spacesToNextTabStop = tabSize - (currentPosition % tabSize);
+				currentPosition += spacesToNextTabStop;
+				pixelPosition += context.measureText(' '.repeat(spacesToNextTabStop)).width;
+			} else {
+				currentPosition++;
+				pixelPosition += context.measureText(text[i]).width;
+			}
+		}
+		return pixelPosition;
 	}
 
 	function updateCaret() {
@@ -71,26 +85,21 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}
 
-	textarea.addEventListener('input', function() {
-		setCaretPosition();
-		updateEditor();
-	}, false);
-
-	textarea.addEventListener('keydown', function(e) {
-		const isNavigationKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
-		if (isNavigationKey) {
-			setTimeout(function() {
-				setCaretPosition();
-				updateSelection();
-				updateCaret();
-			}, 0);
-		}
-	}, false);
-
 	function getTextMetrics(text, textarea) {
 		const context = document.createElement('canvas').getContext('2d');
 		context.font = getComputedStyle(textarea).font;
-		return text.split('').map(char => context.measureText(char).width);
+		let currentPosition = 0;
+		const tabSize = 4;
+		return text.split('').map(char => {
+			if (char === '\t') {
+				const spacesToNextTabStop = tabSize - (currentPosition % tabSize);
+				currentPosition += spacesToNextTabStop;
+				return context.measureText(' '.repeat(spacesToNextTabStop)).width;
+			} else {
+				currentPosition++;
+				return context.measureText(char).width;
+			}
+		});
 	}
 
 	function getCharIndexAtClick(lineText, clickX, textarea) {
@@ -171,58 +180,164 @@ document.addEventListener('DOMContentLoaded', function() {
 		return { lineIndex, charIndex };
 	}
 
-	editor.addEventListener('mousedown', function(e) {
+	function selectWordAtClick(e) {
+		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
+		const lineText = textarea.value.split('\n')[lineIndex];
+		let wordStart = charIndex;
+		let wordEnd = charIndex;
+		while (wordStart > 0 && /[^\s\(\)\[\]{}+\-\*\/%\!~<>=\&\|\^\"\',\\:;#]/.test(lineText[wordStart - 1])) {
+			wordStart--;
+		}
+		while (wordEnd < lineText.length && /[^\s\(\)\[\]{}+\-\*\/%\!~<>=\&\|\^\"\',\\:;#]/.test(lineText[wordEnd])) {
+			wordEnd++;
+		}
+		if (wordStart === wordEnd) {
+			wordStart = charIndex;
+			wordEnd = charIndex + 1;
+		}
 		const lines = editor.getElementsByClassName('line');
-		isDragging = true;
+		const start = getTextAreaIndexFromLineAndChar(lines, lineIndex, wordStart);
+		const end = getTextAreaIndexFromLineAndChar(lines, lineIndex, wordEnd);
+		textarea.setSelectionRange(start, end);
+		caretPosition = end;
+		dragStartLine = lineIndex;
+		dragStartChar = wordStart;
+		updateSelection();
+		updateCaret();
+	}
+
+	function selectLineAtClick(e) {
+		const { lineIndex } = getLineCharIndexFromClick(e);
+		const lines = textarea.value.split('\n');
+		const start = lines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? 1 : 0);
+		const end = start + lines[lineIndex].length;
+		textarea.setSelectionRange(start, end);
+		caretPosition = end;
+		dragStartLine = lineIndex;
+		dragStartChar = 0;
+		updateSelection();
+		updateCaret();
+	}
+
+	let lastClickTime = 0;
+	let clickCount = 0;
+	let oldEvent;
+	function checkClick(e) {
+		if (oldEvent && (oldEvent.clientX !== e.clientX || oldEvent.clientY !== e.clientY)) {
+			clickCount = 0;
+		}
+		oldEvent = e;
+		const clickTime = Date.now();
+		if (clickTime - lastClickTime < 400) {
+			clickCount++;
+		} else {
+			clickCount = 1;
+		}
+		lastClickTime = clickTime;
+		if (clickCount === 2) {
+			selectWordAtClick(e);
+		} else if (clickCount === 3) {
+			selectLineAtClick(e);
+			clickCount = 0;
+		}
+	}
+
+	function startTextSelection(e) {
+		const lines = editor.getElementsByClassName('line');
 		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
 		dragStartLine = lineIndex;
 		dragStartChar = charIndex;
 		caretPosition = getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex);
 		textarea.setSelectionRange(caretPosition, caretPosition);
+		updateSelection();
 		updateCaret();
 		window.getSelection().removeAllRanges();
-		
-		document.addEventListener('mousemove', mousemove)
-		document.addEventListener('mouseup', mouseup)
-	}, false);
+	}
 
+	function updateTextSelection(e) {
+		const lines = editor.getElementsByClassName('line');
+		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
+		const startPos = getTextAreaIndexFromLineAndChar(lines, dragStartLine, dragStartChar);
+		const endPos = getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex);
+		caretPosition = endPos;
+		if (startPos < endPos) {
+			textarea.setSelectionRange(startPos, endPos);
+		} else {
+			textarea.setSelectionRange(endPos, startPos);
+		}
+		updateSelection();
+		updateCaret();
+	}
+
+	editor.addEventListener('mousedown', function(e) {
+		if (e.button === 0) {
+			isDragging = true;
+			startTextSelection(e);
+			checkClick(e);
+			document.addEventListener('mousemove', mousemove)
+			document.addEventListener('mouseup', mouseup)
+		}
+	}, false);
 	const mousemove = function(e) {
 		if (isDragging) {
-			const lines = editor.getElementsByClassName('line');
-			const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-			const startPos = getTextAreaIndexFromLineAndChar(lines, dragStartLine, dragStartChar);
-			const endPos = getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex);
-			caretPosition = endPos;
-			if (startPos < endPos) {
-				textarea.setSelectionRange(startPos, endPos);
-			} else {
-				textarea.setSelectionRange(endPos, startPos);
-			}
-			updateSelection();
-			updateCaret();
+			updateTextSelection(e);
 		}
 	};
-
 	const mouseup = function(e) {
 		if (isDragging) {
 			isDragging = false;
-			const lines = editor.getElementsByClassName('line');
-			const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-			const startPos = getTextAreaIndexFromLineAndChar(lines, dragStartLine, dragStartChar);
-			const endPos = getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex);
-			caretPosition = endPos;
-			if (startPos < endPos) {
-				textarea.setSelectionRange(startPos, endPos);
-			} else {
-				textarea.setSelectionRange(endPos, startPos);
-			}
-			updateSelection();
-			updateCaret();
-
 			document.removeEventListener('mousemove', mousemove)
 			document.removeEventListener('mouseup', mouseup)
 		}
 	};
+
+	editor.addEventListener('touchstart', function(e) {
+		isDragging = true;
+		const touch = e.touches[0];
+		startTextSelection(touch);
+		checkClick(touch);
+		document.addEventListener('touchmove', touchmove)
+		document.addEventListener('touchend', touchend)
+	}, false);
+	const touchmove = function(e) {
+		if (isDragging) {
+			const touch = e.touches[0];
+			updateTextSelection(touch);
+		}
+	};
+	const touchend = function(e) {
+		if (isDragging) {
+			isDragging = false;
+			const touch = e.touches[0];
+			document.removeEventListener('touchmove', touchmove)
+			document.removeEventListener('touchend', touchend)
+		}
+	};
+
+	textarea.addEventListener('input', function() {
+		setCaretPosition();
+		updateEditor();
+	}, false);
+
+	textarea.addEventListener('keydown', function(e) {
+		const isNavigationKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
+		if (isNavigationKey) {
+			setTimeout(function() {
+				setCaretPosition();
+				updateSelection();
+				updateCaret();
+			}, 0);
+		}
+		if (e.key === 'Tab') {
+			e.preventDefault();
+			const start = textarea.selectionStart;
+			const end = textarea.selectionEnd;
+			textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+			textarea.selectionStart = textarea.selectionEnd = start + 1;
+			setCaretPosition();
+			updateEditor();
+		}
+	}, false);
 
 	document.getElementById('editor_container').addEventListener('focus', function(e) {
 		textarea.focus();

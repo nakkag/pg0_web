@@ -132,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}
 	setGridTemplate();
+	document.getElementById('editor_container').focus();
 }, false);
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {

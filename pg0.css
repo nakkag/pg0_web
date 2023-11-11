@@ -58,6 +58,7 @@ body::before {
 	margin: 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2) 0;
 	position: relative;
 	overflow: scroll;
+	padding: 2px;
 }
 
 #var_resizer_x {
