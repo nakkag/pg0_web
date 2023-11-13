@@ -222,13 +222,15 @@ document.addEventListener('DOMContentLoaded', function() {
 	let lastClickTime = 0;
 	let clickCount = 0;
 	let oldEvent;
-	function checkClick(e) {
-		if (oldEvent && (oldEvent.clientX !== e.clientX || oldEvent.clientY !== e.clientY)) {
+	function checkClick(e, area) {
+		if (oldEvent &&
+			(oldEvent.clientX < e.clientX - area || oldEvent.clientX > e.clientX + area ||
+			oldEvent.clientY < e.clientY - area || oldEvent.clientY > e.clientY + area)) {
 			clickCount = 0;
 		}
 		oldEvent = e;
 		const clickTime = Date.now();
-		if (clickTime - lastClickTime < 400) {
+		if (lastClickTime && clickTime - lastClickTime < 400) {
 			clickCount++;
 		} else {
 			clickCount = 1;
@@ -269,13 +271,29 @@ document.addEventListener('DOMContentLoaded', function() {
 		updateCaret();
 	}
 
-	editor.addEventListener('mousedown', function(e) {
-		if (e.button === 0) {
+	let touchstart = 'mousedown';
+	if ('ontouchstart' in window) {
+		touchstart = 'touchstart';
+	}
+	editor.addEventListener(touchstart, function(e) {
+		if (isDragging) {
+			return;
+		}
+		if (touchstart === 'mousedown') {
+			if (e.button === 0) {
+				isDragging = true;
+				startTextSelection(e);
+				checkClick(e, 5);
+				document.addEventListener('mousemove', mousemove)
+				document.addEventListener('mouseup', mouseup)
+			}
+		} else {
 			isDragging = true;
-			startTextSelection(e);
-			checkClick(e);
-			document.addEventListener('mousemove', mousemove)
-			document.addEventListener('mouseup', mouseup)
+			const touch = e.touches[0];
+			startTextSelection(touch);
+			checkClick(touch, 10);
+			document.addEventListener('touchmove', touchmove)
+			document.addEventListener('touchend', touchend)
 		}
 	}, false);
 	const mousemove = function(e) {
@@ -290,15 +308,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			document.removeEventListener('mouseup', mouseup)
 		}
 	};
-
-	editor.addEventListener('touchstart', function(e) {
-		isDragging = true;
-		const touch = e.touches[0];
-		startTextSelection(touch);
-		checkClick(touch);
-		document.addEventListener('touchmove', touchmove)
-		document.addEventListener('touchend', touchend)
-	}, false);
 	const touchmove = function(e) {
 		if (isDragging) {
 			const touch = e.touches[0];
