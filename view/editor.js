@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		line.className = 'line';
 		line.innerHTML = text.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), 
 			(match) => `<span class="keyword">${match}</span>`);
+		if (!line.innerHTML) {
+			line.innerHTML = '<span></span>'
+		}
 		return line;
 	}
 
@@ -163,8 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	function getLineCharIndexFromClick(e) {
 		const lineDivs = editor.getElementsByClassName('line');
-		const lines = editor.getElementsByClassName('line');
-
 		const editorRect = editor.getBoundingClientRect();
 		let clickX = e.clientX - editorRect.left;
 		if (clickX < 0) {
@@ -174,15 +175,16 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (clickY < 0) {
 			clickY = 0;
 		}
-		const lineIndex = Math.min(Math.floor(clickY / lineDivs[0].offsetHeight), lines.length - 1);
-		const line = lines[lineIndex];
+		const lineIndex = Math.min(Math.floor(clickY / lineDivs[0].offsetHeight), lineDivs.length - 1);
+		const line = lineDivs[lineIndex];
 		const charIndex = getCharIndexAtClick(line.textContent, clickX);
 		return { lineIndex, charIndex };
 	}
 
 	function selectWordAtClick(e) {
+		const lines = editor.getElementsByClassName('line');
 		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-		const lineText = textarea.value.split('\n')[lineIndex];
+		const lineText = lines[lineIndex].textContent;
 		let wordStart = charIndex;
 		let wordEnd = charIndex;
 		while (wordStart > 0 && /[^\s\(\)\[\]{}+\-\*\/%\!~<>=\&\|\^\"\',\\:;#]/.test(lineText[wordStart - 1])) {
@@ -195,26 +197,19 @@ document.addEventListener('DOMContentLoaded', function() {
 			wordStart = charIndex;
 			wordEnd = charIndex + 1;
 		}
-		const lines = editor.getElementsByClassName('line');
-		const start = getTextAreaIndexFromLineAndChar(lines, lineIndex, wordStart);
-		const end = getTextAreaIndexFromLineAndChar(lines, lineIndex, wordEnd);
-		textarea.setSelectionRange(start, end);
-		caretPosition = end;
-		dragStartLine = lineIndex;
+		dragStartLine = dragEndLine = currentLine = lineIndex;
 		dragStartChar = wordStart;
+		dragEndChar = currentColumn = wordEnd;
 		updateSelection();
 		updateCaret();
 	}
 
 	function selectLineAtClick(e) {
+		const lines = editor.getElementsByClassName('line');
 		const { lineIndex } = getLineCharIndexFromClick(e);
-		const lines = textarea.value.split('\n');
-		const start = lines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? 1 : 0);
-		const end = start + lines[lineIndex].length;
-		textarea.setSelectionRange(start, end);
-		caretPosition = end;
-		dragStartLine = lineIndex;
+		dragStartLine = dragEndLine = currentLine = lineIndex;
 		dragStartChar = 0;
+		dragEndChar = currentColumn = lines[lineIndex].textContent.length;
 		updateSelection();
 		updateCaret();
 	}
@@ -247,22 +242,18 @@ document.addEventListener('DOMContentLoaded', function() {
 	function startTextSelection(e) {
 		const lines = editor.getElementsByClassName('line');
 		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-		dragStartLine = dragEndLine = lineIndex;
-		dragStartChar = dragEndChar = charIndex;
-		currentLine = lineIndex;
-		currentColumn = charIndex;
+		dragStartLine = dragEndLine = currentLine = lineIndex;
+		dragStartChar = dragEndChar = currentColumn = charIndex;
 		updateCaret();
-		window.getSelection().removeAllRanges();
 		initInput();
+		window.getSelection().removeAllRanges();
 	}
 
 	function updateTextSelection(e) {
 		const lines = editor.getElementsByClassName('line');
 		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-		dragEndLine = lineIndex;
-		dragEndChar = charIndex;
-		currentLine = lineIndex;
-		currentColumn = charIndex;
+		dragEndLine = currentLine = lineIndex;
+		dragEndChar = currentColumn = charIndex;
 		updateSelection();
 		updateCaret();
 		initInput();
@@ -303,44 +294,95 @@ document.addEventListener('DOMContentLoaded', function() {
 			isDragging = false;
 			document.removeEventListener('mousemove', mousemove)
 			document.removeEventListener('mouseup', mouseup)
+			if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
+				textarea.focus();
+			}
 		}
 	};
 	const touchmove = function(e) {
 		if (isDragging) {
-			const touch = e.touches[0];
-			updateTextSelection(touch);
+			updateTextSelection(e.touches[0]);
 		}
 	};
 	const touchend = function(e) {
 		if (isDragging) {
 			isDragging = false;
-			const touch = e.touches[0];
 			document.removeEventListener('touchmove', touchmove)
 			document.removeEventListener('touchend', touchend)
+			if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
+				textarea.focus();
+			}
 		}
 	};
 
 	textarea.addEventListener('input', function() {
+		if (dragStartLine !== dragEndLine || dragStartChar !== dragEndChar) {
+			// TODO: Delete selection
+		}
 		updateEditor();
 	}, false);
 
 	textarea.addEventListener('keydown', function(e) {
-		const isNavigationKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
-		if (isNavigationKey) {
-			e.preventDefault();
-			setTimeout(function() {
-				setCaretPosition();
-				updateSelection();
-				updateCaret();
-			}, 0);
-		}
+		const lines = editor.getElementsByClassName('line');
 		if (e.key === 'Tab') {
 			e.preventDefault();
-			const start = textarea.selectionStart;
-			const end = textarea.selectionEnd;
-			textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
-			textarea.selectionStart = textarea.selectionEnd = start + 1;
+			textarea.value += '\t';
 			updateEditor();
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			initInput();
+			const frontStr = lines[currentLine].textContent.substr(0, currentColumn);
+			const backStr = lines[currentLine].textContent.substr(currentColumn);
+			lines[currentLine].innerHTML = frontStr.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), 
+				(match) => `<span class="keyword">${match}</span>`);
+			lines[currentLine].after(createLineElement(backStr));
+			currentLine++;
+			currentColumn = 0;
+			updateCaret();
+		} else if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			initInput();
+			currentColumn--;
+			if (currentColumn < 0) {
+				currentLine--;
+				if (currentLine < 0) {
+					currentLine = 0;
+					currentColumn = 0;
+				} else {
+					currentColumn = lines[currentLine].textContent.length;
+				}
+			}
+			updateCaret();
+		} else if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			initInput();
+			currentColumn++;
+			if (currentColumn > lines[currentLine].textContent.length) {
+				currentLine++;
+				if (currentLine > lines.length - 1) {
+					currentLine = lines.length - 1;
+					currentColumn = lines[currentLine].textContent.length;
+				} else {
+					currentColumn = 0;
+				}
+			}
+			updateCaret();
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			initInput();
+			currentLine--;
+			if (currentLine < 0) {
+				currentLine = 0;
+			}
+			updateCaret();
+		} else if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			initInput();
+			currentLine++;
+			if (currentLine > lines.length - 1) {
+				currentLine = lines.length - 1;
+			}
+			updateCaret();
 		}
 	}, false);
 
