@@ -20,6 +20,7 @@
 	width: 2px;
 	height: 1em;
 	animation: blink-caret 0.7s steps(1) infinite;
+	z-index: 1;
 }
 
 @keyframes blink-caret {

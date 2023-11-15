@@ -108,10 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		return line;
 	}
 
-	function setCaretPosition() {
-		//caretPosition = textarea.selectionStart;
-	}
-
 	function getTextMetrics(text) {
 		const context = document.createElement('canvas').getContext('2d');
 		context.font = getComputedStyle(editor).font;
@@ -162,14 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		selection.removeAllRanges();
 		selection.addRange(range);
-	}
-
-	function getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex) {
-		let textAreaIndex = 0;
-		for (let i = 0; i < lineIndex; i++) {
-			textAreaIndex += lines[i].textContent.length + 1;
-		}
-		return textAreaIndex + charIndex;
 	}
 
 	function getLineCharIndexFromClick(e) {
