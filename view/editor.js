@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 	const editor = document.getElementById('editor');
+	const hidden = document.getElementById('hidden_container');
 	const textarea = document.getElementById('hidden-textarea');
 	const keywords = ['if', 'for', 'while'];
 	const caret = document.createElement('div');
@@ -11,23 +12,48 @@ document.addEventListener('DOMContentLoaded', function() {
 	let currentColumn = 0;
 	let isDragging = false;
 	let dragStartLine = 0;
+	let dragEndLine = 0;
 	let dragStartChar = 0;
+	let dragEndChar = 0;
+	let inputFlag = false;
+	let inputFront = '';
+	let inputBack = '';
+
+	function initInput() {
+		inputFlag = false;
+		textarea.value = '';
+	}
 
 	function updateEditor() {
-		const lines = textarea.value.split('\n');
-		editor.innerHTML = '';
-		lines.forEach(line => {
-			editor.appendChild(createLineElement(line));
-		});
-		updateSelection();
+		const text = textarea.value;
+		let lines = editor.getElementsByClassName('line');
+		if (lines.length <= currentLine) {
+			for (let i = lines.length; i <= currentLine; i++) {
+				editor.appendChild(createLineElement(''));
+			}
+			lines = editor.getElementsByClassName('line');
+		}
+		if (!inputFlag) {
+			if (text) {
+				inputFlag = true;
+				inputFront = lines[currentLine].textContent.substr(0, currentColumn);
+				inputBack = lines[currentLine].textContent.substr(currentColumn);
+			} else {
+				return;
+			}
+		}
+		const newLine = inputFront + text + inputBack;
+		lines[currentLine].innerHTML = newLine.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), 
+			(match) => `<span class="keyword">${match}</span>`);
+		currentColumn = inputFront.length + text.length;
 		updateCaret();
 	}
 
-	function getCaretPixelPosition(textarea, caretPosition) {
-		const lines = textarea.value.substring(0, caretPosition).split('\n');
-		const currentLineText = lines[lines.length - 1];
+	function getCaretPixelPosition() {
+		const lines = editor.getElementsByClassName('line');
+		const currentLineText = lines[currentLine].textContent.substr(0, currentColumn);
 		const context = document.createElement('canvas').getContext('2d');
-		context.font = getComputedStyle(textarea).font;
+		context.font = getComputedStyle(editor).font;
 
 		const text = currentLineText.split('');
 		let pixelPosition = 0;
@@ -47,21 +73,19 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function updateCaret() {
-		const lines = textarea.value.substring(0, caretPosition).split('\n');
-		currentLine = lines.length;
-		currentColumn = lines[lines.length - 1].length;
-		const pixelPosition = getCaretPixelPosition(textarea, caretPosition);
+		const pixelPosition = getCaretPixelPosition();
 		const lineDivs = editor.getElementsByClassName('line');
-		if (currentLine <= lineDivs.length) {
-			const lineDiv = lineDivs[currentLine - 1];
+		if (currentLine < lineDivs.length) {
+			const lineDiv = lineDivs[currentLine];
 			caret.style.height = `${lineDiv.offsetHeight}px`;
 			caret.style.top = `${lineDiv.offsetTop}px`;
 			caret.style.left = `${lineDiv.offsetLeft + pixelPosition}px`;
 			if (!caret.parentElement) editor.appendChild(caret);
+			hidden.style.top = caret.style.top;
+			hidden.style.left = caret.style.left;
 			textarea.style.top = caret.style.top;
-			textarea.style.left = 0;
+			textarea.style.left = caret.style.left;
 			textarea.style.height = caret.style.height;
-			textarea.style.width = '100%';
 		}
 	}
 
@@ -73,21 +97,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		return line;
 	}
 
-	let oldCaretPosition = 0;
 	function setCaretPosition() {
-		if (textarea.selectionStart === textarea.selectionEnd) {
-			caretPosition = textarea.selectionStart;
-			oldCaretPosition = caretPosition;
-		} else if (oldCaretPosition === textarea.selectionStart) {
-			caretPosition = textarea.selectionEnd;
-		} else {
-			caretPosition = textarea.selectionStart;
-		}
+		//caretPosition = textarea.selectionStart;
 	}
 
-	function getTextMetrics(text, textarea) {
+	function getTextMetrics(text) {
 		const context = document.createElement('canvas').getContext('2d');
-		context.font = getComputedStyle(textarea).font;
+		context.font = getComputedStyle(editor).font;
 		let currentPosition = 0;
 		const tabSize = 4;
 		return text.split('').map(char => {
@@ -102,8 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}
 
-	function getCharIndexAtClick(lineText, clickX, textarea) {
-		const charWidths = getTextMetrics(lineText, textarea);
+	function getCharIndexAtClick(lineText, clickX) {
+		const charWidths = getTextMetrics(lineText);
 		let totalWidth = 0;
 		let charIndex;
 
@@ -118,39 +134,23 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function updateSelection() {
-		const selectionStart = textarea.selectionStart;
-		const selectionEnd = textarea.selectionEnd;
-		const textContent = textarea.value;
-		const lineElements = editor.getElementsByClassName('line');
-		for (const lineElement of lineElements) {
-			const highlights = lineElement.querySelectorAll('.highlight');
-			highlights.forEach(highlight => {
-				let text = document.createTextNode(highlight.textContent);
-				lineElement.replaceChild(text, highlight);
-			});
+		const lines = editor.getElementsByClassName('line');
+		const selection = window.getSelection();
+		const range = new Range();
+		const startNode = lines[dragStartLine].childNodes[0];
+		const endNode = lines[dragEndLine].childNodes[0];
+		if (!startNode || !endNode) {
+			return;
 		}
-		const lines = textContent.split('\n');
-		let globalIndex = 0;
-		lines.forEach((lineText, lineIndex) => {
-			let lineElement = lineElements[lineIndex];
-			if (!lineElement) {
-				editor.appendChild(createLineElement(lineText));
-			}
-			const localSelectionStart = Math.max(selectionStart - globalIndex, 0);
-			const localSelectionEnd = Math.min(selectionEnd, globalIndex + lineText.length) - globalIndex;
-			if (selectionStart < globalIndex + lineText.length && selectionEnd > globalIndex) {
-				while (lineElement.firstChild) {
-					lineElement.removeChild(lineElement.firstChild);
-				}
-				lineElement.appendChild(document.createTextNode(lineText.substring(0, localSelectionStart)));
-				const highlightSpan = document.createElement('span');
-				highlightSpan.className = 'highlight';
-				highlightSpan.textContent = lineText.substring(localSelectionStart, localSelectionEnd);
-				lineElement.appendChild(highlightSpan);
-				lineElement.appendChild(document.createTextNode(lineText.substring(localSelectionEnd)));
-			}
-			globalIndex += lineText.length + 1;
-		});
+		if (dragStartLine < dragEndLine || (dragStartLine === dragEndLine && dragStartChar < dragEndChar)) {
+			range.setStart(startNode, dragStartChar);
+			range.setEnd(endNode, dragEndChar);
+		} else {
+			range.setStart(endNode, dragEndChar);
+			range.setEnd(startNode, dragStartChar);
+		}
+		selection.removeAllRanges();
+		selection.addRange(range);
 	}
 
 	function getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex) {
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		const lineIndex = Math.min(Math.floor(clickY / lineDivs[0].offsetHeight), lines.length - 1);
 		const line = lines[lineIndex];
-		const charIndex = getCharIndexAtClick(line.textContent, clickX, textarea);
+		const charIndex = getCharIndexAtClick(line.textContent, clickX);
 		return { lineIndex, charIndex };
 	}
 
@@ -247,28 +247,25 @@ document.addEventListener('DOMContentLoaded', function() {
 	function startTextSelection(e) {
 		const lines = editor.getElementsByClassName('line');
 		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-		dragStartLine = lineIndex;
-		dragStartChar = charIndex;
-		caretPosition = getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex);
-		textarea.setSelectionRange(caretPosition, caretPosition);
-		updateSelection();
+		dragStartLine = dragEndLine = lineIndex;
+		dragStartChar = dragEndChar = charIndex;
+		currentLine = lineIndex;
+		currentColumn = charIndex;
 		updateCaret();
 		window.getSelection().removeAllRanges();
+		initInput();
 	}
 
 	function updateTextSelection(e) {
 		const lines = editor.getElementsByClassName('line');
 		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-		const startPos = getTextAreaIndexFromLineAndChar(lines, dragStartLine, dragStartChar);
-		const endPos = getTextAreaIndexFromLineAndChar(lines, lineIndex, charIndex);
-		caretPosition = endPos;
-		if (startPos < endPos) {
-			textarea.setSelectionRange(startPos, endPos);
-		} else {
-			textarea.setSelectionRange(endPos, startPos);
-		}
+		dragEndLine = lineIndex;
+		dragEndChar = charIndex;
+		currentLine = lineIndex;
+		currentColumn = charIndex;
 		updateSelection();
 		updateCaret();
+		initInput();
 	}
 
 	let touchstart = 'mousedown';
@@ -324,13 +321,13 @@ document.addEventListener('DOMContentLoaded', function() {
 	};
 
 	textarea.addEventListener('input', function() {
-		setCaretPosition();
 		updateEditor();
 	}, false);
 
 	textarea.addEventListener('keydown', function(e) {
 		const isNavigationKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key);
 		if (isNavigationKey) {
+			e.preventDefault();
 			setTimeout(function() {
 				setCaretPosition();
 				updateSelection();
@@ -343,13 +340,14 @@ document.addEventListener('DOMContentLoaded', function() {
 			const end = textarea.selectionEnd;
 			textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
 			textarea.selectionStart = textarea.selectionEnd = start + 1;
-			setCaretPosition();
 			updateEditor();
 		}
 	}, false);
 
 	document.getElementById('editor_container').addEventListener('focus', function(e) {
-		textarea.focus();
+		if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
+			textarea.focus();
+		}
 	}, false);
 
 	updateEditor();

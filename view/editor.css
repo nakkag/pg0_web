@@ -3,12 +3,14 @@
 	white-space: pre;
 	position: relative;
 	cursor: text;
+	width: 100%;
 }
 
 #editor .line {
 	position: relative;
 	height: 1em;
 	tab-size: 4;
+	padding: 2px;
 }
 
 #editor .caret {
@@ -26,10 +28,16 @@
 	}
 }
 
-#hidden-textarea {
-	position: absolute;
+#hidden_container {
+	position: relative;
+	overflow: hidden;
+	width: 0px;
 	opacity: 0;
 	z-index: -1;
+}
+
+#hidden-textarea {
+	position: absolute;
 	top: 0;
 	left: 0;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
@@ -38,7 +46,8 @@
 	resize: none;
 	outline: 0px;
 	border: 0px;
-	padding: 0px;
+	padding: 2px;
+	width: 1000px;
 }
 
 ::selection {
