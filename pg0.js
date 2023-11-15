@@ -233,7 +233,7 @@ async function exec(_step) {
 		nextStep = true;
 		return;
 	}
-	const buf = document.getElementById('hidden-textarea').value;
+	const buf = getEditorText();
 	if (!buf) {
 		return;
 	}

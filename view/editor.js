@@ -1,3 +1,15 @@
+function getEditorText() {
+	const lines = document.getElementById('editor').getElementsByClassName('line');
+	let buf = '';
+	for (let i = 0; i < lines.length; i++) {
+		if (buf) {
+			buf += "\n";
+		}
+		buf += lines[i].textContent;
+	}
+	return buf;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 	const editor = document.getElementById('editor');
 	const hidden = document.getElementById('hidden_container');
@@ -311,16 +323,16 @@ document.addEventListener('DOMContentLoaded', function() {
 				isDragging = true;
 				startTextSelection(e);
 				checkClick(e, 5);
-				document.addEventListener('mousemove', mousemove)
-				document.addEventListener('mouseup', mouseup)
+				document.addEventListener('mousemove', mousemove);
+				document.addEventListener('mouseup', mouseup);
 			}
 		} else {
 			isDragging = true;
 			const touch = e.touches[0];
 			startTextSelection(touch);
 			checkClick(touch, 10);
-			document.addEventListener('touchmove', touchmove)
-			document.addEventListener('touchend', touchend)
+			document.addEventListener('touchmove', touchmove);
+			document.addEventListener('touchend', touchend);
 		}
 	}, false);
 	const mousemove = function(e) {
@@ -331,11 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
 	const mouseup = function(e) {
 		if (isDragging) {
 			isDragging = false;
-			document.removeEventListener('mousemove', mousemove)
-			document.removeEventListener('mouseup', mouseup)
-			if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
-				textarea.focus();
-			}
+			document.removeEventListener('mousemove', mousemove);
+			document.removeEventListener('mouseup', mouseup);
+			textarea.focus();
 		}
 	};
 	const touchmove = function(e) {
@@ -346,11 +356,9 @@ document.addEventListener('DOMContentLoaded', function() {
 	const touchend = function(e) {
 		if (isDragging) {
 			isDragging = false;
-			document.removeEventListener('touchmove', touchmove)
-			document.removeEventListener('touchend', touchend)
-			if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
-				textarea.focus();
-			}
+			document.removeEventListener('touchmove', touchmove);
+			document.removeEventListener('touchend', touchend);
+			textarea.focus();
 		}
 	};
 
@@ -457,9 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}, false);
 
 	document.getElementById('editor_container').addEventListener('focus', function(e) {
-		if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
-			textarea.focus();
-		}
+		textarea.focus();
 	}, false);
 
 	updateEditor();
