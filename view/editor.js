@@ -24,6 +24,15 @@ document.addEventListener('DOMContentLoaded', function() {
 		textarea.value = '';
 	}
 
+	function setLine(line, text) {
+		const lines = editor.getElementsByClassName('line');
+		lines[line].innerHTML = text.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), 
+			(match) => `<span class="keyword">${match}</span>`);
+		if (!lines[line].innerHTML) {
+			lines[line].innerHTML = '<span></span>'
+		}
+	}
+
 	function updateEditor() {
 		const text = textarea.value;
 		let lines = editor.getElementsByClassName('line');
@@ -43,8 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 		}
 		const newLine = inputFront + text + inputBack;
-		lines[currentLine].innerHTML = newLine.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), 
-			(match) => `<span class="keyword">${match}</span>`);
+		setLine(currentLine, newLine);
 		currentColumn = inputFront.length + text.length;
 		updateCaret();
 	}
@@ -259,6 +267,49 @@ document.addEventListener('DOMContentLoaded', function() {
 		initInput();
 	}
 
+	function deselection() {
+		window.getSelection().removeAllRanges();
+		dragStartLine = dragEndLine = currentLine;
+		dragStartChar = dragEndChar = currentColumn;
+		updateCaret();
+	}
+
+	function deleteSelection() {
+		if (dragStartLine === dragEndLine && dragStartChar === dragEndChar) {
+			return;
+		}
+		window.getSelection().removeAllRanges();
+		const lines = editor.getElementsByClassName('line');
+		let stl, enl, stc, enc;
+		if (dragStartLine < dragEndLine || (dragStartLine === dragEndLine && dragStartChar < dragEndChar)) {
+			stl = dragStartLine;
+			enl = dragEndLine;
+			stc = dragStartChar;
+			enc = dragEndChar;
+		} else {
+			stl = dragEndLine;
+			enl = dragStartLine;
+			stc = dragEndChar;
+			enc = dragStartChar;
+		}
+		if (stl === enl) {
+			const str = lines[stl].textContent.substr(0, stc) + lines[stl].textContent.substr(enc)
+			setLine(stl, str);
+		} else {
+			setLine(enl, lines[enl].textContent.substr(enc));
+			for (let i = enl - 1; i < stl + 1; i--) {
+				lines[enl].remove();
+			}
+			setLine(stl, lines[stl].textContent.substr(0, stc));
+		}
+		dragStartLine = dragEndLine = stl;
+		dragStartChar = dragEndChar = stc;
+		currentLine = stl;
+		currentColumn = stc;
+		updateCaret();
+		textarea.focus();
+	}
+
 	let touchstart = 'mousedown';
 	if ('ontouchstart' in window) {
 		touchstart = 'touchstart';
@@ -316,9 +367,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	};
 
 	textarea.addEventListener('input', function() {
-		if (dragStartLine !== dragEndLine || dragStartChar !== dragEndChar) {
-			// TODO: Delete selection
-		}
 		updateEditor();
 	}, false);
 
@@ -326,6 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		const lines = editor.getElementsByClassName('line');
 		if (e.key === 'Tab') {
 			e.preventDefault();
+			deleteSelection();
 			textarea.value += '\t';
 			updateEditor();
 		} else if (e.key === 'Enter') {
@@ -333,14 +382,28 @@ document.addEventListener('DOMContentLoaded', function() {
 			initInput();
 			const frontStr = lines[currentLine].textContent.substr(0, currentColumn);
 			const backStr = lines[currentLine].textContent.substr(currentColumn);
-			lines[currentLine].innerHTML = frontStr.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), 
-				(match) => `<span class="keyword">${match}</span>`);
+			setLine(currentLine, frontStr);
 			lines[currentLine].after(createLineElement(backStr));
 			currentLine++;
 			currentColumn = 0;
 			updateCaret();
 		} else if (e.key === 'ArrowLeft') {
 			e.preventDefault();
+			if (dragStartLine !== dragEndLine || dragStartChar !== dragEndChar) {
+				if (dragStartLine < dragEndLine || (dragStartLine === dragEndLine && dragStartChar < dragEndChar)) {
+					currentLine = dragStartLine;
+					currentColumn = dragStartChar;
+				} else {
+					currentLine = dragEndLine;
+					currentColumn = dragEndChar;
+				}
+				dragStartLine = dragEndLine = currentLine;
+				dragStartChar = dragEndChar = currentColumn;
+				updateSelection();
+				updateCaret();
+				initInput();
+				return;
+			}
 			initInput();
 			currentColumn--;
 			if (currentColumn < 0) {
@@ -355,6 +418,21 @@ document.addEventListener('DOMContentLoaded', function() {
 			updateCaret();
 		} else if (e.key === 'ArrowRight') {
 			e.preventDefault();
+			if (dragStartLine !== dragEndLine || dragStartChar !== dragEndChar) {
+				if (dragStartLine < dragEndLine || (dragStartLine === dragEndLine && dragStartChar < dragEndChar)) {
+					currentLine = dragEndLine;
+					currentColumn = dragEndChar;
+				} else {
+					currentLine = dragStartLine;
+					currentColumn = dragStartChar;
+				}
+				dragStartLine = dragEndLine = currentLine;
+				dragStartChar = dragEndChar = currentColumn;
+				updateSelection();
+				updateCaret();
+				initInput();
+				return;
+			}
 			initInput();
 			currentColumn++;
 			if (currentColumn > lines[currentLine].textContent.length) {
@@ -369,6 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			updateCaret();
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
+			deselection();
 			initInput();
 			currentLine--;
 			if (currentLine < 0) {
@@ -377,12 +456,15 @@ document.addEventListener('DOMContentLoaded', function() {
 			updateCaret();
 		} else if (e.key === 'ArrowDown') {
 			e.preventDefault();
+			deselection();
 			initInput();
 			currentLine++;
 			if (currentLine > lines.length - 1) {
 				currentLine = lines.length - 1;
 			}
 			updateCaret();
+		} else {
+			deleteSelection();
 		}
 	}, false);
 
