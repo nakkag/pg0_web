@@ -1,3 +1,6 @@
+const keywords = ['var', 'exit', 'if', 'else', 'while'];
+const keywords_extension = ['for', 'do', 'break', 'continue', 'switch', 'case', 'default', 'return', 'function', 'import', 'option'];
+
 function getEditorText() {
 	const lines = editor.childNodes;
 	let buf = '';
@@ -10,40 +13,123 @@ function getEditorText() {
 	return buf;
 }
 
-function unsetHighlight() {
-	const editor = document.getElementById('editor');
-	const lines = editor.childNodes;
-	for (let i = 0; i < lines.length; i++) {
-		if (editor.childNodes[i].style && editor.childNodes[i].textContent) {
-			editor.childNodes[i].style.backgroundColor = 'transparent';
-		}
-	}
+function setKeyword(str) {
+    str = str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span class="string-literal">"$1"</span>');
+    str = str.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '<span class="string-literal">"$1"</span>');
+	str = str.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi'), 
+		(match) => `<span class="keyword">${match}</span>`);
+	str = str.replace(new RegExp(`\\b(${keywords_extension.join('|')})\\b`, 'gi'), 
+		(match) => `<span class="keyword">${match}</span>`);
+    str = str.replace(/(\/\/.*)$/gm, '<span class="comment">$1</span>');
+	return str;
 }
 
-function setHighlight(line, color) {
+function unsetHighlight() {
+	document.querySelectorAll('.highlight').forEach(function(span) {
+		span.outerHTML = span.innerHTML;
+	});
+}
+
+function setHighlight(lineNumber, color) {
 	const editor = document.getElementById('editor');
-	unsetHighlight();
-	if (editor.childNodes[line].style && editor.childNodes[i].textContent) {
-		editor.childNodes[line].style.backgroundColor = color;
-	}
-	const element = editor.childNodes[line];
-	const targetDOMRect = element.getBoundingClientRect();
-	if (element.offsetTop < editor.scrollTop || element.offsetTop + element.offsetHeight > editor.scrollTop + editor.clientHeight) {
-		element.scrollIntoView({behavior: 'instant'});
+	let str = getEditorText();
+	const lines = str.split("\n");
+	let newContent = '';
+	lines.forEach(function(line, index) {
+		if (!line) {
+			newContent += `<div><br /></div>`;
+		} else if (index === lineNumber) {
+			newContent += `<div><span class="highlight" style="background-color: ${color};">${setKeyword(line)}</span></div>`;
+		} else {
+			newContent += `<div>${setKeyword(line)}</div>`;
+		}
+	});
+	editor.innerHTML = newContent;
+
+	const elements = document.getElementsByClassName('highlight');
+	if (elements && elements.length > 0) {
+		const element = elements[0];
+		const targetDOMRect = element.getBoundingClientRect();
+		if (element.offsetTop < editor.scrollTop || element.offsetTop + element.offsetHeight > editor.scrollTop + editor.clientHeight) {
+			element.scrollIntoView({behavior: 'instant'});
+		}
 	}
 }
 
 document.addEventListener('DOMContentLoaded', function() {
 	const editor = document.getElementById('editor');
-	const hidden = document.getElementById('hidden_container');
-	const keywords = ['var', 'if', 'switch', 'case', 'default', 'for', 'while', 'do', 'break', 'continue', 'function', 'return', 'exit', 'option', 'import'];
 
-	function setLine(linePos, text) {
-		const line = document.createElement('div');
-		line.innerHTML = text.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi'), 
-			(match) => `<span class="keyword">${match}</span>`);
-		editor.childNodes[linePos].replaceWith(line);
+	function setAllLine() {
+		let str = getEditorText();
+		const lines = str.split("\n");
+		let newContent = '';
+		lines.forEach(function(line, index) {
+			if (!line) {
+				newContent += `<div><br /></div>`;
+			} else {
+				newContent += `<div>${setKeyword(line)}</div>`;
+			}
+		});
+		editor.innerHTML = newContent;
 	}
+
+	function getCaretCharacterOffsetWithin(element, container, offset) {
+		const doc = element.ownerDocument || element.document;
+		const win = doc.defaultView || doc.parentWindow;
+		const range = doc.createRange();
+		range.setStart(container, offset);
+		range.setEnd(container, offset);
+		range.collapse(true);
+
+		const tempRange = range.cloneRange();
+		tempRange.selectNodeContents(element);
+		tempRange.setEnd(range.endContainer, range.endOffset);
+		return tempRange.toString().length;
+	}
+
+	function setCaretPosition(element, position) {
+		const range = document.createRange();
+		const selection = window.getSelection();
+		range.setStart(element, 0);
+		range.collapse(true);
+
+		const nodeStack = [element];
+		let node;
+		let foundStart = false;
+		let stop = false;
+		while (!stop && (node = nodeStack.pop())) {
+			if (node.nodeType == Node.TEXT_NODE) {
+				const nextCharIndex = position - node.length;
+				if (nextCharIndex <= 0) {
+					range.setStart(node, position);
+					foundStart = true;
+					break;
+				}
+				position = nextCharIndex;
+			} else {
+				let i = node.childNodes.length;
+				while (i--) {
+					nodeStack.push(node.childNodes[i]);
+				}
+			}
+		}
+		if (foundStart) {
+			selection.removeAllRanges();
+			selection.addRange(range);
+		}
+	}
+
+	editor.addEventListener('input', function(e) {
+		const selection = window.getSelection();
+		const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+		const startContainer = range.startContainer;
+		const startOffset = range.startOffset;
+		const caretPosition = getCaretCharacterOffsetWithin(editor, startContainer, startOffset);
+
+		setAllLine();
+
+		setCaretPosition(editor, caretPosition, 0);
+	}, false);
 
 	function getFocusLine() {
 		const lines = editor.childNodes;
@@ -56,217 +142,21 @@ document.addEventListener('DOMContentLoaded', function() {
 		return lines.length - 1;
 	}
 
-	let editLine = 0;
-	function setEditLine() {
-		const linePos = getFocusLine();
-		if (linePos !== editLine && linePos >= 0) {
-			if (editLine >= editor.childNodes.length) {
-				editLine = linePos;
-				return;
-			}
-			const str = editor.childNodes[editLine].textContent;
-			if (str) {
-				let bcolor = '';
-				if (editor.childNodes[editLine].style) {
-					bcolor = editor.childNodes[editLine].style.backgroundColor;
-				}
-				setLine(editLine, str);
-				if (bcolor) {
-					editor.childNodes[editLine].style.backgroundColor = bcolor;
-				}
-			}
-			editLine = linePos;
-		}
-	}
-
-	function setAllLine() {
-		for (let i = 0; i < editor.childNodes.length; i++) {
-			const line = editor.childNodes[i];
-			if (line.textContent) {
-				if (line.textContent.indexOf("\n") >= 0) {
-					const lines = line.textContent.split('\n');
-					setLine(i, lines[0]);
-					for (let j = lines.length - 1; j > 0; j--) {
-						const nl = document.createElement('div');
-						if (lines[j]) {
-							nl.textContent = lines[j];
-						} else {
-							nl.innerHTML = '<br />';
-						}
-						editor.childNodes[i].after(nl);
-					}
-				} else {
-					setLine(i, line.textContent);
-				}
-			}
-		}
-	}
-
-	function getTextMetrics(text) {
-		const context = document.createElement('canvas').getContext('2d');
-		context.font = getComputedStyle(editor).font;
-		let currentPosition = 0;
-		const tabSize = 4;
-		return text.split('').map(char => {
-			if (char === '\t') {
-				const spacesToNextTabStop = tabSize - (currentPosition % tabSize);
-				currentPosition += spacesToNextTabStop;
-				return context.measureText(' '.repeat(spacesToNextTabStop)).width;
-			} else {
-				currentPosition++;
-				return context.measureText(char).width;
-			}
-		});
-	}
-
-	function getCharIndexAtClick(lineText, clickX) {
-		const charWidths = getTextMetrics(lineText);
-		let totalWidth = 0;
-		let charIndex;
-
-		for (charIndex = 0; charIndex < lineText.length; charIndex++) {
-			const halfCharWidth = charWidths[charIndex] / 2;
-			totalWidth += charWidths[charIndex];
-			if ((totalWidth - halfCharWidth) >= clickX) {
-				break;
-			}
-		}
-		return charIndex;
-	}
-
-	function getLineCharIndexFromClick(e) {
-		const lineDivs = editor.childNodes;
-		const editorRect = editor.getBoundingClientRect();
-		let clickX = e.clientX - editorRect.left;
-		if (clickX < 0) {
-			clickX = 0;
-		}
-		let clickY = e.clientY - editorRect.top;
-		if (clickY < 0) {
-			clickY = 0;
-		}
-		const lineIndex = Math.min(Math.floor(clickY / lineDivs[0].offsetHeight), lineDivs.length - 1);
-		const line = lineDivs[lineIndex];
-		const charIndex = getCharIndexAtClick(line.textContent, clickX);
-		return { lineIndex, charIndex };
-	}
-
-	function selectWordAtClick(e) {
-		const lines = editor.childNodes;
-		const { lineIndex, charIndex } = getLineCharIndexFromClick(e);
-		const lineText = lines[lineIndex].textContent;
-		let wordStart = charIndex;
-		let wordEnd = charIndex;
-		while (wordStart > 0 && /[^\s\(\)\[\]{}+\-\*\/%\!~<>=\&\|\^\"\',\\:;#]/.test(lineText[wordStart - 1])) {
-			wordStart--;
-		}
-		while (wordEnd < lineText.length && /[^\s\(\)\[\]{}+\-\*\/%\!~<>=\&\|\^\"\',\\:;#]/.test(lineText[wordEnd])) {
-			wordEnd++;
-		}
-		if (wordStart === wordEnd && lineText) {
-			wordStart = charIndex;
-			wordEnd = charIndex + 1;
-		}
-		if (wordStart >= lineText.length) {
-			wordStart = lineText.length - 1;
-		}
-		if (wordEnd >= lineText.length) {
-			wordEnd = lineText.length - 1;
-		}
-		const selection = window.getSelection();
-		const range = new Range();
-		range.setStart(lines[lineIndex].childNodes[0], wordStart);
-		range.setEnd(lines[lineIndex].childNodes[0], wordEnd);
-		selection.removeAllRanges();
-		selection.addRange(range);
-	}
-
-	function selectLineAtClick(e) {
-		const lines = editor.childNodes;
-		const { lineIndex } = getLineCharIndexFromClick(e);
-		const selection = window.getSelection();
-		const range = new Range();
-		range.setStart(lines[lineIndex].childNodes[0], 0);
-		range.setEnd(lines[lineIndex].childNodes[0], lines[lineIndex].textContent.length);
-		selection.removeAllRanges();
-		selection.addRange(range);
-	}
-
-	let lastClickTime = 0;
-	let clickCount = 0;
-	let oldEvent;
-	function checkClick(e, area) {
-		if (oldEvent &&
-			(oldEvent.clientX < e.clientX - area || oldEvent.clientX > e.clientX + area ||
-			oldEvent.clientY < e.clientY - area || oldEvent.clientY > e.clientY + area)) {
-			clickCount = 0;
-		}
-		oldEvent = e;
-		const clickTime = Date.now();
-		if (lastClickTime && clickTime - lastClickTime < 400) {
-			clickCount++;
-		} else {
-			clickCount = 1;
-		}
-		lastClickTime = clickTime;
-		if (clickCount === 2) {
-			selectWordAtClick(e);
-		} else if (clickCount === 3) {
-			selectLineAtClick(e);
-			clickCount = 0;
-		}
-	}
-
-	let touchstart = 'mousedown';
-	if ('ontouchstart' in window) {
-		touchstart = 'touchstart';
-	}
-	editor.addEventListener(touchstart, function(e) {
-		editor.focus();
-		if (touchstart === 'mousedown') {
-			if (e.button === 0) {
-				checkClick(e, 5);
-				document.addEventListener('mouseup', touchend);
-			}
-		} else {
-			const touch = e.touches[0];
-			checkClick(touch, 10);
-			document.addEventListener('touchend', touchend);
-		}
-	}, false);
-	const touchend = function(e) {
-		document.removeEventListener('touchend', touchend)
-		setEditLine();
-	};
-
-	let lineCount = 0;
-	editor.addEventListener('input', function() {
-		unsetHighlight();
-		if (lineCount !== editor.childNodes.length) {
-			lineCount = editor.childNodes.length;
-			setAllLine();
-		}
-	}, false);
-
 	editor.addEventListener('keydown', function(e) {
 		if (e.key === 'Tab') {
 			e.preventDefault();
-			const selection = window.getSelection();
-			const linePos = getFocusLine();
-			const charPos = selection.focusOffset;
-			let str = editor.childNodes[linePos].textContent;
-			str = str.substr(0, charPos) + '\t' + str.substr(charPos);
-			setLine(linePos, str);
+			document.execCommand('insertText', false, "\t");
+		} else if (e.key === 'Enter') {
+			event.preventDefault();
+			const index = getFocusLine();
 
+			document.execCommand('insertText', false, "\n");
+
+			const selection = window.getSelection();
 			const range = new Range();
-			range.setStart(editor.childNodes[linePos].firstChild, charPos + 1);
-			range.setEnd(editor.childNodes[linePos].firstChild, charPos + 1);
+			range.setStart(editor.childNodes[index + 1].childNodes[0], 0);
 			selection.removeAllRanges();
 			selection.addRange(range);
 		}
-	}, false);
-
-	editor.addEventListener('keyup', function(e) {
-		setEditLine();
 	}, false);
 }, false);

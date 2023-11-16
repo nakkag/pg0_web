@@ -13,60 +13,24 @@
 	overflow: scroll;
 }
 
-#editor .line {
-	position: relative;
-	height: 1em;
-	tab-size: 4;
-	padding: 2px;
-}
-
-#editor .caret {
-	position: absolute;
-	left: 0;
-	background-color: black;
-	width: 2px;
-	height: 1em;
-	animation: blink-caret 0.7s steps(1) infinite;
-	z-index: 1;
-}
-
-@keyframes blink-caret {
-	50% {
-		opacity: 0;
-	}
-}
-
-#hidden_container {
-	position: relative;
-	overflow: hidden;
-	width: 0px;
-	opacity: 0;
-	z-index: -1;
-}
-
-#hidden-textarea {
-	position: absolute;
-	top: 0;
-	left: 0;
-	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
-	font-size: 16px;
-	tab-size: 4;
-	resize: none;
-	outline: 0px;
-	border: 0px;
-	padding: 2px;
-	width: 1000px;
-}
-
 ::selection {
 	background: #b3d4fc;
-}
-
-.highlight {
-	background-color: #b3d4fc;
 }
 
 .keyword {
 	color: blue;
 }
 
+.string-literal, .string-literal .keyword {
+	color: #800000;
+}
+
+.comment, .comment .keyword, .comment .string-literal {
+	color: #008000;
+}
+
+
+.highlight {
+	display: inline-block;
+	width: 100%;
+}
