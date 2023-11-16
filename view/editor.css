@@ -1,9 +1,16 @@
+#editor_container {
+	cursor: text;
+}
+
 #editor {
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 	white-space: pre;
 	position: relative;
 	cursor: text;
 	width: 100%;
+	height: 100%;
+	tab-size: 4;
+	overflow: scroll;
 }
 
 #editor .line {

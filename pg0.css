@@ -1,7 +1,7 @@
 body {
 	overflow: hidden;
 	background-color: #eee;
-	font-size: 16px;
+	font-size: 18px;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 
 	-webkit-text-size-adjust: 100%;
@@ -57,8 +57,7 @@ body::before {
 	grid-area: editor;
 	margin: 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2) 0;
 	position: relative;
-	overflow: scroll;
-	padding: 2px;
+	overflow: hidden;
 }
 
 #var_resizer_x {

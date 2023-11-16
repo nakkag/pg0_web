@@ -241,6 +241,7 @@ async function exec(_step) {
 	step = _step;
 	execLine = -1;
 	nextStep = false;
+	document.getElementById('editor').setAttribute('contenteditable', 'false');
 	if (document.getElementById('console').childElementCount > 0) {
 		consoleView.put('<hr />');
 	}
@@ -258,6 +259,7 @@ async function exec(_step) {
 	const scis = [sci];
 	await _exec(scis, sci, false);
 	document.getElementById('stop_button').setAttribute('disabled', true);
+	document.getElementById('editor').setAttribute('contenteditable', 'true');
 	run = false;
 }
 
@@ -308,6 +310,7 @@ async function _exec(scis, sci, imp) {
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
 								execLine = ei.token[ei.index].line;
 								if (step) {
+									setHighlight(execLine, '#00ffff');
 									document.getElementById('variable').innerHTML = '';
 									showVariable(ei);
 									while (!nextStep && run) {
@@ -323,6 +326,7 @@ async function _exec(scis, sci, imp) {
 											syncCnt = 0;
 										}
 									} else {
+										setHighlight(execLine, '#00ffff');
 										document.getElementById('variable').innerHTML = '';
 										showVariable(ei);
 										await new Promise(resolve => setTimeout(resolve, speed));
@@ -356,8 +360,10 @@ async function _exec(scis, sci, imp) {
 								document.getElementById('variable').innerHTML = '';
 								showVariable(sci.ei);
 							}
+							unsetHighlight();
 						},
 						error: async function(error) {
+							setHighlight(error.line, '#ffb6c1');
 							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${error.src}`);
 							consoleView.info(runMsg.CONSOLE_END);
 						}
@@ -368,6 +374,7 @@ async function _exec(scis, sci, imp) {
 				}
 			},
 			error: async function(error) {
+				setHighlight(error.line, '#ffb6c1');
 				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${error.src}`);
 				consoleView.info(runMsg.CONSOLE_END);
 			}
