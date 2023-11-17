@@ -29,43 +29,17 @@ function getEditorText() {
 	return buf;
 }
 
-function getEditorLineCount() {
-	const editor = document.getElementById('editor');
-	const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
-	let cnt = 0;
-	let node;
-	let firstDiv = true;
-	while ((node = walker.nextNode())) {
-		if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
-			continue;
-		}
-		if (node.nodeType === Node.TEXT_NODE) {
-			const l = node.nodeValue.split('\n');
-			if (l.length > 1) {
-				cnt += l.length - 1;
-			}
-		} else if (node.tagName === 'DIV') {
-			if (firstDiv) {
-				firstDiv = false;
-				continue;
-			}
-			cnt++;
-		}
-	}
-	return cnt;
-}
-
 function escape(str) {
 	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function setKeyword(str) {
-    str = str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span class="string-literal">&quot;$1&quot;</span>');
-    str = str.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '<span class="string-literal">&#39;$1&#39;</span>');
+	str = str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span class="string-literal">&quot;$1&quot;</span>');
+	str = str.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '<span class="string-literal">&#39;$1&#39;</span>');
 	str = str.replace(regKeywords, (match) => `<span class="keyword">${match}</span>`);
 	str = str.replace(regKeywordsEx, (match) => `<span class="keyword">${match}</span>`);
 	str = str.replace(regKeywordsPrep, (match) => `<span class="keyword">${match}</span>`);
-    str = str.replace(/(\/\/.*)$/gm, '<span class="comment">$1</span>');
+	str = str.replace(/(\/\/.*)$/gm, '<span class="comment">$1</span>');
 	return str;
 }
 
@@ -109,6 +83,40 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 		});
 		editor.innerHTML = newContent;
+	}
+
+	function updateLine() {
+		const editor = document.getElementById('editor');
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
+		let node;
+		while ((node = walker.nextNode())) {
+			if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
+				continue;
+			}
+			if (node.tagName === 'DIV') {
+				const line = node.textContent;
+				if (!line) {
+					node.innerHTML = '<br />';
+				} else {
+					node.innerHTML = setKeyword(escape(line));
+				}
+			}
+		}
+	}
+
+	function isMultiLine() {
+		const editor = document.getElementById('editor');
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+		let node;
+		while ((node = walker.nextNode())) {
+			if (node.nodeType === Node.TEXT_NODE) {
+				const l = node.nodeValue.split('\n');
+				if (l.length > 1) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	function getCaretCharacterOffsetWithin(element) {
@@ -193,17 +201,49 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}
 	
+	let prevRanges = [];
+	function saveCaretPosition() {
+		const selection = window.getSelection();
+		prevRanges = [];
+		for (let i = 0; i < selection.rangeCount; i++) {
+			prevRanges.push(selection.getRangeAt(i).cloneRange());
+		}
+	}
+
+	function restoreCaretPosition() {
+		if (prevRanges.length > 0) {
+			const selection = window.getSelection();
+			selection.removeAllRanges();
+			for (let i = 0; i < prevRanges.length; i++) {
+				selection.addRange(prevRanges[i]);
+			}
+			prevRanges = [];
+		}
+	}
+
 	function updateContent() {
 		const caretPosition = getCaretCharacterOffsetWithin(editor);
-		setAllLine();
+		if (editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
+			setAllLine();
+		} else {
+			updateLine();
+		}
 		setCaretPosition(editor, caretPosition);
 	}
 
-	let oldLine = 0;
+	function insertTextAtCursor(text) {
+		document.execCommand('insertText', false, text);
+	}
+
+	function deleteTextAtCursor() {
+		document.execCommand('forwardDelete');
+	}
+
+	let focusNode;
 	editor.addEventListener('input', function(e) {
-		const cnt = getEditorLineCount();
-		if (oldLine !== cnt) {
-			oldLine = cnt;
+		const selection = window.getSelection();
+		if (selection.type === 'Caret' && focusNode !== selection.focusNode) {
+			focusNode = selection.focusNode;
 			updateContent();
 		}
 	}, false);
@@ -211,17 +251,36 @@ document.addEventListener('DOMContentLoaded', function() {
 	editor.addEventListener('keydown', function(e) {
 		if (e.key === 'Tab') {
 			e.preventDefault();
-			document.execCommand('insertText', false, "\t");
-		} else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-			updateContent();
+			insertTextAtCursor("\t");
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			const pos = getCaretCharacterOffsetWithin(editor);
+			const lines = getEditorText().substr(0, pos).split("\n");
+			const line = lines[lines.length - 1];
+			const m = line.match(/^[ \t]+/);
+			let indent = '';
+			if (m && m.length > 0) {
+				indent = m[0];
+			}
+			if (/{[ \t]*$/.test(line)) {
+				indent += "\t";
+			}
+			insertTextAtCursor("\n" + indent);
+		} else if (e.key === '}') {
+			e.preventDefault();
+			const pos = getCaretCharacterOffsetWithin(editor);
+			const lines = getEditorText().substr(0, pos).split("\n");
+			const line = lines[lines.length - 1];
+			if (/\t$/.test(line)) {
+				setCaretPosition(editor, pos - 1);
+				deleteTextAtCursor();
+			}
+			insertTextAtCursor('}');
 		}
 	}, false);
 
-	editor.addEventListener('paste', function(e) {
-		setTimeout(function() {
-			updateContent();
-			oldLine = getEditorLineCount();
-		}, 0);
+	editor.addEventListener('keyup', function(e) {
+		setTimeout(saveCaretPosition, 0);
 	}, false);
 
 	let touchstart = 'mousedown';
@@ -238,39 +297,20 @@ document.addEventListener('DOMContentLoaded', function() {
 	}, false);
 	const touchend = function(e) {
 		document.removeEventListener('mouseup', touchend);
-		
-		const selection = window.getSelection();
-		if (selection.type === 'Caret') {
-			updateContent();
-			oldLine = getEditorLineCount();
-		}
+		setTimeout(saveCaretPosition, 0);
 	};
 
-	let prevCaret = -1;
-	let prevRanges = [];
 	let sc = {x: 0, y: 0};
 	editor.addEventListener('focus', function(e) {
-		if (prevCaret >= 0) {
-			setCaretPosition(editor, prevCaret);
-			prevCaret = -1;
-		}
-		if (prevRanges.length > 0) {
-			const selection = window.getSelection();
-			selection.removeAllRanges();
-			for (let i = 0; i < prevRanges.length; i++) {
-				selection.addRange(prevRanges[i]);
-			}
-			prevRanges = [];
-		}
+		restoreCaretPosition();
 		editorContainer.scrollTo(sc.x, sc.y);
+		setTimeout(function() {
+			restoreCaretPosition();
+			editorContainer.scrollTo(sc.x, sc.y);
+		}, 0);
 	}, false);
 
 	editor.addEventListener('blur', function(e) {
-		const selection = window.getSelection();
-		prevRanges = [];
-		for (let i = 0; i < selection.rangeCount; i++) {
-			prevRanges.push(selection.getRangeAt(i).cloneRange());
-		}
 		sc.x = editorContainer.scrollLeft;
 		sc.y = editorContainer.scrollTop;
 	}, false);
