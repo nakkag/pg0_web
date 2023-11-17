@@ -364,7 +364,7 @@ async function _exec(scis, sci, imp) {
 						},
 						error: async function(error) {
 							setHighlight(error.line, '#ffb6c1');
-							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${error.src}`);
+							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${escapeHTML(error.src)}`);
 							consoleView.info(runMsg.CONSOLE_END);
 						}
 					});
@@ -375,7 +375,7 @@ async function _exec(scis, sci, imp) {
 			},
 			error: async function(error) {
 				setHighlight(error.line, '#ffb6c1');
-				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${error.src}`);
+				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${escapeHTML(error.src)}`);
 				consoleView.info(runMsg.CONSOLE_END);
 			}
 		});
