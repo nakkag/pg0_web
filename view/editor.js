@@ -239,13 +239,69 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.execCommand('forwardDelete');
 	}
 
-	let focusNode;
-	editor.addEventListener('input', function(e) {
-		const selection = window.getSelection();
-		if (selection.type === 'Caret' && focusNode !== selection.focusNode) {
-			focusNode = selection.focusNode;
-			updateContent();
+	let undoStack = [];
+	let redoStack = [];
+	let currentContent = {text: '', caret: 0};
+
+	function undo() {
+		if (undoStack.length > 0) {
+			redoStack.push(currentContent);
+			currentContent = undoStack.pop();
+			setUndoText(currentContent);
 		}
+	}
+
+	function redo() {
+		if (redoStack.length > 0) {
+			undoStack.push(currentContent);
+			currentContent = redoStack.pop();
+			setUndoText(currentContent);
+		}
+	}
+
+	function setCurrentContent() {
+		undoStack.push(currentContent);
+		redoStack = [];
+		if (undoStack.length > 100) {
+			undoStack.shift();
+		}
+		const text = getEditorText();
+		const caret = getCaretCharacterOffsetWithin(editor);
+		currentContent = {text: btoa(RawDeflate.deflate(encodeURIComponent(text))), caret: caret};
+	}
+
+	function setUndoText(state) {
+		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
+		setAllLine();
+		setCaretPosition(editor, state.caret);
+	}
+
+	let composition = false;
+
+	editor.addEventListener('input', function(e) {
+		if (composition) {
+			return;
+		}
+		if (e.inputType === 'historyUndo') {
+			e.preventDefault();
+			undo();
+		} else if (e.inputType === 'historyRedo') {
+			e.preventDefault();
+			redo();
+		} else {
+			setCurrentContent();
+		}
+		updateContent();
+	}, false);
+
+	editor.addEventListener('compositionstart', function(e) {
+		composition = true;
+	}, false);
+
+	editor.addEventListener('compositionend', function(e) {
+		composition = false;
+		setCurrentContent();
+		updateContent();
 	}, false);
 
 	editor.addEventListener('keydown', function(e) {
@@ -276,6 +332,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				deleteTextAtCursor();
 			}
 			insertTextAtCursor('}');
+		} else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+			e.preventDefault();
+			undo();
+			return;
+		} else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+			e.preventDefault();
+			redo();
+			return;
 		}
 	}, false);
 
