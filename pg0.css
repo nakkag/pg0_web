@@ -6,7 +6,7 @@ body {
 
 	-webkit-text-size-adjust: 100%;
 
-	--rezie-with: 8px;
+	--resize-with: 4px;
 }
 body::before {
 	display: none;
@@ -37,8 +37,8 @@ body::before {
 	margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 	height: 100dvh;
 	display: grid;
-	grid-template-rows: 42px 1fr var(--rezie-with) 0;
-	grid-template-columns: 1fr var(--rezie-with) 0;
+	grid-template-rows: 42px 1fr var(--resize-with) 0;
+	grid-template-columns: 1fr var(--resize-with) 0;
 	grid-template-areas: "ctrl ctrl ctrl"
 		"editor var_resizer_x var"
 		"console_resizer console_resizer console_resizer"
@@ -55,7 +55,7 @@ body::before {
 
 #editor_container {
 	grid-area: editor;
-	margin: 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2) 0;
+	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
 	position: relative;
 	overflow: scroll;
 	padding: 2px;
@@ -67,13 +67,13 @@ body::before {
 	cursor: ew-resize;
 	z-index: 2;
 	position: relative;
-	margin: 0 0 calc(var(--rezie-with) / -2) 0;
+	margin: 0 0 calc(var(--resize-with) / -2) 0;
 }
 #var_resizer_x::after {
 	content: "";
 	position: absolute;
 	top: 0px;
-	left: calc(var(--rezie-with) / 2);
+	left: calc(var(--resize-with) / 2);
 	width: 4px;
 	height: 100%;
 	background-color: #ccc;
@@ -85,7 +85,7 @@ body::before {
 #var_container {
 	grid-area: var;
 	overflow: scroll;
-	margin: 0 0 calc(var(--rezie-with) / -2) calc(var(--rezie-with) / -2 + 4px);
+	margin: 0 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2 + 4px);
 	z-index: 1;
 }
 
@@ -103,7 +103,7 @@ body::before {
 #console_resizer::after {
 	content: "";
 	position: absolute;
-	top: calc(var(--rezie-with) / 2);
+	top: calc(var(--resize-with) / 2);
 	left: 0;
 	width: 100%;
 	height: 4px;
@@ -115,7 +115,7 @@ body::before {
 
 	overflow-x: hidden;
 	overflow-y: scroll;
-	margin: calc(var(--rezie-with) / -2 + 4px) 0 0 0;
+	margin: calc(var(--resize-with) / -2 + 4px) 0 0 0;
 	z-index: 1;
 }
 
@@ -127,7 +127,7 @@ body::before {
 		width: 48px;
 	}
 	#container {
-		grid-template-rows: 58px 1fr var(--rezie-with) 0 var(--rezie-with) 0;
+		grid-template-rows: 58px 1fr var(--resize-with) 0 var(--resize-with) 0;
 		grid-template-columns: auto;
 		grid-template-areas: "ctrl"
 			"editor"
@@ -138,7 +138,7 @@ body::before {
 	}
 
 	#editor_container {
-		margin: 0 0 calc(var(--rezie-with) / -2) 0;
+		margin: 0 0 calc(var(--resize-with) / -2) 0;
 	}
 	#var_resizer_x {
 		display: none;
@@ -153,7 +153,7 @@ body::before {
 	#var_resizer_y::after {
 		content: "";
 		position: absolute;
-		top: calc(var(--rezie-with) / 2);
+		top: calc(var(--resize-with) / 2);
 		left: 0;
 		width: 100%;
 		height: 4px;
@@ -161,6 +161,6 @@ body::before {
 	}
 	#var_container {
 		border-left: unset;
-		margin: calc(var(--rezie-with) / -2 + 4px) 0 calc(var(--rezie-with) / -2) 0;
+		margin: calc(var(--resize-with) / -2 + 4px) 0 calc(var(--resize-with) / -2) 0;
 	}
 }

@@ -6,12 +6,12 @@ let verY = 150;
 let consoleY = 150;
 
 document.addEventListener('DOMContentLoaded', function() {
-	const _rw = window.getComputedStyle(document.body).getPropertyValue('--rezie-with');
+	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
 	let rw = parseInt(_rw.replace(/[^0-9]/g, ''));
 	const ua = user_agent.get();
 	if (ua.isiOS || ua.isAndroid) {
 		rw = 20;
-		document.body.style.setProperty('--rezie-with', rw + 'px');
+		document.body.style.setProperty('--resize-with', rw + 'px');
 	}
 
 	let touchstart = 'mousedown';

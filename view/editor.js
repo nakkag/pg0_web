@@ -29,7 +29,7 @@ function getEditorText() {
 	return buf;
 }
 
-function escape(str) {
+function tagEscape(str) {
 	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
@@ -50,20 +50,32 @@ function unsetHighlight() {
 }
 
 function setHighlight(lineNumber, color) {
-	const editor = document.getElementById('editor');
 	unsetHighlight();
-	const lines = editor.childNodes;
-	const line = lines[lineNumber].textContent;
-	lines[lineNumber].innerHTML = `<div><span class="highlight" style="background-color: ${color};">${setKeyword(escape(line))}</span></div>`;
-
+	const editor = document.getElementById('editor');
+	const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
+	let node;
+	let firstDiv = true;
+	let line = 0;
+	while ((node = walker.nextNode())) {
+		if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
+			continue;
+		}
+		if (node.tagName === 'DIV') {
+			if (firstDiv) {
+				firstDiv = false;
+				continue;
+			}
+			line++;
+			if (line >= lineNumber) {
+				node.innerHTML = `<div><span class="highlight" style="background-color: ${color};">${setKeyword(tagEscape(node.textContent))}</span></div>`;
+				break;
+			}
+		}
+	}
 	const elements = document.getElementsByClassName('highlight');
 	if (elements && elements.length > 0) {
-		const element = elements[0];
-		const targetDOMRect = element.getBoundingClientRect();
-		const ec = document.getElementById('editor_container');
-		if (element.offsetTop < ec.scrollTop || element.offsetTop + element.offsetHeight > ec.scrollTop + ec.clientHeight) {
-			element.scrollIntoView({behavior: 'instant', block: 'nearest'});
-		}
+		elements[0].scrollIntoView({behavior: 'instant', block: 'nearest'});
+		document.getElementById('editor_container').scrollLeft = 0;
 	}
 }
 
@@ -79,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!line) {
 				newContent += `<div><br /></div>`;
 			} else {
-				newContent += `<div>${setKeyword(escape(line))}</div>`;
+				newContent += `<div>${setKeyword(tagEscape(line))}</div>`;
 			}
 		});
 		editor.innerHTML = newContent;
@@ -95,10 +107,14 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 			if (node.tagName === 'DIV') {
 				const line = node.textContent;
+				let html;
 				if (!line) {
-					node.innerHTML = '<br />';
+					html = '<br />';
 				} else {
-					node.innerHTML = setKeyword(escape(line));
+					html = setKeyword(tagEscape(line));
+				}
+				if (node.innerHTML !== html) {
+					node.innerHTML = html;
 				}
 			}
 		}
@@ -208,6 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		for (let i = 0; i < selection.rangeCount; i++) {
 			prevRanges.push(selection.getRangeAt(i).cloneRange());
 		}
+		currentContent.caret = getCaretCharacterOffsetWithin(editor);
 	}
 
 	function restoreCaretPosition() {
@@ -217,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			for (let i = 0; i < prevRanges.length; i++) {
 				selection.addRange(prevRanges[i]);
 			}
-			prevRanges = [];
 		}
 	}
 
@@ -260,18 +276,20 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function setCurrentContent() {
+		const encodeText = RawDeflate.deflate(encodeURIComponent(getEditorText()));
+		if (currentContent.text === encodeText) {
+			return;
+		}
 		undoStack.push(currentContent);
 		redoStack = [];
-		if (undoStack.length > 100) {
+		if (undoStack.length > 50) {
 			undoStack.shift();
 		}
-		const text = getEditorText();
-		const caret = getCaretCharacterOffsetWithin(editor);
-		currentContent = {text: btoa(RawDeflate.deflate(encodeURIComponent(text))), caret: caret};
+		currentContent = {text: encodeText, caret: 0};
 	}
 
 	function setUndoText(state) {
-		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
+		editor.textContent = decodeURIComponent(RawDeflate.inflate(state.text));
 		setAllLine();
 		setCaretPosition(editor, state.caret);
 	}
