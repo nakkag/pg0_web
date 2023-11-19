@@ -132,10 +132,10 @@ document.addEventListener('DOMContentLoaded', function() {
 	function setGridTemplate() {
 		if (checkOrientation() === 0) {
 			document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px`;
-			document.getElementById('container').style.gridTemplateColumns = 'auto';
+			document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
 		} else {
 			document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px`;
-			document.getElementById('container').style.gridTemplateColumns = `1fr ${rw}px ${verX}px`;
+			document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
 		}
 	}
 	setGridTemplate();

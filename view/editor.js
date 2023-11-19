@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	function updateContent() {
 		const caretPosition = getCaretCharacterOffsetWithin(editor);
-		if (editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
+		if (!editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
 			setAllLine();
 		} else {
 			updateLine();
@@ -381,6 +381,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				indent += "\t";
 			}
 			insertTextAtCursor("\n" + indent);
+			const selection = window.getSelection();
+			if (selection.focusNode && selection.focusNode.scrollIntoView) {
+				selection.focusNode.scrollIntoView({behavior: 'instant', block: 'nearest', inline: 'nearest'});
+			}
 		} else if (e.key === '}') {
 			e.preventDefault();
 			const pos = getCaretCharacterOffsetWithin(editor);
@@ -412,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 	editor.addEventListener(touchstart, function(e) {
 		editor.focus();
+		prevRanges = [];
 		if (touchstart === 'mousedown') {
 			document.addEventListener('mouseup', touchend);
 		} else {
@@ -445,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	editorContainer.addEventListener('scroll', function(e) {
 		sc.x = editorContainer.scrollLeft;
 		sc.y = editorContainer.scrollTop;
+		lineNumber.scrollTop = editorContainer.scrollTop;
 	}, false);
 
 	lineNumber.addEventListener('mousedown', function(e) {
@@ -463,5 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
 			saveCaretPosition();
 		}
 	}, false);
+
+	const observer = new ResizeObserver(function(entries) {
+		lineNumber.style.height = (editorContainer.clientHeight - 2) + 'px';
+	})
+	observer.observe(editorContainer);
 
 }, false);

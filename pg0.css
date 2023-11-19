@@ -38,11 +38,11 @@ body::before {
 	height: 100dvh;
 	display: grid;
 	grid-template-rows: 42px 1fr var(--resize-with) 0;
-	grid-template-columns: 1fr var(--resize-with) 0;
-	grid-template-areas: "ctrl ctrl ctrl"
-		"editor var_resizer_x var"
-		"console_resizer console_resizer console_resizer"
-		"console console console";
+	grid-template-columns: max-content 1fr var(--resize-with) 0;
+	grid-template-areas: "ctrl ctrl ctrl ctrl"
+		"line_number editor var_resizer_x var"
+		"console_resizer console_resizer console_resizer console_resizer"
+		"console console console console";
 	outline: 1px solid #ccc;
 }
 
@@ -53,11 +53,18 @@ body::before {
 	background-color: #eee;
 }
 
+#line_container {
+	grid-area: line_number;
+	margin: 0 0 calc(var(--resize-with) / -2) 0;
+	overflow: hidden;
+}
+
 #editor_container {
 	grid-area: editor;
 	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
 	position: relative;
 	overflow: scroll;
+	padding: 2px 2px 2px 0;
 }
 
 #var_resizer_x {
@@ -127,13 +134,13 @@ body::before {
 	}
 	#container {
 		grid-template-rows: 58px 1fr var(--resize-with) 0 var(--resize-with) 0;
-		grid-template-columns: auto;
-		grid-template-areas: "ctrl"
-			"editor"
-			"var_resizer_y"
-			"var"
-			"console_resizer"
-			"console";
+		grid-template-columns: max-content 1fr;
+		grid-template-areas: "ctrl ctrl"
+			"line_number editor"
+			"var_resizer_y var_resizer_y"
+			"var var"
+			"console_resizer console_resizer"
+			"console console";
 	}
 
 	#editor_container {
