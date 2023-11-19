@@ -6,13 +6,13 @@ const regKeywords = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
 const regKeywordsEx = new RegExp(`\\b(${keywords_extension.join('|')})\\b`, 'gi');
 const regKeywordsPrep = new RegExp(`(${keywords_preprocessor.join('|')})`, 'gi');
 
-const editor = document.getElementById('editor');
 let currentContent = {text: '', caret: 0};
 
 function setCurrentText(state) {
 	const editor = document.getElementById('editor');
 	editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 	setAllLine();
+	setLineNumber();
 }
 
 function getEditorText() {
@@ -103,9 +103,37 @@ function setAllLine() {
 	editor.innerHTML = newContent;
 }
 
+function setLineNumber() {
+	const editor = document.getElementById('editor');
+	const lineNumber = document.getElementById('line_number');
+	const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
+	lineNumber.innerHTML = '';
+	let node;
+	let firstDiv = true;
+	let line = 1;
+	while ((node = walker.nextNode())) {
+		if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
+			continue;
+		}
+		if (node.tagName === 'DIV') {
+			if (firstDiv) {
+				firstDiv = false;
+				continue;
+			}
+			const div = document.createElement('div');
+			div.textContent = line;
+			lineNumber.appendChild(div);
+			line++;
+		}
+	}
+	const div = document.createElement('div');
+	div.textContent = line;
+	lineNumber.appendChild(div);
+}
 
 document.addEventListener('DOMContentLoaded', function() {
 	const editorContainer = document.getElementById('editor_container');
+	const lineNumber = document.getElementById('line_number');
 	const editor = document.getElementById('editor');
 
 	function updateLine() {
@@ -255,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		} else {
 			updateLine();
 		}
+		setLineNumber();
 		setCaretPosition(editor, caretPosition);
 	}
 
@@ -302,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	function setUndoText(state) {
 		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 		setAllLine();
+		setLineNumber();
 		setCaretPosition(editor, state.caret);
 	}
 
@@ -415,6 +445,23 @@ document.addEventListener('DOMContentLoaded', function() {
 	editorContainer.addEventListener('scroll', function(e) {
 		sc.x = editorContainer.scrollLeft;
 		sc.y = editorContainer.scrollTop;
+	}, false);
+
+	lineNumber.addEventListener('mousedown', function(e) {
+		e.preventDefault();
+		editor.focus();
+		let elm = document.elementFromPoint(e.x + lineNumber.offsetWidth, e.y);
+		while (elm && elm.tagName !== 'DIV') {
+			elm = elm.parentElement;
+		}
+		if (elm) {
+			const selection = window.getSelection();
+			const range = document.createRange();
+			range.selectNode(elm);
+			selection.removeAllRanges();
+			selection.addRange(range);
+			saveCaretPosition();
+		}
 	}, false);
 
 }, false);

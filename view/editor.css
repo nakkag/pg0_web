@@ -1,15 +1,33 @@
 #editor_container {
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 	cursor: text;
+
+	display: grid;
+	grid-template-rows: 1fr;
+	grid-template-columns: min-content 1fr;
+	grid-template-areas: "line_number editor";
+}
+
+#line_number {
+	cursor: default;
+	grid-area: line_number;
+	text-align: right;
+	width: max-content;
+	height: max-content;
+	padding-left: 10px;
+	padding-right: 5px;
+	margin-right: 1px;
+	color: #0078d7;
+	border-right: 1px solid #aaa;
 }
 
 #editor {
-	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	grid-area: editor;
 	white-space: pre;
-	position: relative;
 	overflow: hidden;
-	cursor: text;
 	tab-size: 4;
 	width: max-content;
+	height: max-content;
 	min-width: 100%;
 	min-height: 100%;
 }
