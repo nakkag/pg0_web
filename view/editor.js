@@ -76,7 +76,7 @@ function setHighlight(lineNumber, color) {
 			}
 			line++;
 			if (line >= lineNumber) {
-				node.innerHTML = `<div><span class="highlight" style="background-color: ${color};">${setKeyword(tagEscape(node.textContent))}</span></div>`;
+				node.innerHTML = `<span class="highlight" style="background-color: ${color};">${setKeyword(tagEscape(node.textContent))}</span>`;
 				break;
 			}
 		}
