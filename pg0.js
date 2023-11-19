@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.style.setProperty('--resize-with', rw + 'px');
 	}
 
+	var str = localStorage.getItem('pg0_text');
+	if (str) {
+		setTimeout(function() {
+			setCurrentText(JSON.parse(str));
+		}, 0);
+	}
+
 	let touchstart = 'mousedown';
 	let touchmove = 'mousemove';
 	let touchend = ['mouseup', 'mouseleave'];

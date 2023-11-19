@@ -6,6 +6,15 @@ const regKeywords = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
 const regKeywordsEx = new RegExp(`\\b(${keywords_extension.join('|')})\\b`, 'gi');
 const regKeywordsPrep = new RegExp(`(${keywords_preprocessor.join('|')})`, 'gi');
 
+const editor = document.getElementById('editor');
+let currentContent = {text: '', caret: 0};
+
+function setCurrentText(state) {
+	const editor = document.getElementById('editor');
+	editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
+	setAllLine();
+}
+
 function getEditorText() {
 	const editor = document.getElementById('editor');
 	const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
@@ -79,23 +88,25 @@ function setHighlight(lineNumber, color) {
 	}
 }
 
+function setAllLine() {
+	const editor = document.getElementById('editor');
+	let str = getEditorText();
+	const lines = str.split("\n");
+	let newContent = '';
+	lines.forEach(function(line, index) {
+		if (!line) {
+			newContent += `<div><br /></div>`;
+		} else {
+			newContent += `<div>${setKeyword(tagEscape(line))}</div>`;
+		}
+	});
+	editor.innerHTML = newContent;
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
 	const editorContainer = document.getElementById('editor_container');
 	const editor = document.getElementById('editor');
-
-	function setAllLine() {
-		let str = getEditorText();
-		const lines = str.split("\n");
-		let newContent = '';
-		lines.forEach(function(line, index) {
-			if (!line) {
-				newContent += `<div><br /></div>`;
-			} else {
-				newContent += `<div>${setKeyword(tagEscape(line))}</div>`;
-			}
-		});
-		editor.innerHTML = newContent;
-	}
 
 	function updateLine() {
 		const editor = document.getElementById('editor');
@@ -257,7 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	let undoStack = [];
 	let redoStack = [];
-	let currentContent = {text: '', caret: 0};
 
 	function undo() {
 		if (undoStack.length > 0) {
@@ -276,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function setCurrentContent() {
-		const encodeText = RawDeflate.deflate(encodeURIComponent(getEditorText()));
+		const encodeText = btoa(RawDeflate.deflate(encodeURIComponent(getEditorText())));
 		if (currentContent.text === encodeText) {
 			return;
 		}
@@ -286,10 +296,11 @@ document.addEventListener('DOMContentLoaded', function() {
 			undoStack.shift();
 		}
 		currentContent = {text: encodeText, caret: 0};
+		localStorage.setItem('pg0_text', JSON.stringify(currentContent));
 	}
 
 	function setUndoText(state) {
-		editor.textContent = decodeURIComponent(RawDeflate.inflate(state.text));
+		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 		setAllLine();
 		setCaretPosition(editor, state.caret);
 	}
