@@ -163,7 +163,7 @@ ScriptExec.lib['print'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	consoleView.put(escapeHTML(str).replace(/\\n/, '<br />'));
+	consoleView.put(escapeHTML(str));
 	return 0;
 };
 

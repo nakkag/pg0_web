@@ -12,7 +12,7 @@ const editorView = (function () {
 	me.storageKey = 'pg0_text';
 	me.undoCount = 50;
 
-	let currentContent = {text: '', caret: 0};
+	me.currentContent = {text: '', caret: 0};
 
 	me.loadState = function() {
 		const editor = document.getElementById('editor');
@@ -22,12 +22,12 @@ const editorView = (function () {
 			editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 			me.setAllLine();
 			me.setLineNumber();
-			currentContent = state;
+			me.currentContent = state;
 			me.setCurrentContent();
 		}
 	};
 	me.saveState = function() {
-		localStorage.setItem(me.storageKey, JSON.stringify(currentContent));
+		localStorage.setItem(me.storageKey, JSON.stringify(me.currentContent));
 	};
 
 	me.getText = function() {
@@ -44,7 +44,8 @@ const editorView = (function () {
 				if (node.parentElement === editor && buf) {
 					buf += "\n";
 				}
-				buf += node.nodeValue.replace(/\n$/, '');
+				buf += node.nodeValue;
+				firstDiv = false;
 			} else if (node.tagName === 'DIV') {
 				if (firstDiv) {
 					firstDiv = false;
@@ -192,6 +193,69 @@ const editorView = (function () {
 		return false;
 	};
 
+	me.getElementOffset = function(element) {
+		const editor = document.getElementById('editor');
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
+		let caretOffset = 0;
+		let firstDiv = true;
+		let node;
+		while ((node = walker.nextNode())) {
+			if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
+				continue;
+			}
+			if (node === element) {
+				caretOffset++;
+				break;
+			} else if (node.nodeType === Node.TEXT_NODE) {
+				if (node.parentElement === editor && caretOffset > 0) {
+					caretOffset++;
+				}
+				caretOffset += node.nodeValue.length;
+				firstDiv = false;
+			} else if (node.tagName === 'DIV') {
+				if (firstDiv) {
+					firstDiv = false;
+					continue;
+				}
+				caretOffset++;
+			}
+		}
+		return caretOffset;
+	};
+	me.getLineNode = function(lineNumber) {
+		const editor = document.getElementById('editor');
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
+		let node;
+		let firstDiv = true;
+		let line = 0;
+		while ((node = walker.nextNode())) {
+			if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
+				continue;
+			}
+			if (node.tagName === 'DIV') {
+				if (firstDiv && lineNumber > 0) {
+					firstDiv = false;
+					continue;
+				}
+				line++;
+				if (line >= lineNumber) {
+					return node;
+				}
+			}
+		}
+		return null;
+	};
+
+	me.showCaret = function() {
+		const selection = window.getSelection();
+		let node = selection.focusNode;
+		while (node && !node.scrollIntoView) {
+			node = node.parentElement;
+		}
+		if (node && node.scrollIntoView) {
+			node.scrollIntoView({behavior: 'instant', block: 'nearest'});
+		}
+	};
 	me.getCaretCharacterOffsetWithin = function(element) {
 		const selection = window.getSelection();
 		const currentRange = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
@@ -215,12 +279,16 @@ const editorView = (function () {
 			}
 			if (node === container) {
 				caretOffset += offset;
-				if (node.tagName === 'DIV' && (caretOffset > 0 || !firstDiv)) {
+				if (node.tagName === 'DIV' && caretOffset > 0) {
 					caretOffset++;
 				}
 				break;
 			} else if (node.nodeType === Node.TEXT_NODE) {
-				caretOffset += node.nodeValue.replace(/\n$/, '').length;
+				if (node.parentElement === editor && caretOffset > 0) {
+					caretOffset++;
+				}
+				caretOffset += node.nodeValue.length;
+				firstDiv = false;
 			} else if (node.tagName === 'DIV') {
 				if (firstDiv) {
 					firstDiv = false;
@@ -246,16 +314,17 @@ const editorView = (function () {
 				continue;
 			}
 			if (node.nodeType === Node.TEXT_NODE) {
-				const nextCharIndex = charCount + node.nodeValue.replace(/\n$/, '').length;
+				const nextCharIndex = charCount + node.nodeValue.length;
 				if (nextCharIndex >= position) {
 					range.setStart(node, position - charCount);
 					found = true;
 					break;
 				}
 				charCount = nextCharIndex;
+				firstDiv = false;
 			} else if (node.tagName === 'DIV') {
 				if (firstDiv && position > 0) {
-					firstDiv = !firstDiv;
+					firstDiv = false;
 					continue;
 				}
 				charCount += 1;
@@ -270,6 +339,7 @@ const editorView = (function () {
 			range.collapse(true);
 			selection.removeAllRanges();
 			selection.addRange(range);
+			me.showCaret();
 		}
 	};
 
@@ -284,7 +354,7 @@ const editorView = (function () {
 		for (let i = 0; i < selection.rangeCount; i++) {
 			prevRanges.push(selection.getRangeAt(i).cloneRange());
 		}
-		currentContent.caret = me.getCaretCharacterOffsetWithin(editor);
+		me.currentContent.caret = me.getCaretCharacterOffsetWithin(editor);
 	};
 	me.restoreCaretPosition = function() {
 		if (prevRanges.length > 0) {
@@ -319,29 +389,29 @@ const editorView = (function () {
 	let redoStack = [];
 	me.undo = function() {
 		if (undoStack.length > 0) {
-			redoStack.push(currentContent);
-			currentContent = undoStack.pop();
-			me.setUndoText(currentContent);
+			redoStack.push(me.currentContent);
+			me.currentContent = undoStack.pop();
+			me.setUndoText(me.currentContent);
 		}
 	};
 	me.redo = function() {
 		if (redoStack.length > 0) {
-			undoStack.push(currentContent);
-			currentContent = redoStack.pop();
-			me.setUndoText(currentContent);
+			undoStack.push(me.currentContent);
+			me.currentContent = redoStack.pop();
+			me.setUndoText(me.currentContent);
 		}
 	};
 	me.setCurrentContent = function() {
 		const encodeText = btoa(RawDeflate.deflate(encodeURIComponent(me.getText())));
-		if (currentContent.text === encodeText) {
+		if (me.currentContent.text === encodeText) {
 			return;
 		}
-		undoStack.push(currentContent);
+		undoStack.push(me.currentContent);
 		redoStack = [];
 		if (undoStack.length > me.undoCount) {
 			undoStack.shift();
 		}
-		currentContent = {text: encodeText, caret: 0};
+		me.currentContent = {text: encodeText, caret: 0};
 		me.saveState();
 	};
 	me.setUndoText = function(state) {
@@ -390,6 +460,31 @@ document.addEventListener('DOMContentLoaded', function() {
 		editorView.updateContent();
 	}, false);
 
+	editor.addEventListener('paste', function(e) {
+		e.preventDefault();
+		let str = (e.clipboardData || window.clipboardData).getData('text').replace(/\r/g, '');
+		const selection = window.getSelection();
+		if (!selection.rangeCount) {
+			return;
+		}
+		let caretPosition = 0;
+		if (selection.focusNode === editor) {
+			str = str.replace(/\n$/, '');
+			if (selection.anchorNode && selection.anchorNode.childNodes) {
+				caretPosition = editorView.getElementOffset(selection.anchorNode.childNodes[selection.anchorOffset]);
+			}
+		} else {
+			caretPosition = editorView.getCaretCharacterOffsetWithin(editor);
+		}
+		selection.deleteFromDocument();
+		selection.getRangeAt(0).insertNode(document.createTextNode(str));
+		selection.collapseToEnd();
+		editorView.setCaretPosition(editor, caretPosition + str.length);
+		editorView.setCurrentContent();
+		editorView.updateContent();
+		editorView.showCaret();
+	}, false);
+
 	editor.addEventListener('keydown', function(e) {
 		if (e.key === 'Tab') {
 			e.preventDefault();
@@ -408,10 +503,6 @@ document.addEventListener('DOMContentLoaded', function() {
 				indent += "\t";
 			}
 			editorView.insertTextAtCursor("\n" + indent);
-			const selection = window.getSelection();
-			if (selection.focusNode && selection.focusNode.scrollIntoView) {
-				selection.focusNode.scrollIntoView({behavior: 'instant', block: 'nearest', inline: 'nearest'});
-			}
 		} else if (e.key === '}') {
 			e.preventDefault();
 			const pos = editorView.getCaretCharacterOffsetWithin(editor);
@@ -502,28 +593,32 @@ document.addEventListener('DOMContentLoaded', function() {
 	const mouseup = function(e) {
 		document.removeEventListener('mousemove', mousemove);
 		document.removeEventListener('mouseup', mouseup);
+		selectLine(e.y, null);
 	};
 	const selectLine = function(y, callback) {
-		let elm = document.elementFromPoint(lineNumber.offsetWidth + 1, y);
-		while (elm && elm.tagName !== 'DIV') {
-			elm = elm.parentElement;
-		}
+		const index = Math.floor((lineNumber.scrollTop + y - editorContainer.offsetTop) / lineNumber.firstChild.offsetHeight);
+		let elm = editorView.getLineNode(index);
 		if (elm) {
 			if (!startNode) {
 				startNode = elm;
 			}
 			const selection = window.getSelection();
 			const range = document.createRange();
+			let caretNode;
 			if (startY <= y) {
 				range.setStartBefore(startNode);
 				range.setEndAfter(elm);
+				caretNode = startNode;
 			} else {
 				range.setStartBefore(elm);
 				range.setEndAfter(startNode);
+				caretNode = elm;
 			}
 			selection.removeAllRanges();
 			selection.addRange(range);
 			editorView.saveCaretPosition();
+			editorView.currentContent.caret = editorView.getElementOffset(caretNode);
+			elm.scrollIntoView({behavior: 'instant', block: 'nearest'});
 			if (callback) {
 				callback();
 			}

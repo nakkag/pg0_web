@@ -13,8 +13,10 @@
 #console {
 	margin: 2px;
 	line-height: 1.3;
+	white-space: pre;
 	word-break: break-word;
 	padding-bottom: env(safe-area-inset-bottom);
+	tab-size: 4;
 }
 
 #console hr {

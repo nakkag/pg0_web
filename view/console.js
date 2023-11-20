@@ -18,7 +18,11 @@ const consoleView = (function () {
 	
 	me.put = function(msg) {
 		me.fixBottom(function() {
-			document.getElementById('console').innerHTML += msg;
+			let str = msg.replace(/\\n/g, '<br />');
+			str = str.replace(/\\r/g, '');
+			str = str.replace(/\\t/g, '\t');
+			str = str.replace(/\\b/g, '\b');
+			document.getElementById('console').innerHTML += str;
 		});
 	};
 
@@ -35,7 +39,9 @@ const consoleView = (function () {
 	me.error = function(msg) {
 		const time = date_format.formatTime(new Date(), navigator.language);
 		msg = `<div><span class="time">${time}</span> <span class="error">${msg}</span></div>`;
-		me.put(msg);
+		me.fixBottom(function() {
+			document.getElementById('console').innerHTML += msg;
+		});
 	};
 
 	return me;
