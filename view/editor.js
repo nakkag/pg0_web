@@ -279,7 +279,7 @@ const editorView = (function () {
 			}
 			if (node === container) {
 				caretOffset += offset;
-				if (node.tagName === 'DIV' && caretOffset > 0) {
+				if (node.tagName === 'DIV' && (caretOffset > 0 || !firstDiv)) {
 					caretOffset++;
 				}
 				break;
