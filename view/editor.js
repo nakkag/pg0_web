@@ -366,10 +366,10 @@ const editorView = (function () {
 		}
 	};
 
-	me.updateContent = function() {
+	me.updateContent = function(force) {
 		const editor = document.getElementById('editor');
 		const caretPosition = me.getCaretCharacterOffsetWithin(editor);
-		if (!editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || me.isMultiLine()) {
+		if (force || !editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || me.isMultiLine()) {
 			me.setAllLine();
 		} else {
 			me.updateLine();
@@ -378,6 +378,10 @@ const editorView = (function () {
 		me.setCaretPosition(editor, caretPosition);
 	};
 
+	me.deleteSelect = function() {
+		const selection = window.getSelection();
+		selection.deleteFromDocument();
+	};
 	me.insertTextAtCursor = function(text) {
 		document.execCommand('insertText', false, text);
 	};
@@ -491,6 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			editorView.insertTextAtCursor("\t");
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
+			editorView.deleteSelect();
 			const pos = editorView.getCaretCharacterOffsetWithin(editor);
 			const lines = editorView.getText().substr(0, pos).split("\n");
 			const line = lines[lines.length - 1];
@@ -505,6 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			editorView.insertTextAtCursor("\n" + indent);
 		} else if (e.key === '}') {
 			e.preventDefault();
+			editorView.deleteSelect();
 			const pos = editorView.getCaretCharacterOffsetWithin(editor);
 			const lines = editorView.getText().substr(0, pos).split("\n");
 			const line = lines[lines.length - 1];
@@ -536,7 +542,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		touchstart = 'touchstart';
 	}
 	editor.addEventListener(touchstart, function(e) {
-		editor.focus();
 		editorView.initCaretPosition();
 		if (touchstart === 'mousedown') {
 			document.addEventListener('mouseup', touchend);
@@ -545,7 +550,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}, false);
 	const touchend = function(e) {
-		document.removeEventListener('mouseup', touchend);
+		if (touchstart === 'mousedown') {
+			document.removeEventListener('mouseup', touchend);
+		} else {
+			document.removeEventListener('touchend', touchend);
+		}
 		setTimeout(editorView.saveCaretPosition, 0);
 	};
 
@@ -553,10 +562,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	editor.addEventListener('focus', function(e) {
 		editorView.restoreCaretPosition();
 		editorContainer.scrollTo(sc.x, sc.y);
-		setTimeout(function() {
-			editorView.restoreCaretPosition();
-			editorContainer.scrollTo(sc.x, sc.y);
-		}, 0);
 	}, false);
 
 	editor.addEventListener('blur', function(e) {
@@ -576,24 +581,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	let startNode = null;
 	let startY = 0;
-	lineNumber.addEventListener('mousedown', function(e) {
+	lineNumber.addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		editor.focus();
 		startNode = null;
-		startY = e.y;
-		selectLine(e.y, function() {
-			document.addEventListener('mousemove', mousemove);
-			document.addEventListener('mouseup', mouseup);
+		startY = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+		selectLine(startY, function() {
+			if (touchstart === 'mousedown') {
+				document.addEventListener('mousemove', mousemove);
+				document.addEventListener('mouseup', mouseup);
+			} else {
+				document.addEventListener('touchmove', mousemove);
+				document.addEventListener('touchend', mouseup);
+			}
 		});
 	}, false);
 	const mousemove = function(e) {
 		e.preventDefault();
-		selectLine(e.y, null);
+		selectLine(((touchstart === 'mousedown') ? e.y : e.touches[0].clientY), null);
 	};
 	const mouseup = function(e) {
-		document.removeEventListener('mousemove', mousemove);
-		document.removeEventListener('mouseup', mouseup);
-		selectLine(e.y, null);
+		if (touchstart === 'mousedown') {
+			document.removeEventListener('mousemove', mousemove);
+			document.removeEventListener('mouseup', mouseup);
+		} else {
+			document.removeEventListener('touchmove', mousemove);
+			document.removeEventListener('touchend', mouseup);
+		}
 	};
 	const selectLine = function(y, callback) {
 		const index = Math.floor((lineNumber.scrollTop + y - editorContainer.offsetTop) / lineNumber.firstChild.offsetHeight);
