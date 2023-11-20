@@ -14,12 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.style.setProperty('--resize-with', rw + 'px');
 	}
 
-	var str = localStorage.getItem('pg0_text');
-	if (str) {
-		setTimeout(function() {
-			setCurrentText(JSON.parse(str));
-		}, 0);
-	}
+	setTimeout(function() {
+		editorView.loadState();
+	}, 0);
 
 	let touchstart = 'mousedown';
 	let touchmove = 'mousemove';
@@ -240,7 +237,7 @@ async function exec(_step) {
 		nextStep = true;
 		return;
 	}
-	const buf = getEditorText();
+	const buf = editorView.getText();
 	if (!buf) {
 		return;
 	}
@@ -317,7 +314,7 @@ async function _exec(scis, sci, imp) {
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
 								execLine = ei.token[ei.index].line;
 								if (step) {
-									setHighlight(execLine, '#00ffff');
+									editorView.setHighlight(execLine, '#00ffff');
 									document.getElementById('variable').innerHTML = '';
 									showVariable(ei);
 									while (!nextStep && run) {
@@ -333,7 +330,7 @@ async function _exec(scis, sci, imp) {
 											syncCnt = 0;
 										}
 									} else {
-										setHighlight(execLine, '#00ffff');
+										editorView.setHighlight(execLine, '#00ffff');
 										document.getElementById('variable').innerHTML = '';
 										showVariable(ei);
 										await new Promise(resolve => setTimeout(resolve, speed));
@@ -367,10 +364,10 @@ async function _exec(scis, sci, imp) {
 								document.getElementById('variable').innerHTML = '';
 								showVariable(sci.ei);
 							}
-							unsetHighlight();
+							editorView.unsetHighlight();
 						},
 						error: async function(error) {
-							setHighlight(error.line, '#ffb6c1');
+							editorView.setHighlight(error.line, '#ffb6c1');
 							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${escapeHTML(error.src)}`);
 							consoleView.info(runMsg.CONSOLE_END);
 						}
@@ -381,7 +378,7 @@ async function _exec(scis, sci, imp) {
 				}
 			},
 			error: async function(error) {
-				setHighlight(error.line, '#ffb6c1');
+				editorView.setHighlight(error.line, '#ffb6c1');
 				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${escapeHTML(error.src)}`);
 				consoleView.info(runMsg.CONSOLE_END);
 			}
