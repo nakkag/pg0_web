@@ -191,21 +191,30 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.scrollTo(0, 0);
 	}, false);
 
-	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
-		e.preventDefault();
-		document.getElementById('editor').focus();
-		editorView.deleteSelect();
-		editorView.insertTextAtCursor("\t");
-	}, false);
 	document.getElementById('key_undo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		document.getElementById('editor').focus();
 		editorView.undo();
 	}, false);
 	document.getElementById('key_redo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		document.getElementById('editor').focus();
 		editorView.redo();
+	}, false);
+	document.getElementById('key_left').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		editorView.moveCaret(-1);
+	}, false);
+	document.getElementById('key_right').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		editorView.moveCaret(1);
+	}, false);
+	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		editorView.deleteSelect();
+		editorView.insertTextAtCursor("\t");
+	}, false);
+	document.getElementById('key_close').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		document.getElementById('editor').blur();
 	}, false);
 
 }, false);

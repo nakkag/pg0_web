@@ -265,6 +265,16 @@ const editorView = (function () {
 		dummy.scrollIntoView({behavior: 'instant', block: 'nearest', inline: 'nearest'});
 		dummy.parentNode.removeChild(dummy);
 	};
+	me.moveCaret = function(move) {
+		const editor = document.getElementById('editor');
+		const caretPosition = me.getCaretCharacterOffsetWithin(editor);
+		if (caretPosition + move < 0) {
+			return;
+		}
+		me.setCaretPosition(editor, caretPosition + move);
+		me.saveCaretPosition();
+	};
+
 	me.getCaretCharacterOffsetWithin = function(element) {
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
@@ -504,7 +514,7 @@ const editorView = (function () {
 		me.saveCaretPosition();
 		me.saveState();
 	};
-
+	
 	return me;
 })();
 
@@ -513,10 +523,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	const lineNumber = document.getElementById('line_number');
 	const editor = document.getElementById('editor');
 
-	let composition = false;
-
 	editor.addEventListener('input', function(e) {
-		if (composition) {
+		if (e.isComposing) {
 			return;
 		}
 		if (e.inputType === 'historyUndo') {
@@ -525,6 +533,24 @@ document.addEventListener('DOMContentLoaded', function() {
 		} else if (e.inputType === 'historyRedo') {
 			e.preventDefault();
 			editorView.redo();
+		} else if (e.inputType === 'insertText' && e.data === '}') {
+			const pos = editorView.getCaretCharacterOffsetWithin(editor);
+			const lines = editorView.getText().substr(0, pos).split("\n");
+			const line = lines[lines.length - 1];
+			if (/\t}$/.test(line)) {
+				const selection = window.getSelection();
+				if (!selection.rangeCount) {
+					return;
+				}
+				let node = selection.focusNode;
+				while (node && node.tagName !== 'DIV') {
+					node = node.parentNode;
+				}
+				const str = line.replace(/\t}$/, '}') + node.textContent.substr(line.length);
+				node.innerHTML = editorView.setKeyword(editorView.tagEscape(str));
+				editorView.setCaretPosition(editor, pos - 1);
+				editorView.setCurrentContent();
+			}
 		} else {
 			editorView.setCurrentContent();
 		}
@@ -532,12 +558,10 @@ document.addEventListener('DOMContentLoaded', function() {
 	}, false);
 
 	editor.addEventListener('compositionstart', function(e) {
-		composition = true;
 		editorView.saveCaretPosition();
 	}, false);
 
 	editor.addEventListener('compositionend', function(e) {
-		composition = false;
 		editorView.setCurrentContent();
 		editorView.updateContent();
 	}, false);
@@ -569,17 +593,6 @@ document.addEventListener('DOMContentLoaded', function() {
 				indent += "\t";
 			}
 			editorView.insertTextAtCursor("\n" + indent);
-		} else if (e.key === '}') {
-			e.preventDefault();
-			editorView.deleteSelect();
-			const pos = editorView.getCaretCharacterOffsetWithin(editor);
-			const lines = editorView.getText().substr(0, pos).split("\n");
-			const line = lines[lines.length - 1];
-			if (/\t$/.test(line)) {
-				editorView.setCaretPosition(editor, pos - 1);
-				editorView.deleteTextAtCursor();
-			}
-			editorView.insertTextAtCursor('}');
 		} else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
 			e.preventDefault();
 			editorView.undo();
@@ -592,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}, false);
 
 	editor.addEventListener('keyup', function(e) {
-		if (composition) {
+		if (e.isComposing) {
 			return;
 		}
 		setTimeout(editorView.saveCaretPosition, 0);

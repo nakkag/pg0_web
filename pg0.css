@@ -137,7 +137,6 @@ body::before {
 	grid-area: key;
 	z-index: 3;
 	background-color: #eee;
-	overflow-x: auto;
 	display: none;
 }
 #key_container.full {
@@ -151,6 +150,9 @@ body::before {
 	border: 1px solid #aaa;
 	border-radius: 20px;
 	background-color: #fff;
+	min-width: 30px;
+	text-align: center;
+	touch-action: none;
 }
 .key_button:active {
 	background-color: rgba(0, 191, 255, 0.3);
