@@ -145,10 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			} else {
 				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
-
-				// debug
-				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px max-content`;
-				document.getElementById('key_container').style.display = 'flex';
 			}
 		}
 	}
@@ -156,20 +152,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	if (ua.isiOS || ua.isAndroid) {
 		document.getElementById('editor').addEventListener('focus', function(e) {
+			if (document.getElementById('editor').getAttribute('contenteditable') === 'false') {
+				return;
+			}
 			editFocus = true;
+			document.getElementById('container').classList.add('full');
 			document.getElementById('editor_container').classList.add('full');
-			document.getElementById('key_container').style.display = 'flex';
+			document.getElementById('var_container').classList.add('full');
+			document.getElementById('console_container').classList.add('full');
+			document.getElementById('key_container').classList.add('full');
 			setGridTemplate();
 		}, false);
 		document.getElementById('editor').addEventListener('blur', function(e) {
-			editFocus = false;
-			document.getElementById('editor_container').classList.remove('full');
-			document.getElementById('key_container').style.display = 'none';
-			setGridTemplate();
+			if (editFocus) {
+				editFocus = false;
+				document.getElementById('container').classList.remove('full');
+				document.getElementById('editor_container').classList.remove('full');
+				document.getElementById('var_container').classList.remove('full');
+				document.getElementById('console_container').classList.remove('full');
+				document.getElementById('key_container').classList.remove('full');
+				setGridTemplate();
+			}
 		}, false);
 		window.visualViewport.addEventListener('resize', function() {
 			if (editFocus) {
 				document.getElementById('container').style.height = window.visualViewport.height + 'px';
+				//window.scrollTo(0, 0);
+				editorView.showCaret();
 			} else {
 				document.getElementById('container').style.height = '100dvh';
 			}
@@ -177,6 +186,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	} else {
 		document.getElementById('editor_container').focus();
 	}
+	
+	window.addEventListener('scroll', function(e) {
+		e.preventDefault();
+		window.scrollTo(0, 0);
+	}, false);
 
 	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
 		e.preventDefault();

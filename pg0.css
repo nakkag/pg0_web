@@ -47,6 +47,11 @@ body::before {
 	outline: 1px solid #ccc;
 }
 
+#container.full {
+	position: fixed;
+	bottom: 0;
+}
+
 #ctrl_container {
 	grid-area: ctrl;
 	padding: 5px 10px;
@@ -95,6 +100,9 @@ body::before {
 	margin: 0 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2 + 4px);
 	z-index: 1;
 }
+#var_container.full {
+	display: none;
+}
 
 #variable {
 	margin: 2px;
@@ -121,12 +129,18 @@ body::before {
 	grid-area: console;
 	margin: calc(var(--resize-with) / -2 + 4px) 0 0 0;
 }
+#console_container.full {
+	display: none;
+}
 
 #key_container {
 	grid-area: key;
 	z-index: 3;
 	background-color: #eee;
-	overflow-x: scroll;
+	overflow-x: auto;
+	display: none;
+}
+#key_container.full {
 	display: flex;
 }
 
