@@ -1,13 +1,7 @@
-.time {
-	color: #808080;
-}
-
-.info {
-	color: #0000ff;
-}
-
-.error {
-	color: red;
+#console_container {
+	overflow-x: hidden;
+	overflow-y: scroll;
+	z-index: 1;
 }
 
 #console {
@@ -21,4 +15,16 @@
 
 #console hr {
 	margin: 0.5em 0;
+}
+
+.time {
+	color: #808080;
+}
+
+.info {
+	color: #0000ff;
+}
+
+.error {
+	color: red;
 }

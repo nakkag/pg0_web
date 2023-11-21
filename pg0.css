@@ -56,15 +56,11 @@ body::before {
 #line_container {
 	grid-area: line_number;
 	margin: 0 0 calc(var(--resize-with) / -2) 0;
-	overflow: hidden;
 }
 
 #editor_container {
 	grid-area: editor;
 	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
-	position: relative;
-	overflow: scroll;
-	padding: 2px 2px 2px 0;
 }
 
 #var_resizer_x {
@@ -118,11 +114,7 @@ body::before {
 
 #console_container {
 	grid-area: console;
-
-	overflow-x: hidden;
-	overflow-y: scroll;
 	margin: calc(var(--resize-with) / -2 + 4px) 0 0 0;
-	z-index: 1;
 }
 
 @media (orientation: portrait) {

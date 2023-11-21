@@ -125,18 +125,51 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		return 1;
 	}
-	
+
+	let editFocus = false;
 	function setGridTemplate() {
-		if (checkOrientation() === 0) {
-			document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px`;
-			document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
+		if (editFocus) {
+			document.getElementById('container').style.height = window.visualViewport.height + 'px';
+			if (checkOrientation() === 0) {
+				document.getElementById('container').style.gridTemplateRows = `58px 1fr 0px 0px 0px 0px`;
+				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
+			} else {
+				document.getElementById('container').style.gridTemplateRows = `42px 1fr 0px 0px`;
+				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr 0px 0px`;
+			}
 		} else {
-			document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px`;
-			document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
+			document.getElementById('container').style.height = '100dvh';
+			if (checkOrientation() === 0) {
+				document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
+			} else {
+				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
+			}
 		}
 	}
 	setGridTemplate();
-	document.getElementById('editor_container').focus();
+
+	if (ua.isiOS || ua.isAndroid) {
+		document.getElementById('editor').addEventListener('focus', function(e) {
+			editFocus = true;
+			setGridTemplate();
+		}, false);
+		document.getElementById('editor').addEventListener('blur', function(e) {
+			editFocus = false;
+			setGridTemplate();
+		}, false);
+		window.visualViewport.addEventListener('resize', function() {
+			if (editFocus) {
+				document.getElementById('container').style.height = window.visualViewport.height + 'px';
+			} else {
+				document.getElementById('container').style.height = '100dvh';
+			}
+		});
+	} else {
+		document.getElementById('editor_container').focus();
+	}
+
 }, false);
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {
