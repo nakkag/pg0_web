@@ -155,6 +155,9 @@ const editorView = (function () {
 	me.updateLine = function() {
 		const editor = document.getElementById('editor');
 		const selection = window.getSelection();
+		if (!selection.rangeCount) {
+			return;
+		}
 		let node = selection.focusNode;
 		while (node && node.tagName !== 'DIV') {
 			node = node.parentNode;
@@ -264,13 +267,11 @@ const editorView = (function () {
 	};
 	me.getCaretCharacterOffsetWithin = function(element) {
 		const selection = window.getSelection();
-		const currentRange = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-		if (!currentRange) {
-			return 0;
+		if (!selection.rangeCount) {
+			return;
 		}
-		const container = currentRange.startContainer;
-		const offset = currentRange.startOffset;
-
+		const container = selection.getRangeAt(0).startContainer;
+		const offset = selection.getRangeAt(0).startOffset;
 		const range = document.createRange();
 		range.setStart(container, offset);
 		range.setEnd(container, offset);
@@ -308,6 +309,9 @@ const editorView = (function () {
 	me.setCaretPosition = function(element, position) {
 		const range = document.createRange();
 		const selection = window.getSelection();
+		if (!selection.rangeCount) {
+			return;
+		}
 		range.setStart(element, 0);
 		range.collapse(true);
 		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
@@ -356,6 +360,9 @@ const editorView = (function () {
 	me.saveCaretPosition = function() {
 		const editor = document.getElementById('editor');
 		const selection = window.getSelection();
+		if (!selection.rangeCount) {
+			return;
+		}
 		prevRanges = [];
 		for (let i = 0; i < selection.rangeCount; i++) {
 			prevRanges.push(selection.getRangeAt(i).cloneRange());
@@ -365,6 +372,9 @@ const editorView = (function () {
 	me.restoreCaretPosition = function() {
 		if (prevRanges.length > 0) {
 			const selection = window.getSelection();
+			if (!selection.rangeCount) {
+				return;
+			}
 			selection.removeAllRanges();
 			for (let i = 0; i < prevRanges.length; i++) {
 				selection.addRange(prevRanges[i]);
@@ -410,6 +420,7 @@ const editorView = (function () {
 		}
 		const newRange = document.createRange();
 		newRange.setStart(startContainer, startOffset);
+		newRange.collapse(true);
 		selection.removeAllRanges();
 		selection.addRange(newRange);
 	};
@@ -426,6 +437,7 @@ const editorView = (function () {
 
 		const newRange = document.createRange();
 		newRange.setStart(node, text.length);
+		newRange.collapse(true);
 		selection.removeAllRanges();
 		selection.addRange(newRange);
 
@@ -433,7 +445,7 @@ const editorView = (function () {
 		editorView.updateContent();
 		editorView.showCaret();
 	};
-	me.backspaceTextAtCursor = function() {
+	me.deleteTextAtCursor = function() {
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
@@ -441,16 +453,9 @@ const editorView = (function () {
 		const range = selection.getRangeAt(0);
 		let startContainer = range.startContainer;
 		let startOffset = range.startOffset;
-		if (startOffset === 0) {
-			startContainer = startContainer.previousSibling;
-			if (!startContainer) {
-				return;
-			}
-			startOffset = startContainer.nodeValue.length;
-		}
 		const newRange = document.createRange();
-		newRange.setStart(startContainer, startOffset - 1);
-		newRange.setEnd(startContainer, startOffset);
+		newRange.setStart(startContainer, startOffset);
+		newRange.setEnd(startContainer, startOffset + 1);
 		newRange.deleteContents();
 	};
 
@@ -563,7 +568,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			const lines = editorView.getText().substr(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			if (/\t$/.test(line)) {
-				editorView.backspaceTextAtCursor();
+				editorView.setCaretPosition(editor, pos - 1);
+				editorView.deleteTextAtCursor();
 			}
 			editorView.insertTextAtCursor('}');
 		} else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
@@ -663,6 +669,9 @@ document.addEventListener('DOMContentLoaded', function() {
 				startNode = node;
 			}
 			const selection = window.getSelection();
+			if (!selection.rangeCount) {
+				return;
+			}
 			const range = document.createRange();
 			let caretNode;
 			if (startY <= y) {
