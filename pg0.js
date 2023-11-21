@@ -177,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.visualViewport.addEventListener('resize', function() {
 			if (editFocus) {
 				document.getElementById('container').style.height = window.visualViewport.height + 'px';
-				//window.scrollTo(0, 0);
 				editorView.showCaret();
 			} else {
 				document.getElementById('container').style.height = '100dvh';

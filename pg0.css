@@ -49,7 +49,7 @@ body::before {
 
 #container.full {
 	position: fixed;
-	bottom: 0;
+	top: 0;
 }
 
 #ctrl_container {
