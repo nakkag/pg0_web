@@ -134,8 +134,13 @@ body::before {
 	cursor: default;
 	padding: 4px 8px;
 	margin: 2px;
-	border: 1px solid #808080;
+	border: 1px solid #aaa;
 	border-radius: 20px;
+	background-color: #fff;
+}
+.key_button:active {
+	background-color: rgba(0, 191, 255, 0.3);
+	border: 1px solid rgba(0, 191, 255, 0.4);
 }
 
 @media (orientation: portrait) {

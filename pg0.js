@@ -147,8 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
 				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
 
 				// debug
-				//document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px max-content`;
-				//document.getElementById('key_container').style.display = 'flex';
+				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px max-content`;
+				document.getElementById('key_container').style.display = 'flex';
 			}
 		}
 	}

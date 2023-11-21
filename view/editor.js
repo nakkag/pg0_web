@@ -359,6 +359,11 @@ const editorView = (function () {
 	};
 	me.saveCaretPosition = function() {
 		const editor = document.getElementById('editor');
+		const pos = me.getCaretCharacterOffsetWithin(editor);
+		if (pos === undefined) {
+			return;
+		}
+		me.currentContent.caret = pos;
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
@@ -367,7 +372,6 @@ const editorView = (function () {
 		for (let i = 0; i < selection.rangeCount; i++) {
 			prevRanges.push(selection.getRangeAt(i).cloneRange());
 		}
-		me.currentContent.caret = me.getCaretCharacterOffsetWithin(editor);
 	};
 	me.restoreCaretPosition = function() {
 		if (prevRanges.length > 0) {
@@ -380,6 +384,8 @@ const editorView = (function () {
 				selection.addRange(prevRanges[i]);
 			}
 		}
+		const editor = document.getElementById('editor');
+		me.setCaretPosition(editor, me.currentContent.caret);
 	};
 
 	me.updateContent = function(force) {
@@ -607,10 +613,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	const touchend = function(e) {
 		if (touchstart === 'mousedown') {
 			document.removeEventListener('mouseup', touchend);
+			setTimeout(editorView.saveCaretPosition, 0);
 		} else {
 			document.removeEventListener('touchend', touchend);
+			setTimeout(editorView.saveCaretPosition, 100);
 		}
-		setTimeout(editorView.saveCaretPosition, 0);
 	};
 
 	let sc = {x: 0, y: 0};
