@@ -131,20 +131,24 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (editFocus) {
 			document.getElementById('container').style.height = window.visualViewport.height + 'px';
 			if (checkOrientation() === 0) {
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr 0px 0px 0px 0px`;
+				document.getElementById('container').style.gridTemplateRows = '58px 1fr 0px 0px 0px 0px max-content';
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
 			} else {
-				document.getElementById('container').style.gridTemplateRows = `42px 1fr 0px 0px`;
-				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr 0px 0px`;
+				document.getElementById('container').style.gridTemplateRows = '42px 1fr 0px 0px';
+				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr 0px 0px max-content';
 			}
 		} else {
 			document.getElementById('container').style.height = '100dvh';
 			if (checkOrientation() === 0) {
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
 			} else {
-				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px`;
+				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
+
+				// debug
+				//document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px max-content`;
+				//document.getElementById('key_container').style.display = 'flex';
 			}
 		}
 	}
@@ -153,10 +157,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	if (ua.isiOS || ua.isAndroid) {
 		document.getElementById('editor').addEventListener('focus', function(e) {
 			editFocus = true;
+			document.getElementById('editor_container').classList.add('full');
+			document.getElementById('key_container').style.display = 'flex';
 			setGridTemplate();
 		}, false);
 		document.getElementById('editor').addEventListener('blur', function(e) {
 			editFocus = false;
+			document.getElementById('editor_container').classList.remove('full');
+			document.getElementById('key_container').style.display = 'none';
 			setGridTemplate();
 		}, false);
 		window.visualViewport.addEventListener('resize', function() {
@@ -169,6 +177,23 @@ document.addEventListener('DOMContentLoaded', function() {
 	} else {
 		document.getElementById('editor_container').focus();
 	}
+
+	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		document.getElementById('editor').focus();
+		editorView.deleteSelect();
+		editorView.insertTextAtCursor("\t");
+	}, false);
+	document.getElementById('key_undo').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		document.getElementById('editor').focus();
+		editorView.undo();
+	}, false);
+	document.getElementById('key_redo').addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		document.getElementById('editor').focus();
+		editorView.redo();
+	}, false);
 
 }, false);
 

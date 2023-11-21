@@ -37,12 +37,13 @@ body::before {
 	margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 	height: 100dvh;
 	display: grid;
-	grid-template-rows: 42px 1fr var(--resize-with) 0;
+	grid-template-rows: 42px 1fr var(--resize-with) 0 0;
 	grid-template-columns: max-content 1fr var(--resize-with) 0;
 	grid-template-areas: "ctrl ctrl ctrl ctrl"
 		"line_number editor var_resizer_x var"
 		"console_resizer console_resizer console_resizer console_resizer"
-		"console console console console";
+		"console console console console"
+		"key key key key";
 	outline: 1px solid #ccc;
 }
 
@@ -61,6 +62,10 @@ body::before {
 #editor_container {
 	grid-area: editor;
 	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
+}
+
+#editor_container.full {
+	margin: 0;
 }
 
 #var_resizer_x {
@@ -117,6 +122,22 @@ body::before {
 	margin: calc(var(--resize-with) / -2 + 4px) 0 0 0;
 }
 
+#key_container {
+	grid-area: key;
+	z-index: 3;
+	background-color: #eee;
+	overflow-x: scroll;
+	display: flex;
+}
+
+.key_button {
+	cursor: default;
+	padding: 4px 8px;
+	margin: 2px;
+	border: 1px solid #808080;
+	border-radius: 20px;
+}
+
 @media (orientation: portrait) {
 	body::before {
 		content: "portrait";
@@ -125,14 +146,15 @@ body::before {
 		width: 48px;
 	}
 	#container {
-		grid-template-rows: 58px 1fr var(--resize-with) 0 var(--resize-with) 0;
+		grid-template-rows: 58px 1fr var(--resize-with) 0 var(--resize-with) 0 0;
 		grid-template-columns: max-content 1fr;
 		grid-template-areas: "ctrl ctrl"
 			"line_number editor"
 			"var_resizer_y var_resizer_y"
 			"var var"
 			"console_resizer console_resizer"
-			"console console";
+			"console console"
+			"key key";
 	}
 
 	#editor_container {

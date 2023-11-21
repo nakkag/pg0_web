@@ -441,9 +441,9 @@ const editorView = (function () {
 		selection.removeAllRanges();
 		selection.addRange(newRange);
 
-		editorView.setCurrentContent();
-		editorView.updateContent();
-		editorView.showCaret();
+		me.setCurrentContent();
+		me.updateContent();
+		me.showCaret();
 	};
 	me.deleteTextAtCursor = function() {
 		const selection = window.getSelection();
@@ -486,6 +486,7 @@ const editorView = (function () {
 			undoStack.shift();
 		}
 		me.currentContent = {text: encodeText, caret: 0};
+		me.saveCaretPosition();
 		me.saveState();
 	};
 	me.setUndoText = function(state) {
@@ -494,6 +495,7 @@ const editorView = (function () {
 		me.setAllLine();
 		me.setLineNumber();
 		me.setCaretPosition(editor, state.caret);
+		me.saveCaretPosition();
 		me.saveState();
 	};
 
@@ -636,6 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	let startY = 0;
 	lineNumber.addEventListener(touchstart, function(e) {
 		e.preventDefault();
+		editor.focus();
 		startNode = null;
 		startY = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
 		selectLine(startY, function() {
