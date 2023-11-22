@@ -514,7 +514,7 @@ const editorView = (function () {
 		me.saveCaretPosition();
 		me.saveState();
 	};
-	
+
 	return me;
 })();
 

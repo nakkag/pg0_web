@@ -191,6 +191,15 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.scrollTo(0, 0);
 	}, false);
 
+	document.getElementById('key_container').addEventListener(touchstart, function(e) {
+		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
+		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+		const element = document.elementFromPoint(x, y);
+		if (element === this) {
+			e.preventDefault();
+		}
+	}, false);
+
 	document.getElementById('key_undo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		editorView.undo();
@@ -199,19 +208,65 @@ document.addEventListener('DOMContentLoaded', function() {
 		e.preventDefault();
 		editorView.redo();
 	}, false);
+
+	let repeat = null;
+	function keyRepeat(move, time) {
+		repeat = setTimeout(function() {
+			editorView.moveCaret(move);
+			keyRepeat(move, 50);
+		}, time);
+	}
 	document.getElementById('key_left').addEventListener(touchstart, function(e) {
 		e.preventDefault();
+		if (repeat) {
+			return;
+		}
 		editorView.moveCaret(-1);
+		keyRepeat(-1, 500);
+	}, false);
+	document.getElementById('key_left').addEventListener(touchend[0], function(e) {
+		if (repeat) {
+			clearTimeout(repeat);
+			repeat = null;
+		}
 	}, false);
 	document.getElementById('key_right').addEventListener(touchstart, function(e) {
 		e.preventDefault();
+		if (repeat) {
+			return;
+		}
 		editorView.moveCaret(1);
+		keyRepeat(1, 500);
 	}, false);
+	document.getElementById('key_right').addEventListener(touchend[0], function(e) {
+		if (repeat) {
+			clearTimeout(repeat);
+			repeat = null;
+		}
+	}, false);
+
+	document.getElementById('key_paste').addEventListener('mousedown', function(e) {
+		e.preventDefault();
+		document.getElementById('editor').focus();
+	}, false);
+	document.getElementById('key_paste').addEventListener('click', function(e) {
+		e.preventDefault();
+		document.getElementById('editor').focus();
+		editorView.restoreCaretPosition();
+		navigator.clipboard.readText().then(function(str) {
+			editorView.deleteSelect();
+			editorView.insertTextAtCursor(str.replace(/\r/g, ''));
+		}).catch(function(err) {
+			document.execCommand('paste');
+		});
+	}, false);
+
 	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		editorView.deleteSelect();
 		editorView.insertTextAtCursor("\t");
 	}, false);
+
 	document.getElementById('key_close').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		document.getElementById('editor').blur();
