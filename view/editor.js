@@ -267,26 +267,34 @@ const editorView = (function () {
 	};
 	me.moveCaret = function(move) {
 		const editor = document.getElementById('editor');
-		const caretPosition = me.getCaretCharacterOffsetWithin(editor);
+		const caretPosition = me.getCaretCharacterOffsetWithin();
 		if (caretPosition + move < 0) {
 			return;
 		}
-		me.setCaretPosition(editor, caretPosition + move);
+		me.setCaretPosition(caretPosition + move);
 		me.saveCaretPosition();
 	};
 
-	me.getCaretCharacterOffsetWithin = function(element) {
+	me.getCaretCharacterOffsetWithin = function() {
+		const editor = document.getElementById('editor');
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
 		}
-		const container = selection.getRangeAt(0).startContainer;
-		const offset = selection.getRangeAt(0).startOffset;
+		let container = selection.getRangeAt(0).startContainer;
+		let offset = selection.getRangeAt(0).startOffset;
+		if (container === editor) {
+			if (offset === 0) {
+				return 0;
+			}
+			container = container.childNodes[offset];
+			offset = 0;
+		}
 		const range = document.createRange();
 		range.setStart(container, offset);
 		range.setEnd(container, offset);
 		range.collapse(true);
-		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
 		let caretOffset = 0;
 		let firstDiv = true;
 		let node;
@@ -295,9 +303,12 @@ const editorView = (function () {
 				continue;
 			}
 			if (node === container) {
-				caretOffset += offset;
-				if (node.tagName === 'DIV' && (caretOffset > 0 || !firstDiv)) {
-					caretOffset++;
+				if (node.tagName === 'DIV') {
+					if (caretOffset > 0 || !firstDiv) {
+						caretOffset++;
+					}
+				} else {
+					caretOffset += offset;
 				}
 				break;
 			} else if (node.nodeType === Node.TEXT_NODE) {
@@ -316,15 +327,16 @@ const editorView = (function () {
 		}
 		return caretOffset;
 	};
-	me.setCaretPosition = function(element, position) {
+	me.setCaretPosition = function(position) {
+		const editor = document.getElementById('editor');
 		const range = document.createRange();
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
 		}
-		range.setStart(element, 0);
+		range.setStart(editor, 0);
 		range.collapse(true);
-		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
 		let charCount = 0;
 		let found = false;
 		let firstDiv = true;
@@ -369,11 +381,10 @@ const editorView = (function () {
 	};
 	me.saveCaretPosition = function() {
 		const editor = document.getElementById('editor');
-		const pos = me.getCaretCharacterOffsetWithin(editor);
-		if (pos === undefined) {
-			return;
+		const pos = me.getCaretCharacterOffsetWithin();
+		if (pos !== undefined) {
+			me.currentContent.caret = pos;
 		}
-		me.currentContent.caret = pos;
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
@@ -395,19 +406,19 @@ const editorView = (function () {
 			}
 		}
 		const editor = document.getElementById('editor');
-		me.setCaretPosition(editor, me.currentContent.caret);
+		me.setCaretPosition(me.currentContent.caret);
 	};
 
 	me.updateContent = function(force) {
 		const editor = document.getElementById('editor');
-		const caretPosition = me.getCaretCharacterOffsetWithin(editor);
+		const caretPosition = me.getCaretCharacterOffsetWithin();
 		if (force || !editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || me.isMultiLine()) {
 			me.setAllLine();
 		} else {
 			me.updateLine();
 		}
 		me.setLineNumber();
-		me.setCaretPosition(editor, caretPosition);
+		me.setCaretPosition(caretPosition);
 	};
 
 	me.deleteSelect = function() {
@@ -510,7 +521,7 @@ const editorView = (function () {
 		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 		me.setAllLine();
 		me.setLineNumber();
-		me.setCaretPosition(editor, state.caret);
+		me.setCaretPosition(state.caret);
 		me.saveCaretPosition();
 		me.saveState();
 	};
@@ -534,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			e.preventDefault();
 			editorView.redo();
 		} else if (e.inputType === 'insertText' && e.data === '}') {
-			const pos = editorView.getCaretCharacterOffsetWithin(editor);
+			const pos = editorView.getCaretCharacterOffsetWithin();
 			const lines = editorView.getText().substr(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			if (/\t}$/.test(line)) {
@@ -548,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				}
 				const str = line.replace(/\t}$/, '}') + node.textContent.substr(line.length);
 				node.innerHTML = editorView.setKeyword(editorView.tagEscape(str));
-				editorView.setCaretPosition(editor, pos - 1);
+				editorView.setCaretPosition(pos - 1);
 				editorView.setCurrentContent();
 			}
 		} else {
@@ -581,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
 			editorView.deleteSelect();
-			const pos = editorView.getCaretCharacterOffsetWithin(editor);
+			const pos = editorView.getCaretCharacterOffsetWithin();
 			const lines = editorView.getText().substr(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			const m = line.match(/^[ \t]+/);

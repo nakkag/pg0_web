@@ -138,6 +138,7 @@ body::before {
 	z-index: 3;
 	background-color: #eee;
 	display: none;
+	border-top: 1px solid #ccc;
 }
 #key_container.full {
 	display: flex;
