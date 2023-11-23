@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('key_paste').addEventListener('click', function(e) {
 		e.preventDefault();
 		document.getElementById('editor').focus();
-		editorView.restoreCaretPosition();
+		editorView.restoreSelect();
 		navigator.clipboard.readText().then(function(str) {
 			editorView.deleteSelect();
 			editorView.insertTextAtCursor(str.replace(/\r/g, ''));
