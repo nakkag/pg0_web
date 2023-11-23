@@ -11,6 +11,7 @@ const editorView = (function () {
 	me.storageKey = 'pg0_text';
 	me.undoCount = 50;
 	me.currentContent = {text: '', caret: 0};
+	me.paddingTop = 2;
 
 	me.loadState = function() {
 		const editor = document.getElementById('editor');
@@ -247,23 +248,73 @@ const editorView = (function () {
 		return null;
 	};
 
+	me.getTextWidth = function(line) {
+		const editor = document.getElementById('editor');
+		const cssDecl = getComputedStyle(editor);
+		const context = document.createElement('canvas').getContext('2d');
+		context.font = cssDecl.font;
+		const tabSize = parseInt(cssDecl.tabSize);
+		const text = line.split('');
+		let width = 0;
+		let pos = 0;
+		for (let i = 0; i < text.length; i++) {
+			if (text[i] === '\t') {
+				const spacesToNextTabStop = tabSize - (pos % tabSize);
+				pos += spacesToNextTabStop;
+				width += context.measureText(' '.repeat(spacesToNextTabStop)).width;
+			} else {
+				pos++;
+				width += context.measureText(text[i]).width;
+			}
+		}
+		return width;
+	};
+
 	me.showCaret = function() {
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
 		}
 		let node = selection.focusNode;
-		while (node && !node.scrollIntoView) {
+		while (node && node.tagName !== 'DIV') {
 			node = node.parentNode;
 		}
-		if (node && node.scrollIntoView) {
-			node.scrollIntoView({behavior: 'instant', block: 'nearest', inline: 'nearest'});
+		if (node && node.id === 'editor') {
+			return;
 		}
-		let range = selection.getRangeAt(0);
-		let dummy = document.createElement('span');
-		range.insertNode(dummy);
-		dummy.scrollIntoView({behavior: 'instant', block: 'nearest', inline: 'nearest'});
-		dummy.parentNode.removeChild(dummy);
+		if (node) {
+			const pos = editorView.getCaretCharacterOffsetWithin();
+			const lines = editorView.getText().substr(0, pos).split("\n");
+			const line = lines[lines.length - 1];
+			const editorContainer = document.getElementById('editor_container');
+
+			const width = me.getTextWidth(line);
+			let x = editorContainer.scrollLeft;
+			if (width < (x + 1)) {
+				x = width - 1;
+				if (x < 0) {
+					x = 0;
+				}
+			}
+			if (width > (x - 1) + editorContainer.clientWidth) {
+				x = width - editorContainer.clientWidth + 1;
+			}
+			if (x !== editorContainer.scrollLeft) {
+				editorContainer.scrollLeft = x;
+			}
+
+			const height = lines.length * node.offsetHeight + me.paddingTop;
+			let y = editorContainer.scrollTop;
+			if ((height - node.offsetHeight) < y) {
+				y = height - node.offsetHeight;
+			}
+			if (height > y + editorContainer.clientHeight) {
+				y = height - editorContainer.clientHeight;
+			}
+			if (y !== editorContainer.scrollTop) {
+				editorContainer.scrollTop = y;
+			}
+		}
 	};
 	me.moveCaret = function(move) {
 		const editor = document.getElementById('editor');
@@ -395,6 +446,8 @@ const editorView = (function () {
 		}
 	};
 	me.restoreCaretPosition = function() {
+		const editor = document.getElementById('editor');
+		me.setCaretPosition(me.currentContent.caret);
 		if (prevRanges.length > 0) {
 			const selection = window.getSelection();
 			if (!selection.rangeCount) {
@@ -405,8 +458,6 @@ const editorView = (function () {
 				selection.addRange(prevRanges[i]);
 			}
 		}
-		const editor = document.getElementById('editor');
-		me.setCaretPosition(me.currentContent.caret);
 	};
 
 	me.updateContent = function(force) {
@@ -729,7 +780,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	};
 
 	const observer = new ResizeObserver(function(entries) {
-		lineNumber.style.height = (editorContainer.clientHeight - 2) + 'px';
+		lineNumber.style.height = (editorContainer.clientHeight - editorView.paddingTop) + 'px';
 	})
 	observer.observe(editorContainer);
 

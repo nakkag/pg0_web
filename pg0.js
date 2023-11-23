@@ -191,6 +191,15 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.scrollTo(0, 0);
 	}, false);
 
+	document.getElementById('ctrl_container').addEventListener(touchstart, function(e) {
+		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
+		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+		const element = document.elementFromPoint(x, y);
+		if (element === this) {
+			e.preventDefault();
+		}
+	}, false);
+
 	document.getElementById('key_container').addEventListener(touchstart, function(e) {
 		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
 		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
