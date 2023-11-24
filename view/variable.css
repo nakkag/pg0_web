@@ -1,5 +1,6 @@
 #variable_container {
 	overflow: scroll;
+	cursor: default;
 }
 
 #variable {
@@ -15,6 +16,7 @@
 	background-color: #eee;
 	position: sticky;
 	top: 0;
+	z-index: 2;
 }
 
 #var_name {
@@ -32,6 +34,40 @@
 	padding-left: 30px;
 }
 
+#var_name .item_name {
+	padding-left: 30px;
+}
+
+.item_name > span {
+	position: relative;
+}
+.item_name > span > .open_icon {
+	display: inline-block;
+	width: 10px;
+	position: absolute;
+	cursor: pointer;
+}
+
+.item_name.array > span > .open_icon {
+	top: 0px;
+	left: -22px;
+	height: 18px;
+	width: 18px;
+}
+.item_name.array > span > .open_icon:after {
+	content: "";
+	position: absolute;
+	background-color: #2196f3;
+	top: 2px;
+	left: 4px;
+	height: 15px;
+	width: 10px;
+	clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.item_name.array.open > span > .open_icon:after {
+	transform: rotate(90deg);
+}
+
 #var_resizer {
 	grid-area: resizer;
 	cursor: ew-resize;
@@ -46,7 +82,7 @@
 	width: 1px;
 	height: 100%;
 	background-color: #aaa;
-	z-index: 2;
+	z-index: 3;
 }
 
 #var_value {
@@ -58,4 +94,12 @@
 	min-width: 600px;
 	padding: 4px 4px 4px 10px;
 	white-space: nowrap;
+}
+
+.var_select {
+	background: #2196f3;
+	color: #fff;
+}
+.var_select.array > span > .open_icon:after {
+	background-color: #fff;
 }

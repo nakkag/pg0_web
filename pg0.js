@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		touchmove = 'touchmove';
 		touchend = ['touchend'];
 	}
-	let resizeFunc;
+	let resizeFunc = null;
 
 	document.getElementById('var_resizer_x').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.addEventListener(e, function() {
 			if (resizeFunc) {
 				document.removeEventListener(touchmove, resizeFunc, false);
+				resizeFunc = null;
 			}
 		}, false);
 	});
