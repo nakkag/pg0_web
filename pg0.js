@@ -5,6 +5,8 @@ let verX = 400;
 let verY = 150;
 let consoleY = 150;
 
+let ev;
+
 document.addEventListener('DOMContentLoaded', function() {
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
 	let rw = parseInt(_rw.replace(/[^0-9]/g, ''));
@@ -14,8 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.style.setProperty('--resize-with', rw + 'px');
 	}
 
+	ev = new editorView(document.getElementById('editor'), document.getElementById('line_number'));
+	ev.init();
 	setTimeout(function() {
-		editorView.loadState();
+		ev.loadState();
 	}, 0);
 
 	let touchstart = 'mousedown';
@@ -177,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.visualViewport.addEventListener('resize', function() {
 			if (editFocus) {
 				document.getElementById('container').style.height = window.visualViewport.height + 'px';
-				editorView.showCaret();
+				ev.showCaret();
 			} else {
 				document.getElementById('container').style.height = '100dvh';
 			}
@@ -211,17 +215,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	document.getElementById('key_undo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		editorView.undo();
+		ev.undo();
 	}, false);
 	document.getElementById('key_redo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		editorView.redo();
+		ev.redo();
 	}, false);
 
 	let repeat = null;
 	function keyRepeat(move, time) {
 		repeat = setTimeout(function() {
-			editorView.moveCaret(move);
+			ev.moveCaret(move);
 			keyRepeat(move, 50);
 		}, time);
 	}
@@ -230,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (repeat) {
 			return;
 		}
-		editorView.moveCaret(-1);
+		ev.moveCaret(-1);
 		keyRepeat(-1, 500);
 	}, false);
 	document.getElementById('key_left').addEventListener(touchend[0], function(e) {
@@ -244,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (repeat) {
 			return;
 		}
-		editorView.moveCaret(1);
+		ev.moveCaret(1);
 		keyRepeat(1, 500);
 	}, false);
 	document.getElementById('key_right').addEventListener(touchend[0], function(e) {
@@ -261,10 +265,10 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('key_paste').addEventListener('click', function(e) {
 		e.preventDefault();
 		document.getElementById('editor').focus();
-		editorView.restoreSelect();
+		ev.restoreSelect();
 		navigator.clipboard.readText().then(function(str) {
-			editorView.deleteSelect();
-			editorView.insertTextAtCursor(str.replace(/\r/g, ''));
+			ev.deleteSelect();
+			ev.insertText(str.replace(/\r/g, ''));
 		}).catch(function(err) {
 			document.execCommand('paste');
 		});
@@ -272,8 +276,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		editorView.deleteSelect();
-		editorView.insertTextAtCursor("\t");
+		ev.deleteSelect();
+		ev.insertText("\t");
 	}, false);
 
 	document.getElementById('key_close').addEventListener(touchstart, function(e) {
@@ -335,7 +339,7 @@ async function exec(_step) {
 		nextStep = true;
 		return;
 	}
-	const buf = editorView.getText();
+	const buf = ev.getText();
 	if (!buf) {
 		return;
 	}
@@ -412,7 +416,7 @@ async function _exec(scis, sci, imp) {
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
 								execLine = ei.token[ei.index].line;
 								if (step) {
-									editorView.setHighlight(execLine, '#00ffff');
+									ev.setHighlight(execLine, '#00ffff');
 									document.getElementById('variable').innerHTML = '';
 									variableView.set(ei);
 									while (!nextStep && run) {
@@ -428,7 +432,7 @@ async function _exec(scis, sci, imp) {
 											syncCnt = 0;
 										}
 									} else {
-										editorView.setHighlight(execLine, '#00ffff');
+										ev.setHighlight(execLine, '#00ffff');
 										document.getElementById('variable').innerHTML = '';
 										variableView.set(ei);
 										await new Promise(resolve => setTimeout(resolve, speed));
@@ -462,10 +466,10 @@ async function _exec(scis, sci, imp) {
 								document.getElementById('variable').innerHTML = '';
 								variableView.set(sci.ei);
 							}
-							editorView.unsetHighlight();
+							ev.unsetHighlight();
 						},
 						error: async function(error) {
-							editorView.setHighlight(error.line, '#ffb6c1');
+							ev.setHighlight(error.line, '#ffb6c1');
 							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
 							consoleView.info(runMsg.CONSOLE_END);
 						}
@@ -476,7 +480,7 @@ async function _exec(scis, sci, imp) {
 				}
 			},
 			error: async function(error) {
-				editorView.setHighlight(error.line, '#ffb6c1');
+				ev.setHighlight(error.line, '#ffb6c1');
 				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
 				consoleView.info(runMsg.CONSOLE_END);
 			}

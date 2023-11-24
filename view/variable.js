@@ -1,3 +1,5 @@
+"use strict";
+
 const variableView = (function () {
 	const me = {};
 

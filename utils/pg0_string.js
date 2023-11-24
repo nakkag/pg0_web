@@ -1,3 +1,4 @@
+"use strict";
 
 const pg0_string = (function () {
 	const me = {};

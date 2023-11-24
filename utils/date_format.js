@@ -1,5 +1,7 @@
-var date_format = (function () {
-	var me = {};
+"use strict";
+
+const date_format = (function () {
+	const me = {};
 
 	me.dateFormat = {
 		"YYYY/MM/DD" : [
@@ -51,13 +53,13 @@ var date_format = (function () {
 	};
 
 	me.formatDate = function (date, lang) {
-		var format = 'MM/DD/YYYY';
+		const format = 'MM/DD/YYYY';
 		if (!lang) {
 			return me._format(date, format);
 		}
 		lang = lang.toLowerCase();
-		for (var fmt in me.dateFormat) {
-			for (var i = 0; i < me.dateFormat[fmt].length; i++) {
+		for (let fmt in me.dateFormat) {
+			for (let i = 0; i < me.dateFormat[fmt].length; i++) {
 				if (lang.indexOf(me.dateFormat[fmt][i]) === 0) {
 					return me._format(date, fmt);
 				}
@@ -67,13 +69,13 @@ var date_format = (function () {
 	}
 
 	me.formatTimeSec = function (date, lang) {
-		var format = 'hh:mm:ss';
+		const format = 'hh:mm:ss';
 		if (!lang) {
 			return me._format(date, format);
 		}
 		lang = lang.toLowerCase();
-		for (var fmt in me.timeSecFormat) {
-			for (var i = 0; i < me.timeSecFormat[fmt].length; i++) {
+		for (let fmt in me.timeSecFormat) {
+			for (let i = 0; i < me.timeSecFormat[fmt].length; i++) {
 				if (lang.indexOf(me.timeSecFormat[fmt][i]) === 0) {
 					return me._format(date, fmt);
 				}
@@ -83,13 +85,13 @@ var date_format = (function () {
 	}
 
 	me.formatTime = function (date, lang) {
-		var format = 'hh:mm';
+		const format = 'hh:mm';
 		if (!lang) {
 			return me._format(date, format);
 		}
 		lang = lang.toLowerCase();
-		for (var fmt in me.timeFormat) {
-			for (var i = 0; i < me.timeFormat[fmt].length; i++) {
+		for (let fmt in me.timeFormat) {
+			for (let i = 0; i < me.timeFormat[fmt].length; i++) {
 				if (lang.indexOf(me.timeFormat[fmt][i]) === 0) {
 					return me._format(date, fmt);
 				}

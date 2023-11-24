@@ -1,3 +1,4 @@
+"use strict";
 
 const user_agent = (function () {
 	const me = {};

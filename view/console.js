@@ -1,3 +1,5 @@
+"use strict";
+
 const consoleView = (function () {
 	const me = {};
 
