@@ -4,14 +4,14 @@ const consoleView = (function () {
 	const me = {};
 
 	me.toBottom = function() {
-		const containerObj = document.getElementById('console_container');
-		containerObj.scrollTop = containerObj.scrollHeight - containerObj.clientHeight;
+		const container = document.getElementById('console_container');
+		container.scrollTop = container.scrollHeight - container.clientHeight;
 	};
 
 	me.fixBottom = function(callback) {
-		const consoleObj = document.getElementById('console');
-		const containerObj = document.getElementById('console_container');
-		const _toBottom = containerObj.scrollTop + containerObj.clientHeight >= consoleObj.offsetHeight;
+		const console = document.getElementById('console');
+		const container = document.getElementById('console_container');
+		const _toBottom = container.scrollTop + container.clientHeight >= console.offsetHeight;
 		callback();
 		if (_toBottom) {
 			me.toBottom();

@@ -1,6 +1,5 @@
 "use strict";
 
-let src = '';
 let verX = 400;
 let verY = 150;
 let consoleY = 150;
