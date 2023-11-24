@@ -1,0 +1,9 @@
+#variable_container {
+	overflow: scroll;
+}
+
+#variable {
+	margin: 2px;
+	white-space: nowrap;
+}
+

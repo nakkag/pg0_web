@@ -94,19 +94,13 @@ body::before {
 	display: none;
 }
 
-#var_container {
+#variable_container {
 	grid-area: var;
-	overflow: scroll;
 	margin: 0 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2 + 4px);
 	z-index: 1;
 }
-#var_container.full {
+#variable_container.full {
 	display: none;
-}
-
-#variable {
-	margin: 2px;
-	white-space: nowrap;
 }
 
 #console_resizer {
@@ -206,7 +200,7 @@ body::before {
 		height: 4px;
 		background-color: #ccc;
 	}
-	#var_container {
+	#variable_container {
 		border-left: unset;
 		margin: calc(var(--resize-with) / -2 + 4px) 0 calc(var(--resize-with) / -2) 0;
 	}

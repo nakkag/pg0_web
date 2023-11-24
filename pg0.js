@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			editFocus = true;
 			document.getElementById('container').classList.add('full');
 			document.getElementById('editor_container').classList.add('full');
-			document.getElementById('var_container').classList.add('full');
+			document.getElementById('variable_container').classList.add('full');
 			document.getElementById('console_container').classList.add('full');
 			document.getElementById('key_container').classList.add('full');
 			setGridTemplate();
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				editFocus = false;
 				document.getElementById('container').classList.remove('full');
 				document.getElementById('editor_container').classList.remove('full');
-				document.getElementById('var_container').classList.remove('full');
+				document.getElementById('variable_container').classList.remove('full');
 				document.getElementById('console_container').classList.remove('full');
 				document.getElementById('key_container').classList.remove('full');
 				setGridTemplate();
@@ -289,11 +289,11 @@ ScriptExec.lib['error'] = async function(ei, param, ret) {
 	}
 	let str = '';
 	if (param[0].v.type === TYPE_ARRAY) {
-		str = '{' + arrayToString(param[0].v.array) + '}'
+		str = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	consoleView.error(`${escapeHTML(str)}`);
+	consoleView.error(`${pg0_string.escapeHTML(str)}`);
 	return 0;
 };
 
@@ -303,11 +303,11 @@ ScriptExec.lib['print'] = async function(ei, param, ret) {
 	}
 	let str = '';
 	if (param[0].v.type === TYPE_ARRAY) {
-		str = '{' + arrayToString(param[0].v.array) + '}'
+		str = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	consoleView.put(escapeHTML(str));
+	consoleView.put(pg0_string.escapeHTML(str));
 	return 0;
 };
 
@@ -319,52 +319,6 @@ ScriptExec.lib['input'] = async function(ei, param, ret) {
 	}
 	return 0;
 };
-
-function escapeHTML(str) {
-	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function arrayToString(array) {
-	let ret = '';
-	array.forEach(function(a) {
-		if (ret) {
-			ret = ret + ', ';
-		}
-		if (a.name) {
-			ret += '"' + a.name + '": ';
-		}
-		if (a.v.type === TYPE_ARRAY) {
-			ret += '{' + arrayToString(a.v.array) + '}';
-		} else if (a.v.type === TYPE_STRING) {
-			ret += '"' + ScriptExec.getValueString(a.v) + '"';
-		} else {
-			ret += ScriptExec.getValueString(a.v);
-		}
-	});
-	return ret;
-}
-
-function showVariable(ei) {
-	if (!ei) {
-		return;
-	}
-	showVariable(ei.parent);
-	
-	let buf = '';
-	for (let key in ei.vi) {
-		const v = ei.vi[key];
-		buf += escapeHTML(key) + ': ';
-		if (v.type === TYPE_ARRAY) {
-			buf += '{' + escapeHTML(arrayToString(v.array)) + '}'
-		} else if (v.type === TYPE_STRING) {
-			buf += '"' + escapeHTML(ScriptExec.getValueString(v)) + '"'
-		} else {
-			buf += escapeHTML(ScriptExec.getValueString(v));
-		}
-		buf += '<br />';
-	}
-	document.getElementById('variable').innerHTML += buf;
-}
 
 let run = false;
 let step = false;
@@ -460,7 +414,7 @@ async function _exec(scis, sci, imp) {
 								if (step) {
 									editorView.setHighlight(execLine, '#00ffff');
 									document.getElementById('variable').innerHTML = '';
-									showVariable(ei);
+									variableView.set(ei);
 									while (!nextStep && run) {
 										await new Promise(resolve => setTimeout(resolve, 100));
 									}
@@ -476,7 +430,7 @@ async function _exec(scis, sci, imp) {
 									} else {
 										editorView.setHighlight(execLine, '#00ffff');
 										document.getElementById('variable').innerHTML = '';
-										showVariable(ei);
+										variableView.set(ei);
 										await new Promise(resolve => setTimeout(resolve, speed));
 									}
 								}
@@ -497,22 +451,22 @@ async function _exec(scis, sci, imp) {
 							}
 							if (value) {
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-									consoleView.info(runMsg.CONSOLE_RESULT, escapeHTML(ScriptExec.getValueString(value)));
+									consoleView.info(runMsg.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
 								} else if (value.type === TYPE_STRING) {
-									consoleView.info(runMsg.CONSOLE_RESULT, `"${escapeHTML(ScriptExec.getValueString(value))}"`);
+									consoleView.info(runMsg.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
 								} else if (value.type === TYPE_ARRAY) {
-									consoleView.info(runMsg.CONSOLE_RESULT, `{${escapeHTML(arrayToString(value.array))}}`);
+									consoleView.info(runMsg.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
 								}
 							}
 							if (run) {
 								document.getElementById('variable').innerHTML = '';
-								showVariable(sci.ei);
+								variableView.set(sci.ei);
 							}
 							editorView.unsetHighlight();
 						},
 						error: async function(error) {
 							editorView.setHighlight(error.line, '#ffb6c1');
-							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${escapeHTML(error.src)}`);
+							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
 							consoleView.info(runMsg.CONSOLE_END);
 						}
 					});
@@ -523,7 +477,7 @@ async function _exec(scis, sci, imp) {
 			},
 			error: async function(error) {
 				editorView.setHighlight(error.line, '#ffb6c1');
-				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${escapeHTML(error.src)}`);
+				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
 				consoleView.info(runMsg.CONSOLE_END);
 			}
 		});
