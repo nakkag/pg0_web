@@ -5,6 +5,7 @@ let verY = 150;
 let consoleY = 150;
 
 let ev;
+let vv;
 
 document.addEventListener('DOMContentLoaded', function() {
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
@@ -20,6 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	setTimeout(function() {
 		ev.loadState();
 	}, 0);
+	vv = new variableView(document.getElementById('variable'));
+	vv.init();
 
 	let touchstart = 'mousedown';
 	let touchmove = 'mousemove';
@@ -352,7 +355,7 @@ async function exec(_step) {
 	}
 	consoleView.info(runMsg.CONSOLE_START);
 	document.getElementById('stop_button').removeAttribute('disabled');
-	document.getElementById('variable').innerHTML = '';
+	vv.clear();
 	const elm = document.getElementsByClassName('lib');
 	if (0 < elm.length) {
 		Array.from(elm).forEach(function(v) {
@@ -416,8 +419,7 @@ async function _exec(scis, sci, imp) {
 								execLine = ei.token[ei.index].line;
 								if (step) {
 									ev.setHighlight(execLine, '#00ffff');
-									document.getElementById('variable').innerHTML = '';
-									variableView.set(ei);
+									vv.set(ei);
 									while (!nextStep && run) {
 										await new Promise(resolve => setTimeout(resolve, 100));
 									}
@@ -432,8 +434,7 @@ async function _exec(scis, sci, imp) {
 										}
 									} else {
 										ev.setHighlight(execLine, '#00ffff');
-										document.getElementById('variable').innerHTML = '';
-										variableView.set(ei);
+										vv.set(ei);
 										await new Promise(resolve => setTimeout(resolve, speed));
 									}
 								}
@@ -462,8 +463,7 @@ async function _exec(scis, sci, imp) {
 								}
 							}
 							if (run) {
-								document.getElementById('variable').innerHTML = '';
-								variableView.set(sci.ei);
+								vv.set(sci.ei);
 							}
 							ev.unsetHighlight();
 						},
@@ -495,6 +495,6 @@ function stop() {
 }
 
 function clearConsole() {
-	document.getElementById('variable').innerHTML = '';
+	vv.clear();
 	document.getElementById('console').innerHTML = '';
 }

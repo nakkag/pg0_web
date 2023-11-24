@@ -1,7 +1,6 @@
 #line_container {
 	position: relative;
 	overflow: hidden;
-	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 	cursor: default;
 }
 
@@ -20,7 +19,6 @@
 	position: relative;
 	overflow: scroll;
 	padding: 2px 2px 2px 0;
-	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 	cursor: text;
 }
 

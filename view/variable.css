@@ -3,7 +3,59 @@
 }
 
 #variable {
-	margin: 2px;
-	white-space: nowrap;
+	position: relative;
+	height: calc(100% - var(--resize-with) / 2);
+	display: grid;
+	grid-template-rows: 1fr;
+	grid-template-columns: 200px var(--resize-with) max-content;
+	grid-template-areas: "name resizer value";
 }
 
+.var_header {
+	background-color: #eee;
+	position: sticky;
+	top: 0;
+}
+
+#var_name {
+	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
+}
+
+#var_name div {
+	grid-area: name;
+	padding: 4px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+#var_name .var_header {
+	padding-left: 30px;
+}
+
+#var_resizer {
+	grid-area: resizer;
+	cursor: ew-resize;
+	position: relative;
+	margin: 0 0 calc(var(--resize-with) / -2) 0;
+}
+#var_resizer::after {
+	content: "";
+	position: absolute;
+	top: 0px;
+	left: calc(var(--resize-with) / 2);
+	width: 1px;
+	height: 100%;
+	background-color: #aaa;
+	z-index: 2;
+}
+
+#var_value {
+	margin: 0 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2 + 1px);
+}
+
+#var_value div {
+	grid-area: value;
+	min-width: 600px;
+	padding: 4px 4px 4px 10px;
+	white-space: nowrap;
+}

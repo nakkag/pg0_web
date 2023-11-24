@@ -10,22 +10,22 @@
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
 	<link rel="stylesheet" type="text/css" href="view/editor.css?v=32">
-	<link rel="stylesheet" type="text/css" href="view/variable.css?v=1">
+	<link rel="stylesheet" type="text/css" href="view/variable.css?v=8">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=6">
-	<link rel="stylesheet" type="text/css" href="pg0.css?v=86">
+	<link rel="stylesheet" type="text/css" href="pg0.css?v=87">
 	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=1"></script>
 	<script type="text/javascript" src="view/editor.js?v=131"></script>
-	<script type="text/javascript" src="view/variable.js?v=1"></script>
+	<script type="text/javascript" src="view/variable.js?v=8"></script>
 	<script type="text/javascript" src="view/console.js?v=7"></script>
 	<script type="text/javascript" src="utils/pg0_string.js?v=1"></script>
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/user_agent.js?v=1"></script>
-	<script type="text/javascript" src="utils/message.js?v=1"></script>
+	<script type="text/javascript" src="utils/message.js?v=2"></script>
 	<script type="text/javascript" src="utils/rawdeflate.js?v=1"></script>
 	<script type="text/javascript" src="utils/rawinflate.js?v=1"></script>
-	<script type="text/javascript" src="pg0.js?v=159"></script>
+	<script type="text/javascript" src="pg0.js?v=162"></script>
 </head>
 <body>
 	<div id="container">
@@ -54,7 +54,11 @@
 		<div id="var_resizer_x"></div>
 		<div id="var_resizer_y"></div>
 		<div id="variable_container" tabindex="0" translate="no">
-			<div id="variable"></div>
+			<div id="variable">
+				<div id="var_name"></div>
+				<div id="var_resizer"></div>
+				<div id="var_value"></div>
+			</div>
 		</div>
 		<div id="console_resizer"></div>
 		<div id="console_container" tabindex="0">
