@@ -73,18 +73,26 @@ function variableView(variable) {
 			if (e.target.classList.contains('open_icon')) {
 				return;
 			}
-			const node = document.querySelector('#' + variable.id + ' #var_name').childNodes[index + 1];
-			if (node.classList.contains('var_select')) {
+			const nameNode = document.querySelector('#' + variable.id + ' #var_name').childNodes[index + 1];
+			const valNode = document.querySelector('#' + variable.id + ' #var_value').childNodes[index + 1];
+			if (nameNode.classList.contains('var_select')) {
 				unselect();
 				return;
 			}
 			unselect();
-			node.classList.add('var_select');
-			document.querySelector('#' + variable.id + ' #var_value').childNodes[index + 1].classList.add('var_select');
+			nameNode.classList.add('var_select');
+			valNode.classList.add('var_select');
 		});
 		target.addEventListener('dblclick', function(e) {
-			openVarTree(index);
+			const nameNode = document.querySelector('#' + variable.id + ' #var_name').childNodes[index + 1];
+			const valNode = document.querySelector('#' + variable.id + ' #var_value').childNodes[index + 1];
 			unselect();
+			nameNode.classList.add('var_select');
+			valNode.classList.add('var_select');
+			const str = nameNode.textContent + ' = ' + valNode.textContent;
+			if (navigator.clipboard) {
+				return navigator.clipboard.writeText(str);
+			}
 		});
 	}
 	function setOpenEvent(target, index) {
@@ -164,6 +172,7 @@ function variableView(variable) {
 		name.classList.add('item_name');
 		name.setAttribute('indent', indent);
 		name.style.textIndent = (indent * 20) + 'px';
+
 		const pspan = document.createElement('span');
 		name.appendChild(pspan);
 		let span = document.createElement('span');
@@ -173,11 +182,13 @@ function variableView(variable) {
 		span.textContent = key;
 		pspan.appendChild(span);
 		document.querySelector('#' + variable.id + ' #var_name').appendChild(name);
+
 		const val = document.createElement('div');
 		val.classList.add('item_val');
 		val.textContent = buf;
 		val.setAttribute('indent', indent);
 		document.querySelector('#' + variable.id + ' #var_value').appendChild(val);
+
 		if (indent !== 0) {
 			name.style.display = 'none';
 			val.style.display = 'none';
