@@ -6,6 +6,7 @@ let consoleY = 150;
 
 let ev;
 let vv;
+let cv;
 
 document.addEventListener('DOMContentLoaded', function() {
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
@@ -17,12 +18,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	ev = new editorView(document.getElementById('editor'), document.getElementById('line_number'));
-	ev.init();
 	setTimeout(function() {
 		ev.loadState();
 	}, 0);
 	vv = new variableView(document.getElementById('variable'));
-	vv.init();
+	cv = new consoleView(document.getElementById('console'));
 
 	let touchstart = 'mousedown';
 	let touchmove = 'mousemove';
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			} else {
 				y = ey;
 			}
-			consoleView.fixBottom(function() {
+			cv.fixBottom(function() {
 				setGridTemplate();
 			});
 		}
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			prev_orientation = orientation;
 			setGridTemplate();
 			setTimeout(function() {
-				consoleView.toBottom();
+				cv.toBottom();
 			}, 1);
 		}
 	}, false);
@@ -300,7 +300,7 @@ ScriptExec.lib['error'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	consoleView.error(`${pg0_string.escapeHTML(str)}`);
+	cv.error(`${pg0_string.escapeHTML(str)}`);
 	return 0;
 };
 
@@ -314,7 +314,7 @@ ScriptExec.lib['print'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	consoleView.put(pg0_string.escapeHTML(str));
+	cv.put(pg0_string.escapeHTML(str));
 	return 0;
 };
 
@@ -352,9 +352,9 @@ async function exec(_step) {
 	nextStep = false;
 	document.getElementById('editor').setAttribute('contenteditable', 'false');
 	if (document.getElementById('console').childElementCount > 0) {
-		consoleView.put('<hr />');
+		cv.put('<hr />');
 	}
-	consoleView.info(runMsg.CONSOLE_START);
+	cv.info(runMsg.CONSOLE_START);
 	document.getElementById('stop_button').removeAttribute('disabled');
 	vv.clear();
 	const elm = document.getElementsByClassName('lib');
@@ -450,17 +450,17 @@ async function _exec(scis, sci, imp) {
 								return;
 							}
 							if (run) {
-								consoleView.info(runMsg.CONSOLE_END);
+								cv.info(runMsg.CONSOLE_END);
 							} else {
-								consoleView.info(runMsg.CONSOLE_STOP);
+								cv.info(runMsg.CONSOLE_STOP);
 							}
 							if (value) {
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-									consoleView.info(runMsg.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
+									cv.info(runMsg.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
 								} else if (value.type === TYPE_STRING) {
-									consoleView.info(runMsg.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
+									cv.info(runMsg.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
 								} else if (value.type === TYPE_ARRAY) {
-									consoleView.info(runMsg.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
+									cv.info(runMsg.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
 								}
 							}
 							if (run) {
@@ -470,24 +470,24 @@ async function _exec(scis, sci, imp) {
 						},
 						error: async function(error) {
 							ev.setHighlight(error.line, '#ffb6c1');
-							consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
-							consoleView.info(runMsg.CONSOLE_END);
+							cv.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
+							cv.info(runMsg.CONSOLE_END);
 						}
 					});
 				} catch(e) {
-					consoleView.error(`Error: ${e.message}`);
-					consoleView.info(runMsg.CONSOLE_END);
+					cv.error(`Error: ${e.message}`);
+					cv.info(runMsg.CONSOLE_END);
 				}
 			},
 			error: async function(error) {
 				ev.setHighlight(error.line, '#ffb6c1');
-				consoleView.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
-				consoleView.info(runMsg.CONSOLE_END);
+				cv.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
+				cv.info(runMsg.CONSOLE_END);
 			}
 		});
 	} catch(e) {
-		consoleView.error(`Error: ${e.message}`);
-		consoleView.info(runMsg.CONSOLE_END);
+		cv.error(`Error: ${e.message}`);
+		cv.info(runMsg.CONSOLE_END);
 	}
 }
 

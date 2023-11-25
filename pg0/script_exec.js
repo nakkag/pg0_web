@@ -356,7 +356,7 @@ function ScriptExec(scis, sci) {
 	this.callback = Script.noop;
 
 	function initExecInfo(token) {
-		return {token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
+		return {id: Math.random().toString(36).slice(-8), token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
 	}
 
 	function setValue(to_v, from_v) {

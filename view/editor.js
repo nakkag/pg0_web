@@ -16,214 +16,211 @@ function editorView(editor, lineNumber) {
 	this.currentContent = {text: '', caret: 0};
 	this.paddingTop = 0;
 
-	this.init = function() {
-		that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
+	that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
 
-		editor.addEventListener('input', function(e) {
-			if (e.isComposing) {
-				return;
-			}
-			if (e.inputType === 'historyUndo') {
-				e.preventDefault();
-				that.undo();
-			} else if (e.inputType === 'historyRedo') {
-				e.preventDefault();
-				that.redo();
-			} else if (e.inputType === 'insertText' && e.data === '}') {
-				const pos = getCaretPosition();
-				const lines = that.getText().substr(0, pos).split("\n");
-				const line = lines[lines.length - 1];
-				if (/\t}$/.test(line)) {
-					const selection = window.getSelection();
-					if (!selection.rangeCount) {
-						return;
-					}
-					let node = selection.focusNode;
-					while (node && node.tagName !== 'DIV') {
-						node = node.parentNode;
-					}
-					const str = line.replace(/\t}$/, '}') + node.textContent.substr(line.length);
-					node.innerHTML = setKeyword(tagEscape(str));
-					setCaretPosition(pos - 1);
-					setCurrentContent();
-				}
-			} else {
-				setCurrentContent();
-			}
-			updateContent();
-		}, false);
-
-		editor.addEventListener('compositionstart', function(e) {
-			that.saveSelect();
-		}, false);
-
-		editor.addEventListener('compositionend', function(e) {
-			setCurrentContent();
-			updateContent();
-		}, false);
-
-		editor.addEventListener('paste', function(e) {
-			e.preventDefault();
-			that.deleteSelect();
-			let str = (e.clipboardData || window.clipboardData).getData('text').replace(/\r/g, '');
-			that.insertText(str);
-		}, false);
-
-		editor.addEventListener('keydown', function(e) {
-			if (e.key === 'Tab') {
-				e.preventDefault();
-				that.deleteSelect();
-				that.insertText("\t");
-			} else if (e.key === 'Enter') {
-				e.preventDefault();
-				that.deleteSelect();
-				const pos = getCaretPosition();
-				const lines = that.getText().substr(0, pos).split("\n");
-				const line = lines[lines.length - 1];
-				const m = line.match(/^[ \t]+/);
-				let indent = '';
-				if (m && m.length > 0) {
-					indent = m[0];
-				}
-				if (/{[ \t]*$/.test(line)) {
-					indent += "\t";
-				}
-				that.insertText("\n" + indent);
-			} else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-				e.preventDefault();
-				that.undo();
-				return;
-			} else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
-				e.preventDefault();
-				that.redo();
-				return;
-			}
-		}, false);
-
-		editor.addEventListener('keyup', function(e) {
-			if (e.isComposing) {
-				return;
-			}
-			setTimeout(that.saveSelect, 0);
-		}, false);
-
-		let touchstart = 'mousedown';
-		if ('ontouchstart' in window) {
-			touchstart = 'touchstart';
+	editor.addEventListener('input', function(e) {
+		if (e.isComposing) {
+			return;
 		}
-		editor.addEventListener(touchstart, function(e) {
-			if (touchstart === 'mousedown') {
-				document.addEventListener('mouseup', touchend);
-			} else {
-				document.addEventListener('touchend', touchend);
-			}
-		}, false);
-		const touchend = function(e) {
-			if (touchstart === 'mousedown') {
-				document.removeEventListener('mouseup', touchend);
-				setTimeout(that.saveSelect, 0);
-			} else {
-				document.removeEventListener('touchend', touchend);
-				setTimeout(that.saveSelect, 100);
-			}
-		};
-
-		let sc = {x: 0, y: 0};
-		editor.addEventListener('focus', function(e) {
-			that.restoreSelect();
-			editorContainer.scrollTo(sc.x, sc.y);
-		}, false);
-
-		editor.addEventListener('blur', function(e) {
-			sc.x = editorContainer.scrollLeft;
-			sc.y = editorContainer.scrollTop;
-		}, false);
-
-		editorContainer.addEventListener('focus', function(e) {
-			editor.focus();
-		}, false);
-		
-		editorContainer.addEventListener('scroll', function(e) {
-			sc.x = editorContainer.scrollLeft;
-			sc.y = editorContainer.scrollTop;
-			lineNumber.scrollTop = editorContainer.scrollTop;
-		}, false);
-
-		let startNode = null;
-		let startY = 0;
-		lineNumber.addEventListener(touchstart, function(e) {
+		if (e.inputType === 'historyUndo') {
 			e.preventDefault();
-			editor.focus();
-			startNode = null;
-			startY = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
-			selectLine(startY, function() {
-				if (touchstart === 'mousedown') {
-					document.addEventListener('mousemove', mousemove);
-					document.addEventListener('mouseup', mouseup);
-				} else {
-					document.addEventListener('touchmove', mousemove);
-					document.addEventListener('touchend', mouseup);
-				}
-			});
-		}, false);
-		const mousemove = function(e) {
+			that.undo();
+		} else if (e.inputType === 'historyRedo') {
 			e.preventDefault();
-			selectLine(((touchstart === 'mousedown') ? e.y : e.touches[0].clientY), null);
-		};
-		const mouseup = function(e) {
-			if (touchstart === 'mousedown') {
-				document.removeEventListener('mousemove', mousemove);
-				document.removeEventListener('mouseup', mouseup);
-			} else {
-				document.removeEventListener('touchmove', mousemove);
-				document.removeEventListener('touchend', mouseup);
-			}
-		};
-		const selectLine = function(y, callback) {
-			const index = Math.floor((lineNumber.scrollTop + y - editorContainer.offsetTop) / lineNumber.firstChild.offsetHeight);
-			let node = getLineNode(index);
-			if (node) {
-				if (!startNode) {
-					startNode = node;
-				}
+			that.redo();
+		} else if (e.inputType === 'insertText' && e.data === '}') {
+			const pos = getCaretPosition();
+			const lines = that.getText().substr(0, pos).split("\n");
+			const line = lines[lines.length - 1];
+			if (/\t}$/.test(line)) {
 				const selection = window.getSelection();
 				if (!selection.rangeCount) {
 					return;
 				}
-				const range = document.createRange();
-				if (startY <= y) {
-					range.setStart(startNode, 0);
-					if (node.nextSibling) {
-						range.setEnd(node.nextSibling, 0);
-					} else {
-						range.setEndAfter(node);
-					}
-				} else {
-					range.setStart(node, 0);
-					if (startNode.nextSibling) {
-						range.setEnd(startNode.nextSibling, 0);
-					} else {
-						range.setEndAfter(startNode);
-					}
+				let node = selection.focusNode;
+				while (node && node.tagName !== 'DIV') {
+					node = node.parentNode;
 				}
-				selection.removeAllRanges();
-				selection.addRange(range);
-				that.saveSelect();
-				node.scrollIntoView({behavior: 'instant', block: 'nearest'});
-				if (callback) {
-					callback();
+				const str = line.replace(/\t}$/, '}') + node.textContent.substr(line.length);
+				node.innerHTML = setKeyword(tagEscape(str));
+				setCaretPosition(pos - 1);
+				setCurrentContent();
+			}
+		} else {
+			setCurrentContent();
+		}
+		updateContent();
+	}, false);
+
+	editor.addEventListener('compositionstart', function(e) {
+		that.saveSelect();
+	}, false);
+
+	editor.addEventListener('compositionend', function(e) {
+		setCurrentContent();
+		updateContent();
+	}, false);
+
+	editor.addEventListener('paste', function(e) {
+		e.preventDefault();
+		that.deleteSelect();
+		let str = (e.clipboardData || window.clipboardData).getData('text').replace(/\r/g, '');
+		that.insertText(str);
+	}, false);
+
+	editor.addEventListener('keydown', function(e) {
+		if (e.key === 'Tab') {
+			e.preventDefault();
+			that.deleteSelect();
+			that.insertText("\t");
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			that.deleteSelect();
+			const pos = getCaretPosition();
+			const lines = that.getText().substr(0, pos).split("\n");
+			const line = lines[lines.length - 1];
+			const m = line.match(/^[ \t]+/);
+			let indent = '';
+			if (m && m.length > 0) {
+				indent = m[0];
+			}
+			if (/{[ \t]*$/.test(line)) {
+				indent += "\t";
+			}
+			that.insertText("\n" + indent);
+		} else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+			e.preventDefault();
+			that.undo();
+			return;
+		} else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+			e.preventDefault();
+			that.redo();
+			return;
+		}
+	}, false);
+
+	editor.addEventListener('keyup', function(e) {
+		if (e.isComposing) {
+			return;
+		}
+		setTimeout(that.saveSelect, 0);
+	}, false);
+
+	let touchstart = 'mousedown';
+	if ('ontouchstart' in window) {
+		touchstart = 'touchstart';
+	}
+	editor.addEventListener(touchstart, function(e) {
+		if (touchstart === 'mousedown') {
+			document.addEventListener('mouseup', touchend);
+		} else {
+			document.addEventListener('touchend', touchend);
+		}
+	}, false);
+	const touchend = function(e) {
+		if (touchstart === 'mousedown') {
+			document.removeEventListener('mouseup', touchend);
+			setTimeout(that.saveSelect, 0);
+		} else {
+			document.removeEventListener('touchend', touchend);
+			setTimeout(that.saveSelect, 100);
+		}
+	};
+
+	let sc = {x: 0, y: 0};
+	editor.addEventListener('focus', function(e) {
+		that.restoreSelect();
+		editorContainer.scrollTo(sc.x, sc.y);
+	}, false);
+
+	editor.addEventListener('blur', function(e) {
+		sc.x = editorContainer.scrollLeft;
+		sc.y = editorContainer.scrollTop;
+	}, false);
+
+	editorContainer.addEventListener('focus', function(e) {
+		editor.focus();
+	}, false);
+	
+	editorContainer.addEventListener('scroll', function(e) {
+		sc.x = editorContainer.scrollLeft;
+		sc.y = editorContainer.scrollTop;
+		lineNumber.scrollTop = editorContainer.scrollTop;
+	}, false);
+
+	let startNode = null;
+	let startY = 0;
+	lineNumber.addEventListener(touchstart, function(e) {
+		e.preventDefault();
+		editor.focus();
+		startNode = null;
+		startY = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+		selectLine(startY, function() {
+			if (touchstart === 'mousedown') {
+				document.addEventListener('mousemove', mousemove);
+				document.addEventListener('mouseup', mouseup);
+			} else {
+				document.addEventListener('touchmove', mousemove);
+				document.addEventListener('touchend', mouseup);
+			}
+		});
+	}, false);
+	const mousemove = function(e) {
+		e.preventDefault();
+		selectLine(((touchstart === 'mousedown') ? e.y : e.touches[0].clientY), null);
+	};
+	const mouseup = function(e) {
+		if (touchstart === 'mousedown') {
+			document.removeEventListener('mousemove', mousemove);
+			document.removeEventListener('mouseup', mouseup);
+		} else {
+			document.removeEventListener('touchmove', mousemove);
+			document.removeEventListener('touchend', mouseup);
+		}
+	};
+	const selectLine = function(y, callback) {
+		const index = Math.floor((lineNumber.scrollTop + y - editorContainer.offsetTop) / lineNumber.firstChild.offsetHeight);
+		let node = getLineNode(index);
+		if (node) {
+			if (!startNode) {
+				startNode = node;
+			}
+			const selection = window.getSelection();
+			if (!selection.rangeCount) {
+				return;
+			}
+			const range = document.createRange();
+			if (startY <= y) {
+				range.setStart(startNode, 0);
+				if (node.nextSibling) {
+					range.setEnd(node.nextSibling, 0);
+				} else {
+					range.setEndAfter(node);
+				}
+			} else {
+				range.setStart(node, 0);
+				if (startNode.nextSibling) {
+					range.setEnd(startNode.nextSibling, 0);
+				} else {
+					range.setEndAfter(startNode);
 				}
 			}
-		};
-
-		const observer = new ResizeObserver(function() {
-			lineNumber.style.height = (editorContainer.clientHeight - that.paddingTop) + 'px';
-			lineNumber.scrollTop = editorContainer.scrollTop;
-		})
-		observer.observe(editorContainer);
-
-		setLineNumber();
+			selection.removeAllRanges();
+			selection.addRange(range);
+			that.saveSelect();
+			node.scrollIntoView({behavior: 'instant', block: 'nearest'});
+			if (callback) {
+				callback();
+			}
+		}
 	};
+
+	const observer = new ResizeObserver(function() {
+		lineNumber.style.height = (editorContainer.clientHeight - that.paddingTop) + 'px';
+		lineNumber.scrollTop = editorContainer.scrollTop;
+	})
+	observer.observe(editorContainer);
+	setLineNumber();
 
 	this.loadState = function() {
 		const str = localStorage.getItem(that.storageKey);
@@ -733,6 +730,7 @@ function editorView(editor, lineNumber) {
 		that.currentContent.start = state.start;
 		that.currentContent.end = state.end;
 		that.restoreSelect();
+		that.showCaret();
 		that.saveState();
 	}
 }
