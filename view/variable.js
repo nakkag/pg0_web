@@ -250,6 +250,8 @@ function variableView(variable) {
 			v.array.forEach(function(a, i) {
 				setvi(newEid, a.name || i, a.v, indent + 1, open && op);
 			});
+		} else {
+			nameNode.classList.remove('array');
 		}
 	}
 	function finalizeVar() {
