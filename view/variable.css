@@ -73,6 +73,7 @@
 	cursor: ew-resize;
 	position: relative;
 	margin: 0 0 calc(var(--resize-with) / -2) 0;
+	z-index: 3;
 }
 #var_resizer::after {
 	content: "";
