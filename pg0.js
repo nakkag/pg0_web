@@ -1,5 +1,7 @@
 "use strict";
 
+const baseTitle = document.title;
+
 let verX = 400;
 let verY = 150;
 let consoleY = 150;
@@ -20,9 +22,39 @@ document.addEventListener('DOMContentLoaded', function() {
 	ev = new editorView(document.getElementById('editor'), document.getElementById('line_number'));
 	setTimeout(function() {
 		ev.loadState();
+		if (ev.currentContent.name) {
+			document.title = baseTitle + ' - ' + ev.currentContent.name;
+		}
 	}, 0);
 	vv = new variableView(document.getElementById('variable'));
 	cv = new consoleView(document.getElementById('console'));
+
+	document.addEventListener('keydown', async function(e) {
+		switch (e.key) {
+		case 'F5':
+			e.preventDefault();
+			if (e.shiftKey) {
+				stop();
+			} else {
+				await exec(false);
+			}
+			break;
+		case 'F10':
+			e.preventDefault();
+			if (e.ctrlKey) {
+				await execToCursor(true);
+			} else {
+				await exec(true);
+			}
+			break;
+		case 'Escape':
+			const menuToggle = document.getElementById('menu-toggle');
+			if (menuToggle.checked) {
+				document.getElementById('menu-toggle').checked = false;
+			}
+			break;
+		}
+	}, false);
 
 	let touchstart = 'mousedown';
 	let touchmove = 'mousemove';
@@ -124,23 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			}, 1);
 		}
 	}, false);
-
-	document.addEventListener('click', function(event) {
-		const menuToggle = document.getElementById('menu-toggle');
-		if (!menuToggle.checked) {
-			return;
-		}
-		if (event.target.closest('.menu, .menu-btn, .menu-toggle')) {
-			return;
-		}
-		menuToggle.checked = false;
-	});
-	document.addEventListener('keydown', function(event) {
-		const menuToggle = document.getElementById('menu-toggle');
-		if (menuToggle.checked && event.key === 'Escape') {
-			document.getElementById('menu-toggle').checked = false;
-		}
-	});
 
 	function checkOrientation() {
 		const o = window.getComputedStyle(document.body, '::before').getPropertyValue('content');
@@ -305,6 +320,94 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('editor').blur();
 	}, false);
 
+	document.getElementById('menu_new').textContent = runMsg.MENU_NEW;
+	document.getElementById('menu_open').textContent = runMsg.MENU_OPEN;
+	document.getElementById('menu_save').textContent = runMsg.MENU_SAVE;
+	document.getElementById('menu_run_to_cursor').textContent = runMsg.MENU_RUN_TO_CURSOR;
+	document.getElementById('menu_clear').textContent = runMsg.MENU_CLEAR;
+	document.getElementById('menu_setting').textContent = runMsg.MENU_SETTING;
+	document.getElementById('menu_tutorial').textContent = runMsg.MENU_TUTORIAL;
+
+	document.querySelector('.menu-btn').addEventListener('keydown', function(e) {
+		if (e.key === 'Enter') {
+			const menuToggle = document.getElementById('menu-toggle');
+			menuToggle.checked = !menuToggle.checked;
+		}
+	}, false);
+	document.addEventListener('click', function(e) {
+		const menuToggle = document.getElementById('menu-toggle');
+		if (!menuToggle.checked) {
+			return;
+		}
+		if (e.target.closest('.menu, .menu-btn, .menu-toggle')) {
+			return;
+		}
+		menuToggle.checked = false;
+	}, false);
+	document.querySelectorAll('.menu ul li a').forEach(async function(item) {
+		item.addEventListener('click', async function(e) {
+			const menuToggle = document.getElementById('menu-toggle');
+			if (!menuToggle.checked) {
+				return;
+			}
+			document.getElementById('menu-toggle').checked = false;
+			switch (e.target.id) {
+			case 'menu_new':
+				if (ev.currentContent.modify && !window.confirm(runMsg.MSG_NEW)) {
+					break;
+				}
+				ev.setText('', '');
+				document.title = baseTitle;
+				break;
+			case 'menu_open':
+				if (ev.currentContent.modify && !window.confirm(runMsg.MSG_NEW)) {
+					break;
+				}
+				const fileInput = document.getElementById('fileInput');
+				fileInput.value = '';
+				await fileInput.click();
+				break;
+			case 'menu_save':
+				const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/plain;charset=utf-8'});
+				const url = (window.URL || window.webkitURL).createObjectURL(blob);
+				//if (ua.isiOS) {
+				//	window.open(url, '_blank');
+				//} else {
+					const a = document.getElementById('download');
+					a.download = ev.currentContent.name || 'script.pg0';
+					a.href = url;
+					await a.click();
+				//}
+				break;
+			case 'menu_run_to_cursor':
+				await execToCursor();
+				break;
+			case 'menu_clear':
+				vv.clear();
+				cv.clear();
+				break;
+			case 'menu_setting':
+				break;
+			}
+		});
+	}, false);
+
+	document.getElementById('fileInput').addEventListener('change', function(e) {
+		const file = e.target.files[0];
+		if (!file) {
+			return;
+		}
+		const reader = new FileReader();
+		reader.onload = function(le) {
+			ev.setText(le.target.result, file.name);
+			document.title = baseTitle + ' - ' + file.name;
+		};
+		reader.onerror = function(ee) {
+			console.error(ee);
+			alert(ee);
+		};
+		reader.readAsText(file);
+	}, false);
 }, false);
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {
@@ -348,6 +451,12 @@ let run = false;
 let step = false;
 let execLine = -1;
 let nextStep = true;
+let stopStep = -1;
+
+async function execToCursor() {
+	stopStep = ev.getCaretLineIndex();
+	await exec(true);
+}
 
 async function exec(_step) {
 	if (run) {
@@ -386,6 +495,7 @@ async function exec(_step) {
 	await _exec(scis, sci, false);
 	document.getElementById('stop_button').setAttribute('disabled', true);
 	document.getElementById('editor').setAttribute('contenteditable', 'true');
+	stopStep = -1;
 	run = false;
 }
 
@@ -426,16 +536,15 @@ async function _exec(scis, sci, imp) {
 				return 0;
 			},
 			success: async function(token) {
-				//console.log(token);
 				const se = new ScriptExec(scis, sci);
 				try {
 					let syncCnt = 0;
 					await se.exec(token, {}, {
 						callback: async function(ei) {
-							//console.log(`line=${ei.token[ei.index].line}, token=${ei.token[ei.index].type}, vi=${JSON.stringify(ei.vi)}`);
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
 								execLine = ei.token[ei.index].line;
-								if (step) {
+								if (step && (stopStep === -1 || stopStep === execLine)) {
+									stopStep = -1;
 									ev.setHighlight(execLine, '#00ffff');
 									vv.set(ei);
 									while (!nextStep && run) {
@@ -510,9 +619,4 @@ async function _exec(scis, sci, imp) {
 
 function stop() {
 	run = false;
-}
-
-function clearConsole() {
-	vv.clear();
-	cv.clear();
 }

@@ -9,25 +9,27 @@
 	<link rel="apple-touch-icon" href="image/icon.png">
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
-	<link rel="stylesheet" type="text/css" href="view/editor.css?v=34">
+	<link rel="stylesheet" type="text/css" href="view/editor.css?v=35">
 	<link rel="stylesheet" type="text/css" href="view/variable.css?v=16">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=7">
-	<link rel="stylesheet" type="text/css" href="pg0.css?v=98">
+	<link rel="stylesheet" type="text/css" href="pg0.css?v=103">
 	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=2"></script>
-	<script type="text/javascript" src="view/editor.js?v=136"></script>
+	<script type="text/javascript" src="view/editor.js?v=140"></script>
 	<script type="text/javascript" src="view/variable.js?v=21"></script>
 	<script type="text/javascript" src="view/console.js?v=9"></script>
 	<script type="text/javascript" src="utils/pg0_string.js?v=1"></script>
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/user_agent.js?v=1"></script>
-	<script type="text/javascript" src="utils/message.js?v=2"></script>
+	<script type="text/javascript" src="utils/message.js?v=5"></script>
 	<script type="text/javascript" src="utils/rawdeflate.js?v=1"></script>
 	<script type="text/javascript" src="utils/rawinflate.js?v=1"></script>
-	<script type="text/javascript" src="pg0.js?v=168"></script>
+	<script type="text/javascript" src="pg0.js?v=181"></script>
 </head>
 <body>
+	<a id="download" href="#" style="display: none;"></a>
+	<input type="file" id="fileInput" style="display: none;"></input>
 	<div id="container">
 		<div id="ctrl_container">
 			<input type="image" class="ctrl_icon" id="exec_button" src="image/play.svg" title="Exec" onclick="exec(false);"></input>
@@ -43,21 +45,20 @@
 				<option value="250">Normal</option>
 				<option value="500">Slow</option>
 			</select>
-			<input type="button" value="Clear console" onclick="clearConsole();"></input>
 
 			<input type="checkbox" id="menu-toggle" class="menu-toggle">
-			<label for="menu-toggle" class="menu-btn"><span></span></label>
+			<label for="menu-toggle" class="menu-btn" tabindex="0"><span></span></label>
 			<div class="menu">
 				<ul>
-					<li><a href="#">New</a></li>
-					<li><a href="#">Open</a></li>
-					<li><a href="#">Save</a></li>
+					<li><a href="#" id="menu_new"></a></li>
+					<li><a href="#" id="menu_open"></a></li>
+					<li><a href="#" id="menu_save"></a></li>
 					<hr />
-					<li><a href="#">Run to Cursor</a></li>
-					<li><a href="#">Claer console</a></li>
+					<li><a href="#" id="menu_run_to_cursor"></a></li>
+					<li><a href="#" id="menu_clear"></a></li>
 					<hr />
-					<li><a href="#">Setting</a></li>
-					<li><a href="#">Tutorial</a></li>
+					<li><a href="#" id="menu_setting"></a></li>
+					<li><a href="https://nakka.com/soft/pg0/tutorial.html" target="_blank" id="menu_tutorial"></a></li>
 				</ul>
 			</div>
 		</div>

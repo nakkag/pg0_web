@@ -21,7 +21,7 @@ function editorView(editor, lineNumber) {
 
 	this.storageKey = 'pg0_text';
 	this.undoCount = 50;
-	this.currentContent = {text: '', caret: 0};
+	this.currentContent = {text: '', start: 0, end: 0, name: '', modify: false};
 	that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
 
 	this.loadState = function() {
@@ -40,6 +40,18 @@ function editorView(editor, lineNumber) {
 		localStorage.setItem(that.storageKey, JSON.stringify(that.currentContent));
 	};
 
+	this.setText = function(str, name) {
+		editor.textContent = str.replace(/\r/g, '');
+		setAllLine();
+		updateLineNumber();
+		const encodeText = btoa(RawDeflate.deflate(encodeURIComponent(that.getText())));
+		that.currentContent = {text: encodeText, start: 0, end: 0, name: name, modify: false};
+		that.restoreSelect();
+		that.showCaret();
+		undoStack = [];
+		redoStack = [];
+		that.saveState();
+	};
 	this.getText = function() {
 		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
 		let buf = '';
@@ -100,6 +112,13 @@ function editorView(editor, lineNumber) {
 		}
 	};
 
+	this.getCaretLineIndex = function() {
+		if (that.currentContent.start === undefined) {
+			return -1;
+		}
+		const lines = that.getText().substr(0, that.currentContent.start).split("\n");
+		return lines.length - 1;
+	}
 	this.showCaret = function() {
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
@@ -596,6 +615,7 @@ function editorView(editor, lineNumber) {
 		return false;
 	}
 	function updateContent() {
+		that.currentContent.modify = true;
 		that.saveSelect();
 		if (!editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
 			setAllLine();
@@ -723,7 +743,7 @@ function editorView(editor, lineNumber) {
 		if (undoStack.length > that.undoCount) {
 			undoStack.shift();
 		}
-		that.currentContent = {text: encodeText, caret: 0, select: {}};
+		that.currentContent = {text: encodeText, start: 0, end: 0, name: that.currentContent.name, modify: that.currentContent.modify};
 		that.saveSelect();
 	}
 	function setUndoText(state) {

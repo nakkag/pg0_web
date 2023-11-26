@@ -13,6 +13,89 @@ body::before {
 	content: "landscape";
 }
 
+.menu-toggle {
+	display: none;
+}
+.menu-btn {
+	cursor: pointer;
+	position: fixed;
+	display: flex;
+	top: 0px;
+	right: calc(10px + env(safe-area-inset-left));
+	height: 40px;
+	width: 40px;
+	justify-content: center;
+	align-items: center;
+	z-index: 100;
+}
+.menu-btn span,
+.menu-btn span:before,
+.menu-btn span:after {
+	content: '';
+	display: block;
+	height: 3px;
+	width: 25px;
+	border-radius: 3px;
+	background-color: #555;
+	position: absolute;
+	transition: 0.3s;
+}
+.menu-btn:focus span,
+.menu-btn:focus span:before,
+.menu-btn:focus span:after {
+	background-color: #000;
+}
+.menu-btn span:before {
+	bottom: 8px;
+}
+.menu-btn span:after {
+	top: 8px;
+}
+#menu-toggle:checked ~ .menu-btn span {
+	background-color: rgba(255, 255, 255, 0);
+}
+#menu-toggle:checked ~ .menu-btn span::before {
+	bottom: 0;
+	transform: rotate(45deg);
+}
+#menu-toggle:checked ~ .menu-btn span::after {
+	top: 0;
+	transform: rotate(-45deg);
+}
+.menu {
+	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+	position: fixed;
+	top: 0;
+	right: calc(-320px - env(safe-area-inset-right));
+	width: calc(300px + env(safe-area-inset-right));
+	height: 100%;
+	background-color: #eee;
+	overflow-y: auto;
+	transition: right 0.3s;
+	z-index: 99;
+	box-shadow: 0 0 10px 0 rgba(0, 0, 0, .5);
+}
+.menu ul {
+	display: none;
+	list-style-type: none;
+	padding-top: 40px;
+}
+.menu ul li a {
+	display: block;
+	padding: 10px 15px;
+	color: black;
+	text-decoration: none;
+}
+.menu ul li a:hover {
+	background-color: #ddd;
+}
+.menu-toggle:checked + .menu-btn + .menu {
+	right: 0;
+}
+.menu-toggle:checked + .menu-btn + .menu ul {
+	display: block;
+}
+
 .ctrl_icon {
 	touch-action: manipulation;
 	width: 32px;
@@ -164,6 +247,17 @@ body::before {
 	body::before {
 		content: "portrait";
 	}
+	.menu-btn {
+		position: fixed;
+		top: 10px;
+	}
+	.menu {
+		width: 100%;
+		right: -100%;
+	}
+	.menu ul {
+		padding-top: 58px;
+	}
 	.ctrl_icon {
 		width: 48px;
 	}
@@ -205,114 +299,4 @@ body::before {
 		border-left: unset;
 		margin: calc(var(--resize-with) / -2 + 4px) 0 calc(var(--resize-with) / -2) 0;
 	}
-}
-
-.menu-toggle {
-	display: none;
-}
-
-.menu-icon {
-	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-	font-size: 20px;
-	cursor: pointer;
-	position: fixed;
-	top: 10px;
-	right: 10px;
-	z-index: 100;
-}
-
-.menu-btn {
-	position: fixed;
-	top: 0px;
-	right: calc(10px + env(safe-area-inset-left));
-	display: flex;
-	height: 40px;
-	width: 40px;
-	justify-content: center;
-	align-items: center;
-	cursor: pointer;
-	z-index: 100;
-}
-.menu-btn span,
-.menu-btn span:before,
-.menu-btn span:after {
-	content: '';
-	display: block;
-	height: 3px;
-	width: 25px;
-	border-radius: 3px;
-	background-color: #000;
-	position: absolute;
-	transition: 0.3s;
-}
-.menu-btn span:before {
-	bottom: 8px;
-}
-.menu-btn span:after {
-	top: 8px;
-}
-
-#menu-toggle:checked ~ .menu-btn span {
-	background-color: rgba(255, 255, 255, 0);
-}
-#menu-toggle:checked ~ .menu-btn span::before {
-	bottom: 0;
-	transform: rotate(45deg);
-}
-#menu-toggle:checked ~ .menu-btn span::after {
-	top: 0;
-	transform: rotate(-45deg);
-}
-
-.menu {
-	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-	position: fixed;
-	top: 0;
-	right: calc(-300px - env(safe-area-inset-right));
-	width: calc(300px + env(safe-area-inset-right));
-	height: 100%;
-	background-color: #ddd;
-	overflow-y: auto;
-	transition: right 0.3s;
-	z-index: 99;
-}
-
-.menu ul {
-	list-style-type: none;
-	padding-top: 40px;
-}
-
-.menu ul li a {
-	display: block;
-	padding: 10px 15px;
-	color: black;
-	text-decoration: none;
-}
-
-.menu-toggle:checked + .menu-btn + .menu {
-	right: 0;
-}
-
-.content {
-	padding: 20px;
-}
-
-@media (orientation: portrait) {
-	.menu-btn {
-		position: fixed;
-		top: 10px;
-	}
-
-	.menu {
-		width: 100%;
-		right: -100%;
-	}
-
-	.menu ul {
-		padding-top: 58px;
-	}
-}
-
-.menu ul li a:hover {
-	background-color: #ccc;
 }
