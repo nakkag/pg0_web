@@ -298,14 +298,18 @@ body::before {
 }
 
 @media (orientation: portrait) {
+	.menu-btn {
+		position: fixed;
+		top: 10px;
+	}
+
 	.menu {
 		width: 100%;
 		right: -100%;
 	}
 
-	.menu-btn {
-		position: fixed;
-		top: 10px;
+	.menu ul {
+		padding-top: 58px;
 	}
 }
 
