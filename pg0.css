@@ -14,6 +14,7 @@ body::before {
 }
 
 .ctrl_icon {
+	touch-action: manipulation;
 	width: 32px;
 }
 .ctrl_icon:hover {
