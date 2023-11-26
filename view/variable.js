@@ -104,18 +104,15 @@ function variableView(variable) {
 			openTree(getIndex(e.target));
 		});
 	}
-
 	function getIndex(elm) {
-		while (elm && elm.tagName !== 'DIV') {
-			elm = elm.parentNode;
-		}
+		const pelm = elm.closest('div');
 		let elms;
-		if (elm.classList.contains('item_name')) {
+		if (pelm.classList.contains('item_name')) {
 			elms = document.querySelectorAll('.item_name');
 		} else {
 			elms = document.querySelectorAll('.item_val');
 		}
-		return [].slice.call(elms).indexOf(elm);
+		return [].slice.call(elms).indexOf(pelm);
 	}
 
 	function unselect() {
