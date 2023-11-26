@@ -15,7 +15,7 @@ function consoleView(console) {
 			that.toBottom();
 		}
 	};
-	
+
 	this.put = function(msg) {
 		that.fixBottom(function() {
 			let str = msg.replace(/\\n/g, '<br />');
@@ -42,5 +42,9 @@ function consoleView(console) {
 		that.fixBottom(function() {
 			console.innerHTML += msg;
 		});
+	};
+
+	this.clear = function() {
+		console.innerHTML = '';
 	};
 }

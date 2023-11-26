@@ -125,6 +125,23 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}, false);
 
+	document.addEventListener('click', function(event) {
+		const menuToggle = document.getElementById('menu-toggle');
+		if (!menuToggle.checked) {
+			return;
+		}
+		if (event.target.closest('.menu, .menu-btn, .menu-toggle')) {
+			return;
+		}
+		menuToggle.checked = false;
+	});
+	document.addEventListener('keydown', function(event) {
+		const menuToggle = document.getElementById('menu-toggle');
+		if (menuToggle.checked && event.key === 'Escape') {
+			document.getElementById('menu-toggle').checked = false;
+		}
+	});
+
 	function checkOrientation() {
 		const o = window.getComputedStyle(document.body, '::before').getPropertyValue('content');
 		if (/portrait/i.test(o)) {
@@ -497,5 +514,5 @@ function stop() {
 
 function clearConsole() {
 	vv.clear();
-	document.getElementById('console').innerHTML = '';
+	cv.clear();
 }
