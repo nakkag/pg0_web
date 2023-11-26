@@ -350,7 +350,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!menuToggle.checked) {
 				return;
 			}
-			document.getElementById('menu-toggle').checked = false;
 			switch (e.target.id) {
 			case 'menu_new':
 				if (ev.currentContent.modify && !window.confirm(runMsg.MSG_NEW)) {
@@ -380,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				//}
 				break;
 			case 'menu_run_to_cursor':
+				document.getElementById('menu-toggle').checked = false;
 				await execToCursor();
 				break;
 			case 'menu_clear':
@@ -389,6 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			case 'menu_setting':
 				break;
 			}
+			document.getElementById('menu-toggle').checked = false;
 		});
 	}, false);
 

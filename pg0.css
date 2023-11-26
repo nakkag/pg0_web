@@ -66,19 +66,19 @@ body::before {
 	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
 	position: fixed;
 	top: 0;
-	right: calc(-320px - env(safe-area-inset-right));
+	right: calc(-300px - env(safe-area-inset-right));
 	width: calc(300px + env(safe-area-inset-right));
 	height: 100%;
 	background-color: #eee;
 	overflow-y: auto;
 	transition: right 0.3s;
 	z-index: 99;
-	box-shadow: 0 0 10px 0 rgba(0, 0, 0, .5);
 }
 .menu ul {
 	display: none;
 	list-style-type: none;
 	padding-top: 40px;
+	padding-bottom: env(safe-area-inset-bottom);
 }
 .menu ul li a {
 	display: block;
@@ -91,6 +91,7 @@ body::before {
 }
 .menu-toggle:checked + .menu-btn + .menu {
 	right: 0;
+	box-shadow: 0 0 10px 0 rgba(0, 0, 0, .5);
 }
 .menu-toggle:checked + .menu-btn + .menu ul {
 	display: block;
