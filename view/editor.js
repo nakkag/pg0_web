@@ -220,7 +220,7 @@ function editorView(editor, lineNumber) {
 		lineNumber.scrollTop = editorContainer.scrollTop;
 	})
 	observer.observe(editorContainer);
-	setLineNumber();
+	updateLineNumber();
 
 	this.loadState = function() {
 		const str = localStorage.getItem(that.storageKey);
@@ -228,7 +228,7 @@ function editorView(editor, lineNumber) {
 			const state = JSON.parse(str);
 			editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 			setAllLine();
-			setLineNumber();
+			updateLineNumber();
 			that.currentContent = state;
 			that.restoreSelect();
 			that.showCaret();
@@ -291,9 +291,9 @@ function editorView(editor, lineNumber) {
 				}
 			}
 		}
-		const elements = document.getElementsByClassName('highlight');
-		if (elements && elements.length > 0) {
-			elements[0].scrollIntoView({behavior: 'instant', block: 'nearest'});
+		const element = document.querySelector('.highlight');
+		if (element) {
+			element.scrollIntoView({behavior: 'instant', block: 'nearest'});
 			editorContainer.scrollLeft = 0;
 		}
 	};
@@ -457,9 +457,9 @@ function editorView(editor, lineNumber) {
 	function setKeyword(str) {
 		str = str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span class="string-literal">&quot;$1&quot;</span>');
 		str = str.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '<span class="string-literal">&#39;$1&#39;</span>');
-		str = str.replace(regKeywords, (match) => `<span class="keyword">${match}</span>`);
-		str = str.replace(regKeywordsEx, (match) => `<span class="keyword">${match}</span>`);
-		str = str.replace(regKeywordsPrep, (match) => `<span class="keyword">${match}</span>`);
+		str = str.replace(regKeywords, function(match) {return `<span class="keyword">${match}</span>`;});
+		str = str.replace(regKeywordsEx, function(match) {return `<span class="keyword">${match}</span>`;});
+		str = str.replace(regKeywordsPrep, function(match) {return `<span class="keyword">${match}</span>`;});
 		str = str.replace(/(\/\/.*)$/gm, '<span class="comment">$1</span>');
 		return str;
 	}
@@ -526,7 +526,7 @@ function editorView(editor, lineNumber) {
 		}
 		return cnt;
 	}
-	function setLineNumber() {
+	function updateLineNumber() {
 		const cnt = getLineCount();
 		if (cnt > lineNumber.childElementCount) {
 			for (let i = lineNumber.childElementCount; i < cnt; i++) {
@@ -541,12 +541,11 @@ function editorView(editor, lineNumber) {
 		}
 	}
 	function setAllLine() {
-		let str = that.getText();
-		const lines = str.split("\n");
+		const lines = that.getText().split("\n");
 		let newContent = '';
 		lines.forEach(function(line, index) {
 			if (!line) {
-				newContent += `<div><br /></div>`;
+				newContent += '<div><br /></div>';
 			} else {
 				newContent += `<div>${setKeyword(tagEscape(line))}</div>`;
 			}
@@ -598,7 +597,7 @@ function editorView(editor, lineNumber) {
 		} else {
 			updateLine();
 		}
-		setLineNumber();
+		updateLineNumber();
 		that.restoreSelect();
 	}
 
@@ -689,9 +688,8 @@ function editorView(editor, lineNumber) {
 		if (!selection.rangeCount) {
 			return;
 		}
-		let container = selection.getRangeAt(0).startContainer;
-		let offset = selection.getRangeAt(0).startOffset;
-		return rangeToOffset(container, offset);
+		const range = selection.getRangeAt(0);
+		return rangeToOffset(range.startContainer, range.startOffset);
 	}
 	function setCaretPosition(position) {
 		const selection = window.getSelection();
@@ -726,7 +724,7 @@ function editorView(editor, lineNumber) {
 	function setUndoText(state) {
 		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
 		setAllLine();
-		setLineNumber();
+		updateLineNumber();
 		that.currentContent.start = state.start;
 		that.currentContent.end = state.end;
 		that.restoreSelect();

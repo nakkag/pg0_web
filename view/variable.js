@@ -21,9 +21,9 @@ function variableView(variable) {
 	this.clear();
 
 	this.set = function(ei) {
-		initVariable();
-		setVariable(ei);
-		finalizeVariable();
+		initVar();
+		setVar(ei);
+		finalizeVar();
 	};
 
 	let touchstart = 'mousedown';
@@ -101,7 +101,7 @@ function variableView(variable) {
 	function setOpenEvent(target) {
 		target.addEventListener('click', function(e) {
 			e.preventDefault();
-			openVarTree(getIndex(e.target));
+			openTree(getIndex(e.target));
 		});
 	}
 
@@ -124,7 +124,7 @@ function variableView(variable) {
 		});
 	}
 
-	function openVarTree(index) {
+	function openTree(index) {
 		const node = varName.childNodes[index + 1];
 		if (!node.classList.contains('array')) {
 			return;
@@ -137,12 +137,12 @@ function variableView(variable) {
 		}
 		const indent = parseInt(node.getAttribute('indent'));
 		const count = varName.childNodes.length;
-		showVarTree(index + 2, count, !open, indent + 1);
+		showTree(index + 2, count, !open, indent + 1);
 		if (window.getSelection) {
 			window.getSelection().removeAllRanges();
 		}
 	}
-	function showVarTree(index, count, open, indent) {
+	function showTree(index, count, open, indent) {
 		let j = index;
 		for (; j < count; j++) {
 			const nameNode = varName.childNodes[j];
@@ -160,7 +160,7 @@ function variableView(variable) {
 			}
 			if (nameNode.classList.contains('array')) {
 				const op = (!open) ? false : nameNode.classList.contains('open');
-				j = showVarTree(j + 1, count, op, indent + 1);
+				j = showTree(j + 1, count, op, indent + 1);
 			}
 		}
 		return j;
@@ -168,7 +168,7 @@ function variableView(variable) {
 
 	let prevName;
 	let prevVal;
-	function initVariable() {
+	function initVar() {
 		prevName = varName.childNodes[0];
 		prevVal = varVal.childNodes[0];
 		for (let elm = prevName.nextSibling; elm; elm = elm.nextSibling) {
@@ -179,31 +179,16 @@ function variableView(variable) {
 			elm.classList.remove('modify');
 		}
 	}
-	function finalizeVariable() {
-		removeNode(varName.childNodes[1]);
-		removeNode(varVal.childNodes[1]);
-		function removeNode(elm) {
-			while (elm) {
-				if (elm.getAttribute('exist') !== 'true') {
-					const wk = elm;
-					elm = elm.nextSibling;
-					wk.remove();
-					continue;
-				}
-				elm = elm.nextSibling;
-			}
-		}
-	}
-	function setVariable(ei) {
+	function setVar(ei) {
 		if (!ei) {
 			return;
 		}
-		setVariable(ei.parent);
+		setVar(ei.parent);
 		for (let key in ei.vi) {
-			setValueInfo(variable.id + '-' + ei.id, key, ei.vi[key], 0);
+			setvi(variable.id + '-' + ei.id, key, ei.vi[key], 0, true);
 		}
 	}
-	function setValueInfo(eid, key, v, indent) {
+	function setvi(eid, key, v, indent, open) {
 		let buf;
 		if (v.type === TYPE_ARRAY) {
 			buf = '{' + pg0_string.arrayToString(v.array) + '}';
@@ -252,7 +237,7 @@ function variableView(variable) {
 			prevVal.after(valNode);
 			setItemEvent(valNode);
 
-			if (indent !== 0) {
+			if (!open) {
 				nameNode.style.display = 'none';
 				valNode.style.display = 'none';
 			}
@@ -261,9 +246,25 @@ function variableView(variable) {
 		prevVal = valNode;
 		if (v.type === TYPE_ARRAY) {
 			nameNode.classList.add('array');
+			const op = nameNode.classList.contains('open');
 			v.array.forEach(function(a, i) {
-				setValueInfo(newEid, a.name || i, a.v, indent + 1);
+				setvi(newEid, a.name || i, a.v, indent + 1, open && op);
 			});
+		}
+	}
+	function finalizeVar() {
+		removeNode(varName.childNodes[1]);
+		removeNode(varVal.childNodes[1]);
+		function removeNode(elm) {
+			while (elm) {
+				if (elm.getAttribute('exist') !== 'true') {
+					const wk = elm;
+					elm = elm.nextSibling;
+					wk.remove();
+					continue;
+				}
+				elm = elm.nextSibling;
+			}
 		}
 	}
 }
