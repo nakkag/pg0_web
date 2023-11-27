@@ -18,6 +18,7 @@ let runMsg = {
 	VARIABLE_VALUE: 'Value',
 
 	MSG_NEW: 'Are you sure you want your changes to be discarded?',
+	MSG_SAVE: 'Input file name.',
 };
 
 if (_lang === 'ja') {
@@ -39,5 +40,6 @@ if (_lang === 'ja') {
 		VARIABLE_VALUE: '値',
 
 		MSG_NEW: '変更を破棄してもよろしいですか？',
+		MSG_SAVE: 'ファイル名',
 	};
 }

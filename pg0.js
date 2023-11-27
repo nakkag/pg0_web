@@ -367,18 +367,22 @@ document.addEventListener('DOMContentLoaded', function() {
 				await fileInput.click();
 				break;
 			case 'menu_save':
-				const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/plain;charset=utf-8'});
+				const fileName = window.prompt(runMsg.MSG_SAVE, ev.currentContent.name || 'script.pg0');
+				if (!fileName) {
+					document.getElementById('menu-toggle').checked = false;
+					break;
+				}
+				const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/pg0; charset=UTF-8'});
 				const url = (window.URL || window.webkitURL).createObjectURL(blob);
-				//if (ua.isiOS) {
-				//	window.open(url, '_blank');
-				//} else {
-					const a = document.getElementById('download');
-					a.download = ev.currentContent.name || 'script.pg0';
-					a.href = url;
-					await a.click();
-				//}
-				ev.currentContent.modify = false;
-				ev.saveState();
+				const a = document.getElementById('download');
+				a.download = fileName;
+				a.href = url;
+				setTimeout(function() {
+					a.click();
+					ev.currentContent.modify = false;
+					ev.saveState();
+					document.getElementById('menu-toggle').checked = false;
+				}, 0);
 				break;
 			case 'menu_run_to_cursor':
 				document.getElementById('menu-toggle').checked = false;
@@ -391,7 +395,9 @@ document.addEventListener('DOMContentLoaded', function() {
 			case 'menu_setting':
 				break;
 			}
-			document.getElementById('menu-toggle').checked = false;
+			if (e.target.id !== 'menu_save' && e.target.id !== 'menu_run_to_cursor') {
+				document.getElementById('menu-toggle').checked = false;
+			}
 		});
 	}, false);
 
@@ -405,9 +411,9 @@ document.addEventListener('DOMContentLoaded', function() {
 			ev.setText(le.target.result, file.name);
 			document.title = baseTitle + ' - ' + file.name;
 		};
-		reader.onerror = function(ee) {
-			console.error(ee);
-			alert(ee);
+		reader.onerror = function(err) {
+			console.error(err);
+			alert(err);
 		};
 		reader.readAsText(file);
 	}, false);
