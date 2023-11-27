@@ -377,6 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
 					a.href = url;
 					await a.click();
 				//}
+				ev.currentContent.modify = false;
+				ev.saveState();
 				break;
 			case 'menu_run_to_cursor':
 				document.getElementById('menu-toggle').checked = false;
