@@ -1,6 +1,6 @@
 body {
 	overflow: hidden;
-	background-color: #f6f8fc;
+	background-color: #f1f3f4;
 	font-size: 18px;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 
@@ -69,7 +69,7 @@ body::before {
 	right: calc(-300px - env(safe-area-inset-right));
 	width: calc(300px + env(safe-area-inset-right));
 	height: 100%;
-	background-color: #f6f8fc;
+	background-color: #f1f3f4;
 	overflow-y: auto;
 	transition: right 0.3s;
 	z-index: 99;
@@ -141,7 +141,7 @@ body::before {
 	grid-area: ctrl;
 	padding: 5px 10px;
 	border-bottom: 1px solid #ccc;
-	background-color: #f6f8fc;
+	background-color: #f1f3f4;
 }
 
 #line_container {
@@ -215,7 +215,7 @@ body::before {
 #key_container {
 	grid-area: key;
 	z-index: 3;
-	background-color: #f6f8fc;
+	background-color: #f1f3f4;
 	display: none;
 	border-top: 1px solid #ccc;
 }
