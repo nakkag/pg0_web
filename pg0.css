@@ -1,6 +1,6 @@
 body {
 	overflow: hidden;
-	background-color: #eee;
+	background-color: #f6f8fc;
 	font-size: 18px;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 
@@ -69,7 +69,7 @@ body::before {
 	right: calc(-300px - env(safe-area-inset-right));
 	width: calc(300px + env(safe-area-inset-right));
 	height: 100%;
-	background-color: #eee;
+	background-color: #f6f8fc;
 	overflow-y: auto;
 	transition: right 0.3s;
 	z-index: 99;
@@ -87,7 +87,7 @@ body::before {
 	text-decoration: none;
 }
 .menu ul li a:hover {
-	background-color: #ddd;
+	background-color: #e5e7ec;
 }
 .menu-toggle:checked + .menu-btn + .menu {
 	right: 0;
@@ -141,7 +141,7 @@ body::before {
 	grid-area: ctrl;
 	padding: 5px 10px;
 	border-bottom: 1px solid #ccc;
-	background-color: #eee;
+	background-color: #f6f8fc;
 }
 
 #line_container {
@@ -215,7 +215,7 @@ body::before {
 #key_container {
 	grid-area: key;
 	z-index: 3;
-	background-color: #eee;
+	background-color: #f6f8fc;
 	display: none;
 	border-top: 1px solid #ccc;
 }
