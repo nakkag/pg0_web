@@ -102,10 +102,10 @@
 }
 
 .var_select {
-	background: #d4e3fd;
-	color: #000;
+	background: #2196f3;
+	color: #fff;
 }
 .var_select.array > span > .open_icon:after {
-	background-color: #2196f3;
+	background-color: #fff;
 }
 

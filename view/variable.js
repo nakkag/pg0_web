@@ -135,9 +135,6 @@ function variableView(variable) {
 		const indent = parseInt(node.getAttribute('indent'));
 		const count = varName.childNodes.length;
 		showTree(index + 2, count, !open, indent + 1);
-		if (window.getSelection) {
-			window.getSelection().removeAllRanges();
-		}
 	}
 	function showTree(index, count, open, indent) {
 		let j = index;

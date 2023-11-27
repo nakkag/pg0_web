@@ -388,14 +388,16 @@ document.addEventListener('DOMContentLoaded', function() {
 				}
 				const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/pg0; charset=UTF-8'});
 				const url = (window.URL || window.webkitURL).createObjectURL(blob);
-				const a = document.getElementById('download');
+				const a = document.createElement('a');
 				a.download = fileName;
 				a.href = url;
+				document.body.appendChild(a);
 				setTimeout(function() {
 					a.click();
+					document.body.removeChild(a);
+					document.getElementById('menu-toggle').checked = false;
 					ev.currentContent.modify = false;
 					ev.saveState();
-					document.getElementById('menu-toggle').checked = false;
 				}, 0);
 				break;
 			case 'menu_run_to_cursor':
@@ -576,7 +578,7 @@ async function _exec(scis, sci, imp) {
 									nextStep = false;
 								} else {
 									const speed = parseInt(document.getElementById('speed').value);
-									if (speed === 0) {
+									if (speed === 0 || stopStep !== -1) {
 										syncCnt++;
 										if (syncCnt > 1000) {
 											await new Promise(resolve => setTimeout(resolve, 0));
