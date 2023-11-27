@@ -41,7 +41,7 @@ body::before {
 	transition: 0.3s;
 }
 .menu-btn:focus-visible {
-	outline: -webkit-focus-ring-color auto 1px;
+	outline: #000 auto 1px;
 }
 .menu-btn span:before {
 	bottom: 7px;
