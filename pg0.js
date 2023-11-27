@@ -47,6 +47,20 @@ document.addEventListener('DOMContentLoaded', function() {
 				await exec(true);
 			}
 			break;
+		case 'o':
+			if (e.ctrlKey) {
+				e.preventDefault();
+				document.getElementById('menu-toggle').checked = true;
+				document.getElementById('menu_open').click();
+			}
+			break;
+		case 's':
+			if (e.ctrlKey) {
+				e.preventDefault();
+				document.getElementById('menu-toggle').checked = true;
+				document.getElementById('menu_save').click();
+			}
+			break;
 		case 'Escape':
 			const menuToggle = document.getElementById('menu-toggle');
 			if (menuToggle.checked) {
