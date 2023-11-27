@@ -20,10 +20,10 @@ body::before {
 	cursor: pointer;
 	position: fixed;
 	display: flex;
-	top: 0px;
-	right: calc(10px + env(safe-area-inset-left));
-	height: 40px;
-	width: 40px;
+	top: 5px;
+	right: calc(7px + env(safe-area-inset-left));
+	height: 30px;
+	width: 30px;
 	justify-content: center;
 	align-items: center;
 	z-index: 100;
@@ -33,23 +33,21 @@ body::before {
 .menu-btn span:after {
 	content: '';
 	display: block;
-	height: 3px;
-	width: 25px;
+	height: 2px;
+	width: 20px;
 	border-radius: 3px;
-	background-color: #555;
+	background-color: #000;
 	position: absolute;
 	transition: 0.3s;
 }
-.menu-btn:focus span,
-.menu-btn:focus span:before,
-.menu-btn:focus span:after {
-	background-color: #000;
+.menu-btn:focus-visible {
+	outline: -webkit-focus-ring-color auto 1px;
 }
 .menu-btn span:before {
-	bottom: 8px;
+	bottom: 7px;
 }
 .menu-btn span:after {
-	top: 8px;
+	top: 7px;
 }
 #menu-toggle:checked ~ .menu-btn span {
 	background-color: rgba(255, 255, 255, 0);
@@ -249,8 +247,22 @@ body::before {
 		content: "portrait";
 	}
 	.menu-btn {
-		position: fixed;
 		top: 10px;
+		right: calc(10px + env(safe-area-inset-left));
+		height: 40px;
+		width: 40px;
+	}
+	.menu-btn span,
+	.menu-btn span:before,
+	.menu-btn span:after {
+		height: 3px;
+		width: 25px;
+	}
+	.menu-btn span:before {
+		bottom: 8px;
+	}
+	.menu-btn span:after {
+		top: 8px;
 	}
 	.menu {
 		width: 100%;
