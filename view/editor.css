@@ -1,24 +1,23 @@
-#line_container {
+#line-container {
 	position: relative;
 	overflow: hidden;
 	cursor: default;
 }
 
-#line_number {
+#line-number {
 	text-align: right;
 	width: max-content;
 	height: 100%;
 	padding: 2px 5px 0 10px;
-	margin-right: 1px;
 	color: #0078d7;
 	border-right: 1px solid #aaa;
 	overflow: hidden;
 }
 
-#editor_container {
+#editor-container {
 	position: relative;
 	overflow: scroll;
-	padding: 2px 2px 2px 0;
+	padding: 2px;
 	cursor: text;
 }
 

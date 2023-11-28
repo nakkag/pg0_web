@@ -95,22 +95,25 @@ body::before {
 	display: block;
 }
 
-.ctrl_icon {
+.ctrl-icon {
 	touch-action: manipulation;
 	width: 32px;
 }
-.ctrl_icon:hover {
+.ctrl-icon:hover {
 	background-color: rgba(0, 191, 255, 0.2);
 	outline: 1px solid rgba(0, 191, 255, 0.3);
 }
-.ctrl_icon:active {
+.ctrl-icon:active {
 	background-color: rgba(0, 191, 255, 0.3);
 	outline: 1px solid rgba(0, 191, 255, 0.4);
 }
-.ctrl_icon:disabled {
+.ctrl-icon:disabled {
 	background-color: unset;
 	opacity: 0.5;
 	filter: grayscale(1);
+}
+#exec_speed {
+	font-size: 14px;
 }
 
 #container {
@@ -123,8 +126,8 @@ body::before {
 	grid-template-rows: 42px 1fr var(--resize-with) 0 0;
 	grid-template-columns: max-content 1fr var(--resize-with) 0;
 	grid-template-areas: "ctrl ctrl ctrl ctrl"
-		"line_number editor var_resizer_x var"
-		"console_resizer console_resizer console_resizer console_resizer"
+		"line-number editor var-resizer-x var"
+		"console-resizer console-resizer console-resizer console-resizer"
 		"console console console console"
 		"key key key key";
 	outline: 1px solid #ccc;
@@ -135,36 +138,36 @@ body::before {
 	top: 0;
 }
 
-#ctrl_container {
+#ctrl-container {
 	grid-area: ctrl;
 	padding: 5px 10px;
 	border-bottom: 1px solid #ccc;
 	background-color: #f1f3f4;
 }
 
-#line_container {
-	grid-area: line_number;
+#line-container {
+	grid-area: line-number;
 	margin: 0 0 calc(var(--resize-with) / -2) 0;
 }
 
-#editor_container {
+#editor-container {
 	grid-area: editor;
 	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
 }
 
-#editor_container.full {
+#editor-container.full {
 	margin: 0;
 }
 
-#var_resizer_x {
+#var-resizer-x {
 	display: block;
-	grid-area: var_resizer_x;
+	grid-area: var-resizer-x;
 	cursor: ew-resize;
 	z-index: 2;
 	position: relative;
 	margin: 0 0 calc(var(--resize-with) / -2) 0;
 }
-#var_resizer_x::after {
+#var-resizer-x::after {
 	content: "";
 	position: absolute;
 	top: 0px;
@@ -173,26 +176,26 @@ body::before {
 	height: 100%;
 	background-color: #ccc;
 }
-#var_resizer_y {
+#var-resizer-y {
 	display: none;
 }
 
-#variable_container {
+#variable-container {
 	grid-area: var;
 	margin: 0 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2 + 4px);
 	z-index: 1;
 }
-#variable_container.full {
+#variable-container.full {
 	display: none;
 }
 
-#console_resizer {
-	grid-area: console_resizer;
+#console-resizer {
+	grid-area: console-resizer;
 	cursor: ns-resize;
 	z-index: 2;
 	position: relative;
 }
-#console_resizer::after {
+#console-resizer::after {
 	content: "";
 	position: absolute;
 	top: calc(var(--resize-with) / 2);
@@ -202,26 +205,26 @@ body::before {
 	background-color: #ccc;
 }
 
-#console_container {
+#console-container {
 	grid-area: console;
 	margin: calc(var(--resize-with) / -2 + 4px) 0 0 0;
 }
-#console_container.full {
+#console-container.full {
 	display: none;
 }
 
-#key_container {
+#key-container {
 	grid-area: key;
 	z-index: 3;
 	background-color: #f1f3f4;
 	display: none;
 	border-top: 1px solid #ccc;
 }
-#key_container.full {
+#key-container.full {
 	display: flex;
 }
 
-.key_button {
+.key-button {
 	cursor: default;
 	padding: 4px;
 	width: 30px;
@@ -232,7 +235,7 @@ body::before {
 	text-align: center;
 	touch-action: none;
 }
-.key_button:active {
+.key-button:active {
 	background-color: rgba(0, 191, 255, 0.3);
 	border: 1px solid rgba(0, 191, 255, 0.4);
 }
@@ -271,35 +274,38 @@ body::before {
 	.menu ul {
 		padding-top: 58px;
 	}
-	.ctrl_icon {
+	.ctrl-icon {
 		width: 48px;
+	}
+	#exec_speed {
+		font-size: 16px;
 	}
 	#container {
 		grid-template-rows: 58px 1fr var(--resize-with) 0 var(--resize-with) 0 0;
 		grid-template-columns: max-content 1fr;
 		grid-template-areas: "ctrl ctrl"
-			"line_number editor"
-			"var_resizer_y var_resizer_y"
+			"line-number editor"
+			"var-resizer-y var-resizer-y"
 			"var var"
-			"console_resizer console_resizer"
+			"console-resizer console-resizer"
 			"console console"
 			"key key";
 	}
 
-	#editor_container {
+	#editor-container {
 		margin: 0 0 calc(var(--resize-with) / -2) 0;
 	}
-	#var_resizer_x {
+	#var-resizer-x {
 		display: none;
 	}
-	#var_resizer_y {
+	#var-resizer-y {
 		display: block;
-		grid-area: var_resizer_y;
+		grid-area: var-resizer-y;
 		cursor: ns-resize;
 		z-index: 2;
 		position: relative;
 	}
-	#var_resizer_y::after {
+	#var-resizer-y::after {
 		content: "";
 		position: absolute;
 		top: calc(var(--resize-with) / 2);
@@ -308,7 +314,7 @@ body::before {
 		height: 4px;
 		background-color: #ccc;
 	}
-	#variable_container {
+	#variable-container {
 		border-left: unset;
 		margin: calc(var(--resize-with) / -2 + 4px) 0 calc(var(--resize-with) / -2) 0;
 	}

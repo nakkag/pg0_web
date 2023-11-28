@@ -1,6 +1,19 @@
 "use strict";
 
-let runMsg = {
+let resource = {
+	EXEC_SPEED: {'0': 'No Wait', '1': 'Fast', '250': 'Normal', '500': 'Slow'},
+
+	SETTING_MODE_TITLE: 'Exec mode',
+	SETTING_MODE: {'PG0': 'PG0', 'PG0_5': 'PG0.5'},
+	SETTING_FONT_SIZE_TITLE: 'Font size',
+	SETTING_FONT_SIZE: {'14': 'Small', '18': 'Medium', '24': 'Large'},
+	SETTING_LINENUM_TITLE: 'Show Line number',
+
+	CTRL_EXEC: 'Exec',
+	CTRL_STEP_EXEC: 'Step exec',
+	CTRL_STOP: 'Stop',
+	CTRL_EXEC_SPEED: 'Exec speed',
+
 	CONSOLE_START: 'Start',
 	CONSOLE_END: 'End',
 	CONSOLE_STOP: 'Stop',
@@ -22,7 +35,20 @@ let runMsg = {
 };
 
 if (_lang === 'ja') {
-	runMsg = {
+	resource = {
+		EXEC_SPEED: {'0': '待ち無し', '1': '速い', '250': '普通', '500': '遅い'},
+
+		SETTING_MODE_TITLE: '実行モード',
+		SETTING_MODE: {'PG0': 'PG0', 'PG0_5': 'PG0.5'},
+		SETTING_FONT_SIZE_TITLE: '文字の大きさ',
+		SETTING_FONT_SIZE: {'14': '小さい', '18': '普通', '24': '大きい'},
+		SETTING_LINENUM_TITLE: '行番号を表示',
+
+		CTRL_EXEC: '実行',
+		CTRL_STEP_EXEC: 'ステップ実行',
+		CTRL_STOP: '停止',
+		CTRL_EXEC_SPEED: '実行速度',
+
 		CONSOLE_START: '開始',
 		CONSOLE_END: '終了',
 		CONSOLE_STOP: '停止',

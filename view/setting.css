@@ -1,0 +1,79 @@
+
+#modal-overlay {
+	z-index: 199;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 120%;
+	background-color: rgba(0,0,0,0.3);
+}
+
+#setting {
+	display: none;
+	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+	font-size: 20px;
+	padding: 30px;
+	width: 300px;
+	height: fit-content;
+	z-index: 200;
+	box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+	border-radius: 10px;
+	background-color: #fff;
+
+	position: fixed;
+	inset: 0;
+	margin:auto;
+}
+
+.close {
+	position: absolute;
+	cursor: pointer;
+	background-color: #fff;
+	color: #000;
+	border-radius: 20px;
+	top: 8px;
+	right: 10px;
+	height: 30px;
+	width: 30px;
+}
+.close:before,
+.close:after {
+	content: '';
+	display: block;
+	height: 2px;
+	width: 16px;
+	border-radius: 3px;
+	background-color: #000;
+	position: absolute;
+	top: 14px;
+	left: 7px;
+}
+.close:before {
+	transform: rotate(45deg);
+}
+.close:after {
+	transform: rotate(-45deg);
+}
+.close:hover, .close:focus {
+	background-color: #eee;
+}
+.close:active {
+	background-color: #bbb;
+}
+
+#setting div {
+	margin-bottom: 20px;
+}
+#setting div:last-of-type {
+	margin-bottom: 0px;
+}
+#setting select {
+	font-size: 16px;
+}
+
+@media (orientation: portrait) {
+	#setting {
+		width: 75%;
+	}
+}

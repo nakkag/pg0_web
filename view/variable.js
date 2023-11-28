@@ -1,10 +1,10 @@
 "use strict";
 
-function variableView(variable) {
+function variableView(variable, resizeCallback) {
 	const that = this;
 
-	const varName = document.querySelector('#' + variable.id + ' #var_name');
-	const varVal = document.querySelector('#' + variable.id + ' #var_value');
+	const varName = document.querySelector('#' + variable.id + ' #var-name');
+	const varVal = document.querySelector('#' + variable.id + ' #var-value');
 
 	let verX = 200;
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
@@ -15,8 +15,8 @@ function variableView(variable) {
 	}
 
 	this.clear = function() {
-		varName.innerHTML = `<div class="var_header">${runMsg.VARIABLE_NAME}</div>`;
-		varVal.innerHTML = `<div class="var_header">${runMsg.VARIABLE_VALUE}</div>`;
+		varName.innerHTML = `<div class="var_header">${resource.VARIABLE_NAME}</div>`;
+		varVal.innerHTML = `<div class="var_header">${resource.VARIABLE_VALUE}</div>`;
 	};
 	this.clear();
 
@@ -24,6 +24,14 @@ function variableView(variable) {
 		initVar();
 		setVar(ei);
 		finalizeVar();
+	};
+
+	this.setBoundary = function(x) {
+		verX = x;
+		if (verX < 50) {
+			verX = 50;
+		}
+		variable.style.gridTemplateColumns = `${verX}px ${rw}px max-content`;
 	};
 
 	let touchstart = 'mousedown';
@@ -36,7 +44,7 @@ function variableView(variable) {
 	}
 	let resizeFunc = null;
 
-	document.querySelector('#' + variable.id + ' #var_resizer').addEventListener(touchstart, function(e) {
+	document.querySelector('#' + variable.id + ' #var-resizer').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -58,6 +66,9 @@ function variableView(variable) {
 			if (resizeFunc) {
 				document.removeEventListener(touchmove, resizeFunc, false);
 				resizeFunc = null;
+				if (resizeCallback) {
+					resizeCallback(verX);
+				}
 			}
 		}, false);
 	});
@@ -208,6 +219,7 @@ function variableView(variable) {
 			nameNode.setAttribute('id', newEid);
 			nameNode.setAttribute('indent', indent);
 			nameNode.setAttribute('exist', 'true');
+			nameNode.setAttribute('title', key);
 			nameNode.style.textIndent = (indent * 20) + 'px';
 			const pspan = document.createElement('span');
 			nameNode.appendChild(pspan);

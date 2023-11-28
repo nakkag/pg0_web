@@ -9,86 +9,85 @@
 	<link rel="apple-touch-icon" href="image/icon.png">
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
-	<link rel="stylesheet" type="text/css" href="view/editor.css?v=35">
-	<link rel="stylesheet" type="text/css" href="view/variable.css?v=19">
-	<link rel="stylesheet" type="text/css" href="view/console.css?v=7">
-	<link rel="stylesheet" type="text/css" href="pg0.css?v=113">
+	<link rel="stylesheet" type="text/css" href="view/setting.css?v=4">
+	<link rel="stylesheet" type="text/css" href="view/editor.css?v=38">
+	<link rel="stylesheet" type="text/css" href="view/variable.css?v=20">
+	<link rel="stylesheet" type="text/css" href="view/console.css?v=8">
+	<link rel="stylesheet" type="text/css" href="pg0.css?v=129">
 	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=2"></script>
-	<script type="text/javascript" src="view/editor.js?v=140"></script>
-	<script type="text/javascript" src="view/variable.js?v=21"></script>
-	<script type="text/javascript" src="view/console.js?v=9"></script>
+	<script type="text/javascript" src="view/setting.js?v=3"></script>
+	<script type="text/javascript" src="view/editor.js?v=144"></script>
+	<script type="text/javascript" src="view/variable.js?v=23"></script>
+	<script type="text/javascript" src="view/console.js?v=10"></script>
 	<script type="text/javascript" src="utils/pg0_string.js?v=1"></script>
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/user_agent.js?v=1"></script>
-	<script type="text/javascript" src="utils/message.js?v=7"></script>
+	<script type="text/javascript" src="utils/message.js?v=10"></script>
 	<script type="text/javascript" src="utils/rawdeflate.js?v=1"></script>
 	<script type="text/javascript" src="utils/rawinflate.js?v=1"></script>
-	<script type="text/javascript" src="pg0.js?v=204"></script>
+	<script type="text/javascript" src="pg0.js?v=220"></script>
 </head>
 <body>
 	<div id="container">
-		<div id="ctrl_container">
-			<input type="image" class="ctrl_icon" id="exec_button" src="image/play.svg" title="Exec" onclick="exec(false);"></input>
-			<input type="image" class="ctrl_icon" id="step_button" src="image/step.svg" title="Step exec" onclick="exec(true);"></input>
-			<input type="image" class="ctrl_icon" id="stop_button" src="image/stop.svg" title="Stop" onclick="stop();" disabled></input> 
-			<select name="kind" id="kind">
-				<option value="PG0">PG0</option>
-				<option value="PG0.5" selected>PG0.5</option>
-			</select>
-			<select name="speed" id="speed">
-				<option value="0" selected>No Wait</option>
-				<option value="1">Fast</option>
-				<option value="250">Normal</option>
-				<option value="500">Slow</option>
-			</select>
+		<div id="ctrl-container">
+			<input type="image" class="ctrl-icon" id="exec-button" src="image/play.svg" onclick="exec(false);"></input>
+			<input type="image" class="ctrl-icon" id="step-button" src="image/step.svg" onclick="exec(true);"></input>
+			<input type="image" class="ctrl-icon" id="stop-button" src="image/stop.svg" onclick="stop();" disabled></input>
+			<select id="exec_speed"></select>
 
 			<input type="checkbox" id="menu-toggle" class="menu-toggle">
 			<label for="menu-toggle" class="menu-btn" tabindex="0"><span></span></label>
 			<div class="menu">
-				<input type="file" id="fileInput" style="display: none;"></input>
+				<input type="file" id="file-input" style="display: none;"></input>
 				<ul>
-					<li><a href="#" id="menu_new"></a></li>
-					<li><a href="#" id="menu_open"></a></li>
-					<li><a href="#" id="menu_save"></a></li>
+					<li><a href="#" id="menu-new"></a></li>
+					<li><a href="#" id="menu-open"></a></li>
+					<li><a href="#" id="menu-save"></a></li>
 					<hr />
-					<li><a href="#" id="menu_run_to_cursor"></a></li>
-					<li><a href="#" id="menu_clear"></a></li>
+					<li><a href="#" id="menu-run-to-cursor"></a></li>
+					<li><a href="#" id="menu-clear"></a></li>
 					<hr />
-					<li><a href="#" id="menu_setting"></a></li>
-					<li><a href="https://nakka.com/soft/pg0/tutorial.html" target="_blank" id="menu_tutorial"></a></li>
+					<li><a href="#" id="menu-setting"></a></li>
+					<li><a href="https://nakka.com/soft/pg0/tutorial.html" target="_blank" id="menu-tutorial"></a></li>
 				</ul>
 			</div>
 		</div>
-		<div id="line_container">
-			<div id="line_number"></div>
+		<div id="line-container">
+			<div id="line-number"></div>
 		</div>
-		<div id="editor_container" tabindex="0" translate="no">
+		<div id="editor-container" tabindex="0" translate="no">
 			<div id="editor" contenteditable="true" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" tabindex="0"></div>
 		</div>
-		<div id="var_resizer_x"></div>
-		<div id="var_resizer_y"></div>
-		<div id="variable_container" tabindex="0" translate="no">
+		<div id="var-resizer-x"></div>
+		<div id="var-resizer-y"></div>
+		<div id="variable-container" tabindex="0" translate="no">
 			<div id="variable">
-				<div id="var_name"></div>
-				<div id="var_resizer"></div>
-				<div id="var_value"></div>
+				<div id="var-name"></div>
+				<div id="var-resizer"></div>
+				<div id="var-value"></div>
 			</div>
 		</div>
-		<div id="console_resizer"></div>
-		<div id="console_container" tabindex="0">
+		<div id="console-resizer"></div>
+		<div id="console-container" tabindex="0">
 			<div id="console"></div>
 		</div>
-		<div id="key_container">
-			<div class="key_button" id="key_undo"><img src="image/undo.svg"></div>
-			<div class="key_button" id="key_redo"><img src="image/redo.svg"></div>
-			<div class="key_button" id="key_left"><img src="image/left.svg"></div>
-			<div class="key_button" id="key_right"><img src="image/right.svg"></div>
-			<div class="key_button" id="key_paste"><img src="image/paste.svg"></div>
-			<div class="key_button" id="key_tab"><img src="image/tab.svg"></div>
-			<div class="key_button" id="key_close"><img src="image/close.svg"></div>
+		<div id="key-container">
+			<div class="key-button" id="key-undo"><img src="image/undo.svg"></div>
+			<div class="key-button" id="key-redo"><img src="image/redo.svg"></div>
+			<div class="key-button" id="key-left"><img src="image/left.svg"></div>
+			<div class="key-button" id="key-right"><img src="image/right.svg"></div>
+			<div class="key-button" id="key-paste"><img src="image/paste.svg"></div>
+			<div class="key-button" id="key-tab"><img src="image/tab.svg"></div>
+			<div class="key-button" id="key-close"><img src="image/close.svg"></div>
 		</div>
+	</div>
+	<div id="setting">
+		<a href="#" class="close"></a>
+		<div><span id="setting-mode-title"></span> <select class="setting-item" id="setting-mode"></select></div>
+		<div><span id="setting-font-title"></span> <select class="setting-item" id="setting-font"></select></div>
+		<div><input type="checkbox" class="setting-item" id="setting-linenum" /><label id="setting-linenum-title" for="setting-linenum"></label></div>
 	</div>
 </body>
 </html>

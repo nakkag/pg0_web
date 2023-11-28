@@ -1,4 +1,4 @@
-#variable_container {
+#variable-container {
 	overflow: scroll;
 	cursor: default;
 }
@@ -19,22 +19,22 @@
 	z-index: 2;
 }
 
-#var_name {
+#var-name {
 	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
 }
 
-#var_name div {
+#var-name div {
 	grid-area: name;
 	padding: 4px;
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
 }
-#var_name .var_header {
+#var-name .var_header {
 	padding-left: 30px;
 }
 
-#var_name .item_name {
+#var-name .item_name {
 	padding-left: 30px;
 }
 
@@ -68,14 +68,14 @@
 	transform: rotate(90deg);
 }
 
-#var_resizer {
+#var-resizer {
 	grid-area: resizer;
 	cursor: ew-resize;
 	position: relative;
 	margin: 0 0 calc(var(--resize-with) / -2) 0;
 	z-index: 3;
 }
-#var_resizer::after {
+#var-resizer::after {
 	content: "";
 	position: absolute;
 	top: 0px;
@@ -86,11 +86,11 @@
 	z-index: 3;
 }
 
-#var_value {
+#var-value {
 	margin: 0 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2 + 1px);
 }
 
-#var_value div {
+#var-value div {
 	grid-area: value;
 	min-width: 600px;
 	padding: 4px 4px 4px 10px;

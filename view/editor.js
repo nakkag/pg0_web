@@ -118,7 +118,29 @@ function editorView(editor, lineNumber) {
 		}
 		const lines = that.getText().substr(0, that.currentContent.start).split("\n");
 		return lines.length - 1;
-	}
+	};
+	this.getLineNode = function(pos) {
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
+		let node;
+		let firstDiv = true;
+		let line = 0;
+		while ((node = walker.nextNode())) {
+			if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
+				continue;
+			}
+			if (node.tagName === 'DIV') {
+				if (firstDiv && pos > 0) {
+					firstDiv = false;
+					continue;
+				}
+				line++;
+				if (line >= pos) {
+					return node;
+				}
+			}
+		}
+		return null;
+	};
 	this.showCaret = function() {
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
@@ -434,7 +456,7 @@ function editorView(editor, lineNumber) {
 		};
 		const selectLine = function(y, callback) {
 			const index = Math.floor((lineNumber.scrollTop + y - editorContainer.offsetTop) / lineNumber.firstChild.offsetHeight);
-			const node = getLineNode(index);
+			const node = that.getLineNode(index);
 			if (node) {
 				if (!startNode) {
 					startNode = node;
@@ -504,28 +526,6 @@ function editorView(editor, lineNumber) {
 		return width;
 	}
 
-	function getLineNode(pos) {
-		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
-		let node;
-		let firstDiv = true;
-		let line = 0;
-		while ((node = walker.nextNode())) {
-			if (node.childNodes && node.childNodes.length > 0 && node.childNodes[0].tagName === 'DIV') {
-				continue;
-			}
-			if (node.tagName === 'DIV') {
-				if (firstDiv && pos > 0) {
-					firstDiv = false;
-					continue;
-				}
-				line++;
-				if (line >= pos) {
-					return node;
-				}
-			}
-		}
-		return null;
-	}
 	function getLineCount() {
 		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, null, false);
 		let node;

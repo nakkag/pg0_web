@@ -1,14 +1,8 @@
 "use strict";
 
+let ev, vv, cv;
+
 const baseTitle = document.title;
-
-let verX = 400;
-let verY = 150;
-let consoleY = 150;
-
-let ev;
-let vv;
-let cv;
 
 document.addEventListener('DOMContentLoaded', function() {
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
@@ -19,15 +13,33 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.style.setProperty('--resize-with', rw + 'px');
 	}
 
-	ev = new editorView(document.getElementById('editor'), document.getElementById('line_number'));
+	ev = new editorView(document.getElementById('editor'), document.getElementById('line-number'));
 	setTimeout(function() {
 		ev.loadState();
 		if (ev.currentContent.name) {
 			document.title = baseTitle + ' - ' + ev.currentContent.name;
 		}
 	}, 0);
-	vv = new variableView(document.getElementById('variable'));
+	vv = new variableView(document.getElementById('variable'), function(x) {
+		options.boundary.variable = x;
+		settingView.save();
+	});
 	cv = new consoleView(document.getElementById('console'));
+
+	document.getElementById('exec-button').setAttribute('title', resource.CTRL_EXEC);
+	document.getElementById('step-button').setAttribute('title', resource.CTRL_STEP_EXEC);
+	document.getElementById('stop-button').setAttribute('title', resource.CTRL_STOP);
+	document.getElementById('exec_speed').setAttribute('title', resource.CTRL_EXEC_SPEED);
+	for (let key in resource.EXEC_SPEED) {
+		const op = document.createElement('option');
+		op.value = key;
+		op.textContent = resource.EXEC_SPEED[key];
+		document.getElementById('exec_speed').append(op);
+	}
+
+	settingView.load();
+	document.getElementById('exec_speed').value = options.execSpeed;
+	vv.setBoundary(options.boundary.variable);
 
 	document.addEventListener('keydown', async function(e) {
 		switch (e.key) {
@@ -80,47 +92,49 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 	let resizeFunc = null;
 
-	document.getElementById('var_resizer_x').addEventListener(touchstart, function(e) {
+	document.getElementById('var-resizer-x').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
 		let x = e.x ? e.x : e.touches[0].clientX;
 		resizeFunc = function(e) {
 			const ex = e.x ? e.x : e.touches[0].clientX;
-			verX += x - ex;
-			if (verX < 0) {
-				verX = 0;
-			} else if (verX > window.innerWidth - 100) {
-				verX = window.innerWidth - 100;
+			options.boundary.verX += x - ex;
+			if (options.boundary.verX < 0) {
+				options.boundary.verX = 0;
+			} else if (options.boundary.verX > window.innerWidth - 100) {
+				options.boundary.verX = window.innerWidth - 100;
 			} else {
 				x = ex;
 			}
 			setGridTemplate();
+			settingView.save();
 		};
 		document.addEventListener(touchmove, resizeFunc, false);
 	}, false);
 
-	document.getElementById('var_resizer_y').addEventListener(touchstart, function(e) {
+	document.getElementById('var-resizer-y').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
 		let y = e.y ? e.y : e.touches[0].clientY;
 		resizeFunc = function(e) {
 			const ey = e.y ? e.y : e.touches[0].clientY;
-			verY += y - ey;
-			if (verY < 0) {
-				verY = 0;
-			} else if (verY > window.innerHeight - 100) {
-				verY = window.innerHeight - 100;
+			options.boundary.verY += y - ey;
+			if (options.boundary.verY < 0) {
+				options.boundary.verY = 0;
+			} else if (options.boundary.verY > window.innerHeight - 100) {
+				options.boundary.verY = window.innerHeight - 100;
 			} else {
 				y = ey;
 			}
 			setGridTemplate();
+			settingView.save();
 		}
 		document.addEventListener(touchmove, resizeFunc, false);
 	}, false);
 
-	document.getElementById('console_resizer').addEventListener(touchstart, function(e) {
+	document.getElementById('console-resizer').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -128,24 +142,25 @@ document.addEventListener('DOMContentLoaded', function() {
 		resizeFunc = function(e) {
 			const ey = e.y ? e.y : e.touches[0].clientY;
 			if (checkOrientation() === 0) {
-				const wk = consoleY;
-				consoleY += y - ey;
-				if (consoleY >= 0 && consoleY <= window.innerHeight - 100) {
-					verY = verY - (consoleY - wk);
+				const wk = options.boundary.consoleY;
+				options.boundary.consoleY += y - ey;
+				if (options.boundary.consoleY >= 0 && options.boundary.consoleY <= window.innerHeight - 100) {
+					options.boundary.verY = options.boundary.verY - (options.boundary.consoleY - wk);
 				}
 			} else {
-				consoleY += y - ey;
+				options.boundary.consoleY += y - ey;
 			}
-			if (consoleY < 0) {
-				consoleY = 0;
-			} else if (consoleY > window.innerHeight - 100) {
-				consoleY = window.innerHeight - 100;
+			if (options.boundary.consoleY < 0) {
+				options.boundary.consoleY = 0;
+			} else if (options.boundary.consoleY > window.innerHeight - 100) {
+				options.boundary.consoleY = window.innerHeight - 100;
 			} else {
 				y = ey;
 			}
 			cv.fixBottom(function() {
 				setGridTemplate();
 			});
+			settingView.save();
 		}
 		document.addEventListener(touchmove, resizeFunc, false);
 	}, false);
@@ -193,11 +208,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		} else {
 			document.getElementById('container').style.height = '100dvh';
 			if (checkOrientation() === 0) {
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${verY}px ${rw}px ${consoleY}px 0`;
+				document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${options.boundary.verY}px ${rw}px ${options.boundary.consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
 			} else {
-				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${consoleY}px 0`;
-				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${verX}px`;
+				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${options.boundary.consoleY}px 0`;
+				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${options.boundary.verX}px`;
 			}
 		}
 	}
@@ -210,21 +225,25 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 			editFocus = true;
 			document.getElementById('container').classList.add('full');
-			document.getElementById('editor_container').classList.add('full');
-			document.getElementById('variable_container').classList.add('full');
-			document.getElementById('console_container').classList.add('full');
-			document.getElementById('key_container').classList.add('full');
+			document.getElementById('editor-container').classList.add('full');
+			document.getElementById('variable-container').classList.add('full');
+			document.getElementById('console-container').classList.add('full');
+			document.getElementById('key-container').classList.add('full');
 			setGridTemplate();
 		}, false);
 		document.getElementById('editor').addEventListener('blur', function(e) {
 			if (editFocus) {
 				editFocus = false;
 				document.getElementById('container').classList.remove('full');
-				document.getElementById('editor_container').classList.remove('full');
-				document.getElementById('variable_container').classList.remove('full');
-				document.getElementById('console_container').classList.remove('full');
-				document.getElementById('key_container').classList.remove('full');
+				document.getElementById('editor-container').classList.remove('full');
+				document.getElementById('variable-container').classList.remove('full');
+				document.getElementById('console-container').classList.remove('full');
+				document.getElementById('key-container').classList.remove('full');
 				setGridTemplate();
+				const node = ev.getLineNode(ev.getCaretLineIndex());
+				if (node) {
+					node.scrollIntoView({behavior: 'instant', block: 'nearest'});
+				}
 			}
 		}, false);
 		window.visualViewport.addEventListener('resize', function() {
@@ -236,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 		});
 	} else {
-		document.getElementById('editor_container').focus();
+		document.getElementById('editor-container').focus();
 	}
 	
 	window.addEventListener('scroll', function(e) {
@@ -244,7 +263,12 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.scrollTo(0, 0);
 	}, false);
 
-	document.getElementById('ctrl_container').addEventListener(touchstart, function(e) {
+	document.getElementById('exec_speed').addEventListener('change', function(e) {
+		options.execSpeed = parseInt(this.value)
+		settingView.save();
+	}, false);
+
+	document.getElementById('ctrl-container').addEventListener(touchstart, function(e) {
 		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
 		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
 		const element = document.elementFromPoint(x, y);
@@ -253,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}, false);
 
-	document.getElementById('key_container').addEventListener(touchstart, function(e) {
+	document.getElementById('key-container').addEventListener(touchstart, function(e) {
 		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
 		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
 		const element = document.elementFromPoint(x, y);
@@ -262,11 +286,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}, false);
 
-	document.getElementById('key_undo').addEventListener(touchstart, function(e) {
+	document.getElementById('key-undo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		ev.undo();
 	}, false);
-	document.getElementById('key_redo').addEventListener(touchstart, function(e) {
+	document.getElementById('key-redo').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		ev.redo();
 	}, false);
@@ -278,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			keyRepeat(move, 50);
 		}, time);
 	}
-	document.getElementById('key_left').addEventListener(touchstart, function(e) {
+	document.getElementById('key-left').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		if (repeat) {
 			return;
@@ -286,13 +310,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		ev.moveCaret(-1);
 		keyRepeat(-1, 500);
 	}, false);
-	document.getElementById('key_left').addEventListener(touchend[0], function(e) {
+	document.getElementById('key-left').addEventListener(touchend[0], function(e) {
 		if (repeat) {
 			clearTimeout(repeat);
 			repeat = null;
 		}
 	}, false);
-	document.getElementById('key_right').addEventListener(touchstart, function(e) {
+	document.getElementById('key-right').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		if (repeat) {
 			return;
@@ -300,18 +324,18 @@ document.addEventListener('DOMContentLoaded', function() {
 		ev.moveCaret(1);
 		keyRepeat(1, 500);
 	}, false);
-	document.getElementById('key_right').addEventListener(touchend[0], function(e) {
+	document.getElementById('key-right').addEventListener(touchend[0], function(e) {
 		if (repeat) {
 			clearTimeout(repeat);
 			repeat = null;
 		}
 	}, false);
 
-	document.getElementById('key_paste').addEventListener('mousedown', function(e) {
+	document.getElementById('key-paste').addEventListener('mousedown', function(e) {
 		e.preventDefault();
 		document.getElementById('editor').focus();
 	}, false);
-	document.getElementById('key_paste').addEventListener('click', function(e) {
+	document.getElementById('key-paste').addEventListener('click', function(e) {
 		e.preventDefault();
 		document.getElementById('editor').focus();
 		ev.restoreSelect();
@@ -323,24 +347,24 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}, false);
 
-	document.getElementById('key_tab').addEventListener(touchstart, function(e) {
+	document.getElementById('key-tab').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		ev.deleteSelect();
 		ev.insertText("\t");
 	}, false);
 
-	document.getElementById('key_close').addEventListener(touchstart, function(e) {
+	document.getElementById('key-close').addEventListener(touchstart, function(e) {
 		e.preventDefault();
 		document.getElementById('editor').blur();
 	}, false);
 
-	document.getElementById('menu_new').textContent = runMsg.MENU_NEW;
-	document.getElementById('menu_open').textContent = runMsg.MENU_OPEN;
-	document.getElementById('menu_save').textContent = runMsg.MENU_SAVE;
-	document.getElementById('menu_run_to_cursor').textContent = runMsg.MENU_RUN_TO_CURSOR;
-	document.getElementById('menu_clear').textContent = runMsg.MENU_CLEAR;
-	document.getElementById('menu_setting').textContent = runMsg.MENU_SETTING;
-	document.getElementById('menu_tutorial').textContent = runMsg.MENU_TUTORIAL;
+	document.getElementById('menu-new').textContent = resource.MENU_NEW;
+	document.getElementById('menu-open').textContent = resource.MENU_OPEN;
+	document.getElementById('menu-save').textContent = resource.MENU_SAVE;
+	document.getElementById('menu-run-to-cursor').textContent = resource.MENU_RUN_TO_CURSOR;
+	document.getElementById('menu-clear').textContent = resource.MENU_CLEAR;
+	document.getElementById('menu-setting').textContent = resource.MENU_SETTING;
+	document.getElementById('menu-tutorial').textContent = resource.MENU_TUTORIAL;
 
 	document.querySelector('.menu-btn').addEventListener('keydown', function(e) {
 		if (e.key === 'Enter') {
@@ -365,23 +389,23 @@ document.addEventListener('DOMContentLoaded', function() {
 				return;
 			}
 			switch (e.target.id) {
-			case 'menu_new':
-				if (ev.currentContent.modify && !window.confirm(runMsg.MSG_NEW)) {
+			case 'menu-new':
+				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
 					break;
 				}
 				ev.setText('', '');
 				document.title = baseTitle;
 				break;
-			case 'menu_open':
-				if (ev.currentContent.modify && !window.confirm(runMsg.MSG_NEW)) {
+			case 'menu-open':
+				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
 					break;
 				}
-				const fileInput = document.getElementById('fileInput');
+				const fileInput = document.getElementById('file-input');
 				fileInput.value = '';
 				await fileInput.click();
 				break;
-			case 'menu_save':
-				const fileName = window.prompt(runMsg.MSG_SAVE, ev.currentContent.name || 'script.pg0');
+			case 'menu-save':
+				const fileName = window.prompt(resource.MSG_SAVE, ev.currentContent.name || 'script.pg0');
 				if (!fileName) {
 					document.getElementById('menu-toggle').checked = false;
 					break;
@@ -397,27 +421,30 @@ document.addEventListener('DOMContentLoaded', function() {
 					document.body.removeChild(a);
 					document.getElementById('menu-toggle').checked = false;
 					ev.currentContent.modify = false;
+					ev.currentContent.name = fileName;
 					ev.saveState();
+					document.title = baseTitle + ' - ' + fileName;
 				}, 0);
 				break;
-			case 'menu_run_to_cursor':
+			case 'menu-run-to-cursor':
 				document.getElementById('menu-toggle').checked = false;
 				await execToCursor();
 				break;
-			case 'menu_clear':
+			case 'menu-clear':
 				vv.clear();
 				cv.clear();
 				break;
-			case 'menu_setting':
+			case 'menu-setting':
+				settingView.show();
 				break;
 			}
-			if (e.target.id !== 'menu_save' && e.target.id !== 'menu_run_to_cursor') {
+			if (e.target.id !== 'menu-save' && e.target.id !== 'menu-run-to-cursor') {
 				document.getElementById('menu-toggle').checked = false;
 			}
-		});
-	}, false);
+		}, false);
+	});
 
-	document.getElementById('fileInput').addEventListener('change', function(e) {
+	document.getElementById('file-input').addEventListener('change', function(e) {
 		const file = e.target.files[0];
 		if (!file) {
 			return;
@@ -505,8 +532,8 @@ async function exec(_step) {
 	if (document.getElementById('console').childElementCount > 0) {
 		cv.put('<hr />');
 	}
-	cv.info(runMsg.CONSOLE_START);
-	document.getElementById('stop_button').removeAttribute('disabled');
+	cv.info(resource.CONSOLE_START);
+	document.getElementById('stop-button').removeAttribute('disabled');
 	vv.clear();
 	const elm = document.getElementsByClassName('lib');
 	if (0 < elm.length) {
@@ -514,11 +541,11 @@ async function exec(_step) {
 			return v.remove();
 		});
 	}
-	const extension = document.getElementById('kind').value === 'PG0' ? false : true;
+	const extension = options.execMode === 'PG0' ? false : true;
 	const sci = Script.initScriptInfo(buf, {extension: extension});
 	const scis = [sci];
 	await _exec(scis, sci, false);
-	document.getElementById('stop_button').setAttribute('disabled', true);
+	document.getElementById('stop-button').setAttribute('disabled', true);
 	document.getElementById('editor').setAttribute('contenteditable', 'true');
 	stopStep = -1;
 	run = false;
@@ -577,7 +604,7 @@ async function _exec(scis, sci, imp) {
 									}
 									nextStep = false;
 								} else {
-									const speed = parseInt(document.getElementById('speed').value);
+									const speed = options.execSpeed;
 									if (speed === 0 || stopStep !== -1) {
 										syncCnt++;
 										if (syncCnt > 1000) {
@@ -601,17 +628,17 @@ async function _exec(scis, sci, imp) {
 								return;
 							}
 							if (run) {
-								cv.info(runMsg.CONSOLE_END);
+								cv.info(resource.CONSOLE_END);
 							} else {
-								cv.info(runMsg.CONSOLE_STOP);
+								cv.info(resource.CONSOLE_STOP);
 							}
 							if (value) {
 								if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-									cv.info(runMsg.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
+									cv.info(resource.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
 								} else if (value.type === TYPE_STRING) {
-									cv.info(runMsg.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
+									cv.info(resource.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
 								} else if (value.type === TYPE_ARRAY) {
-									cv.info(runMsg.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
+									cv.info(resource.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
 								}
 							}
 							if (run) {
@@ -622,23 +649,23 @@ async function _exec(scis, sci, imp) {
 						error: async function(error) {
 							ev.setHighlight(error.line, '#ffb6c1');
 							cv.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
-							cv.info(runMsg.CONSOLE_END);
+							cv.info(resource.CONSOLE_END);
 						}
 					});
 				} catch(e) {
 					cv.error(`Error: ${e.message}`);
-					cv.info(runMsg.CONSOLE_END);
+					cv.info(resource.CONSOLE_END);
 				}
 			},
 			error: async function(error) {
 				ev.setHighlight(error.line, '#ffb6c1');
 				cv.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
-				cv.info(runMsg.CONSOLE_END);
+				cv.info(resource.CONSOLE_END);
 			}
 		});
 	} catch(e) {
 		cv.error(`Error: ${e.message}`);
-		cv.info(runMsg.CONSOLE_END);
+		cv.info(resource.CONSOLE_END);
 	}
 }
 
