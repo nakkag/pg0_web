@@ -12,9 +12,9 @@
 #setting {
 	display: none;
 	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-	font-size: 20px;
-	padding: 30px;
-	width: 300px;
+	font-size: calc(var(--font-size) + 2px);
+	padding: calc(var(--font-size) * 1.6);
+	width: calc(var(--font-size) * 15);
 	height: fit-content;
 	z-index: 200;
 	box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -63,13 +63,18 @@
 }
 
 #setting div {
-	margin-bottom: 20px;
+	margin-bottom: var(--font-size);
 }
 #setting div:last-of-type {
 	margin-bottom: 0px;
 }
 #setting select {
-	font-size: 16px;
+	font-size: calc(var(--font-size) - 2px);
+}
+
+#setting input[type="checkbox"] {
+	width: var(--font-size);
+	height: var(--font-size);
 }
 
 @media (orientation: portrait) {

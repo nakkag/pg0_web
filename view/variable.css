@@ -31,41 +31,40 @@
 	white-space: nowrap;
 }
 #var-name .var_header {
-	padding-left: 30px;
+	padding-left: calc(var(--font-size) * 1.7);
 }
 
 #var-name .item_name {
-	padding-left: 30px;
+	padding-left: calc(var(--font-size) * 1.7);
 }
 
 .item_name > span {
 	position: relative;
 }
-.item_name > span > .open_icon {
+.item_name.array > span > .open_icon {
 	display: inline-block;
-	width: 10px;
 	position: absolute;
 	cursor: pointer;
-}
-
-.item_name.array > span > .open_icon {
-	top: 0px;
-	left: -22px;
-	height: 18px;
-	width: 18px;
+	top: 0;
+	left: calc((var(--font-size) * -1) - 4px);
+	height: var(--font-size);
+	width: var(--font-size);
 }
 .item_name.array > span > .open_icon:after {
 	content: "";
 	position: absolute;
 	background-color: #2196f3;
-	top: 2px;
-	left: 4px;
-	height: 15px;
-	width: 10px;
+	top: calc(var(--font-size) * 0.1);
+	left: calc(var(--font-size) * 0.2);
+	height: calc(var(--font-size) * 0.8);
+	width: calc(var(--font-size) * 0.55);
 	clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 .item_name.array.open > span > .open_icon:after {
 	transform: rotate(90deg);
+}
+_:lang(x)+_:-webkit-full-screen-document, .item_name.array > span > .open_icon:after {
+	top: calc(var(--font-size) * 0.1 + 2px);
 }
 
 #var-resizer {

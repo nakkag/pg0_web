@@ -199,19 +199,19 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (editFocus) {
 			document.getElementById('container').style.height = window.visualViewport.height + 'px';
 			if (checkOrientation() === 0) {
-				document.getElementById('container').style.gridTemplateRows = '58px 1fr 0px 0px 0px 0px max-content';
+				document.getElementById('container').style.gridTemplateRows = 'max-content 1fr 0px 0px 0px 0px max-content';
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
 			} else {
-				document.getElementById('container').style.gridTemplateRows = '42px 1fr 0px 0px';
+				document.getElementById('container').style.gridTemplateRows = 'max-content 1fr 0px 0px';
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr 0px 0px max-content';
 			}
 		} else {
 			document.getElementById('container').style.height = '100dvh';
 			if (checkOrientation() === 0) {
-				document.getElementById('container').style.gridTemplateRows = `58px 1fr ${rw}px ${options.boundary.verY}px ${rw}px ${options.boundary.consoleY}px 0`;
+				document.getElementById('container').style.gridTemplateRows = `max-content 1fr ${rw}px ${options.boundary.verY}px ${rw}px ${options.boundary.consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
 			} else {
-				document.getElementById('container').style.gridTemplateRows = `42px 1fr ${rw}px ${options.boundary.consoleY}px 0`;
+				document.getElementById('container').style.gridTemplateRows = `max-content 1fr ${rw}px ${options.boundary.consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = `max-content 1fr ${rw}px ${options.boundary.verX}px`;
 			}
 		}

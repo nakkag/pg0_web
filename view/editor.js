@@ -317,8 +317,8 @@ function editorView(editor, lineNumber) {
 				const str = line.replace(/\t}$/, '}') + node.textContent.substr(line.length);
 				node.innerHTML = setKeyword(tagEscape(str));
 				setCaretPosition(pos - 1);
-				setCurrentContent();
 			}
+			setCurrentContent();
 		} else {
 			setCurrentContent();
 		}

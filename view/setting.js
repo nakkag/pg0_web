@@ -55,7 +55,7 @@ const settingView = (function () {
 
 	me.reflection = function() {
 		document.getElementById('line-container').style.display = (options.showLineNum) ? 'block' : 'none';
-		document.body.style.fontSize = options.fontSize + 'px';
+		document.body.style.setProperty('--font-size', options.fontSize + 'px');
 	};
 
 	me.close = function() {
