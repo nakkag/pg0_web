@@ -62,15 +62,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		case 'o':
 			if (e.ctrlKey) {
 				e.preventDefault();
-				document.getElementById('menu-toggle').checked = true;
-				document.getElementById('menu_open').click();
+				await fileOpen();
 			}
 			break;
 		case 's':
 			if (e.ctrlKey) {
 				e.preventDefault();
-				document.getElementById('menu-toggle').checked = true;
-				document.getElementById('menu_save').click();
+				await fileSave();
 			}
 			break;
 		case 'Escape':
@@ -396,34 +394,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				document.title = baseTitle;
 				break;
 			case 'menu-open':
-				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
-					break;
-				}
-				const fileInput = document.getElementById('file-input');
-				fileInput.value = '';
-				await fileInput.click();
+				await fileOpen();
 				break;
 			case 'menu-save':
-				const fileName = window.prompt(resource.MSG_SAVE, ev.currentContent.name || 'script.pg0');
-				if (!fileName) {
-					document.getElementById('menu-toggle').checked = false;
-					break;
-				}
-				const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/pg0; charset=UTF-8'});
-				const url = (window.URL || window.webkitURL).createObjectURL(blob);
-				const a = document.createElement('a');
-				a.download = fileName;
-				a.href = url;
-				document.body.appendChild(a);
-				setTimeout(function() {
-					a.click();
-					document.body.removeChild(a);
-					document.getElementById('menu-toggle').checked = false;
-					ev.currentContent.modify = false;
-					ev.currentContent.name = fileName;
-					ev.saveState();
-					document.title = baseTitle + ' - ' + fileName;
-				}, 0);
+				await fileSave();
 				break;
 			case 'menu-run-to-cursor':
 				document.getElementById('menu-toggle').checked = false;
@@ -437,12 +411,39 @@ document.addEventListener('DOMContentLoaded', function() {
 				settingView.show();
 				break;
 			}
-			if (e.target.id !== 'menu-save' && e.target.id !== 'menu-run-to-cursor') {
-				document.getElementById('menu-toggle').checked = false;
-			}
+			document.getElementById('menu-toggle').checked = false;
 		}, false);
 	});
 
+	async function fileOpen() {
+		if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
+			return;
+		}
+		if (window.showSaveFilePicker) {
+			let handle;
+			try {
+				handle = await window.showOpenFilePicker({
+					types: [{description: 'PG0 File', accept: {'text/pg0': ['.pg0']}}],
+					multiple: false
+				});
+			} catch(err) {
+				return;
+			}
+			try {
+				const file = await handle[0].getFile();
+				const text = await file.text();
+				ev.setText(text, file.name);
+				document.title = baseTitle + ' - ' + file.name;
+			} catch(err) {
+				console.error(err);
+				alert(err);
+			}
+		} else {
+			const fileInput = document.getElementById('file-input');
+			fileInput.value = '';
+			await fileInput.click();
+		}
+	}
 	document.getElementById('file-input').addEventListener('change', function(e) {
 		const file = e.target.files[0];
 		if (!file) {
@@ -459,6 +460,53 @@ document.addEventListener('DOMContentLoaded', function() {
 		};
 		reader.readAsText(file);
 	}, false);
+
+	async function fileSave() {
+		if (window.showSaveFilePicker) {
+			let handle;
+			try {
+				handle = await window.showSaveFilePicker({
+					suggestedName: ev.currentContent.name || 'script.pg0',
+					types: [{description: 'PG0 File', accept: {'text/pg0': ['.pg0']}}]
+				});
+			} catch(err) {
+				return;
+			}
+			try {
+				const stream = await handle.createWritable();
+				const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/pg0; charset=UTF-8'});
+				await stream.write(blob);
+				await stream.close();
+				ev.currentContent.modify = false;
+				ev.currentContent.name = handle.name;
+				ev.saveState();
+				document.title = baseTitle + ' - ' + handle.name;
+			} catch(err) {
+				console.error(err);
+				alert(err);
+			}
+		} else {
+			const fileName = window.prompt(resource.MSG_SAVE, ev.currentContent.name || 'script.pg0');
+			if (!fileName) {
+				return;
+			}
+			const blob = new Blob([ev.getText().replace(/\n/g, "\r\n")], {type: 'text/pg0; charset=UTF-8'});
+			const url = (window.URL || window.webkitURL).createObjectURL(blob);
+			const a = document.createElement('a');
+			a.download = fileName;
+			a.href = url;
+			document.body.appendChild(a);
+			setTimeout(function() {
+				a.click();
+				document.body.removeChild(a);
+				ev.currentContent.modify = false;
+				ev.currentContent.name = fileName;
+				ev.saveState();
+				document.title = baseTitle + ' - ' + fileName;
+			}, 0);
+		}
+	}
+
 }, false);
 
 ScriptExec.lib['error'] = async function(ei, param, ret) {

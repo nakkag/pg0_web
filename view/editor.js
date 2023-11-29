@@ -370,7 +370,7 @@ function editorView(editor, lineNumber) {
 			const lines = that.getText().substring(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			if (/\t}$/.test(line)) {
-				// lower the indent
+				// Reduce indent
 				const selection = window.getSelection();
 				if (!selection.rangeCount) {
 					return;
