@@ -5,6 +5,16 @@ let ev, vv, cv;
 const baseTitle = document.title;
 
 document.addEventListener('DOMContentLoaded', function() {
+	if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator) {
+		navigator.serviceWorker.register('/pg0/serviceworker.js', {scope: '/pg0/'}).then(function (registration) {
+			registration.onupdatefound = function() {
+				registration.update();
+			}
+		}).catch(function (error) {
+			console.error("serviceWorker error:", error);
+		});
+	}
+
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
 	let rw = parseInt(_rw.replace(/[^0-9]/g, ''));
 	const ua = user_agent.get();

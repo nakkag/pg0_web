@@ -1,0 +1,13 @@
+{
+	"name": "PG0",
+	"short_name": "PG0",
+	"start_url": "/pg0/",
+	"display": "standalone",
+	"icons": [
+		{
+			"src": "/pg0/image/icon_256.png",
+			"sizes": "256x256",
+			"type": "image/png"
+		}
+	]
+}
