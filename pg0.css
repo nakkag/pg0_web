@@ -318,3 +318,25 @@ body::before {
 		margin: calc(var(--resize-with) / -2 + 4px) 0 calc(var(--resize-with) / -2) 0;
 	}
 }
+
+@media print {
+	body {
+		background-color: #fff !important;
+		color: #000 !important;
+		overflow: auto;
+	}
+	#container {
+		display: block;
+		overflow: initial;
+		height: 100%;
+	}
+	#ctrl-container,
+	#var-resizer-x,
+	#var-resizer-y,
+	#variable-container,
+	#console-resizer,
+	#console-container,
+	#key-container {
+		display: none;
+	}
+}
