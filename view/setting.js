@@ -59,6 +59,16 @@ const settingView = (function () {
 	me.reflection = function() {
 		document.getElementById('line-container').style.display = (options.showLineNum) ? 'block' : 'none';
 		document.body.style.setProperty('--font-size', options.fontSize + 'px');
+		if (options.execMode === 'PG0') {
+			baseTitle = 'PG0(Web)';
+		} else {
+			baseTitle = 'PG0.5(Web)';
+		}
+		if (ev.currentContent.name) {
+			document.title = baseTitle + ' - ' + ev.currentContent.name;
+		} else {
+			document.title = baseTitle;
+		}
 	};
 
 	me.close = function() {

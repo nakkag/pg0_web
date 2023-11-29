@@ -2,7 +2,7 @@
 
 let ev, vv, cv;
 
-const baseTitle = document.title;
+let baseTitle = document.title;
 
 document.addEventListener('DOMContentLoaded', function() {
 	if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator) {
@@ -53,6 +53,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 	document.getElementById('exec_speed').value = options.execSpeed;
 	vv.setBoundary(options.boundary.variable);
+	if (options.execMode === 'PG0_5') {
+		baseTitle = 'PG0.5(Web)';
+		if (ev.currentContent.name) {
+			document.title = baseTitle + ' - ' + ev.currentContent.name;
+		} else {
+			document.title = baseTitle;
+		}
+	}
 
 	document.addEventListener('keydown', async function(e) {
 		switch (e.key) {
