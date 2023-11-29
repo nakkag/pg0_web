@@ -826,4 +826,3 @@ function editorView(editor, lineNumber) {
 		that.saveState();
 	}
 }
-

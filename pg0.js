@@ -1,7 +1,6 @@
 "use strict";
 
 let ev, vv, cv;
-
 let baseTitle = document.title;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -11,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				registration.update();
 			}
 		}).catch(function (error) {
-			console.error("serviceWorker error:", error);
+			console.error('serviceWorker error:', error);
 		});
 	}
 
@@ -53,14 +52,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 	document.getElementById('exec_speed').value = options.execSpeed;
 	vv.setBoundary(options.boundary.variable);
-	if (options.execMode === 'PG0_5') {
-		baseTitle = 'PG0.5(Web)';
-		if (ev.currentContent.name) {
-			document.title = baseTitle + ' - ' + ev.currentContent.name;
-		} else {
-			document.title = baseTitle;
-		}
-	}
 
 	document.addEventListener('keydown', async function(e) {
 		switch (e.key) {

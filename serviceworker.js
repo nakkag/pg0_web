@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v15';
+const CACHE_VERSION = 'pg0-v16';
 
 const resources = [
 	'./',
