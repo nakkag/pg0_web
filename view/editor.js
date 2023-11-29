@@ -321,7 +321,7 @@ function editorView(editor, lineNumber) {
 		}
 		// Restore selection
 		const selection = window.getSelection();
-		if (!selection.rangeCount || !startLine || !endNode) {
+		if (!selection.rangeCount || !startNode || !endNode) {
 			return;
 		}
 		const range = document.createRange();
@@ -334,7 +334,6 @@ function editorView(editor, lineNumber) {
 		selection.removeAllRanges();
 		selection.addRange(range);
 		setCurrentContent();
-		updateContent();
 		that.showCaret();
 	};
 
@@ -649,6 +648,10 @@ function editorView(editor, lineNumber) {
 		let node = selection.focusNode;
 		while (node && node.tagName !== 'DIV') {
 			node = node.parentNode;
+		}
+		if (node === editor) {
+			setAllLine();
+			return;
 		}
 		if (node && node.tagName === 'DIV') {
 			const line = node.textContent;

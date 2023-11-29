@@ -47,7 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('exec_speed').append(op);
 	}
 
-	settingView.load();
+	if (!settingView.load() && !ev.getText()) {
+		ev.setText("cnt = 0\ni = 1\nwhile (i <= 10) {\n\tcnt = cnt + i\n\ti = i + 1\n}\nexit cnt", '');
+		settingView.save();
+	}
 	document.getElementById('exec_speed').value = options.execSpeed;
 	vv.setBoundary(options.boundary.variable);
 

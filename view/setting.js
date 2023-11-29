@@ -20,6 +20,7 @@ const settingView = (function () {
 	me.storageKey = 'pg0_option';
 
 	me.load = function() {
+		let ret = false;
 		const str = localStorage.getItem(me.storageKey);
 		if (str) {
 			const op = JSON.parse(str);
@@ -28,8 +29,10 @@ const settingView = (function () {
 			options.fontSize = (op.fontSize !== undefined) ? op.fontSize : options.fontSize;
 			options.showLineNum = (op.showLineNum !== undefined) ? op.showLineNum : options.showLineNum;
 			options.boundary = (op.boundary !== undefined) ? op.boundary : options.boundary;
+			ret = true;
 		}
 		me.reflection();
+		return ret;
 	};
 
 	me.save = function() {
