@@ -33,7 +33,7 @@ if (navigator.browserLanguage) {
     _lang = navigator.language;
 }
 if (_lang.length > 2) {
-	_lang = _lang.substr(0, 2);
+	_lang = _lang.substring(0, 2);
 }
 if (_lang === 'ja') {
 	errMsg = {

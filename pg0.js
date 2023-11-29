@@ -349,8 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	document.getElementById('key-tab').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		ev.deleteSelect();
-		ev.insertText("\t");
+		ev.inputTab(e.shiftKey);
 	}, false);
 
 	document.getElementById('key-close').addEventListener(touchstart, function(e) {

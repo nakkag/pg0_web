@@ -310,7 +310,7 @@ ScriptExec.getValueString = function(v) {
 			buf = v.num + '.0000000000000000';
 		} else {
 			const len = ('' +  parseInt(v.num)).length + 1 + 16;
-			buf = (v.num + '0000000000000000').substr(0, len);
+			buf = (v.num + '0000000000000000').substring(0, len);
 		}
 		break;
 	default:
@@ -1184,8 +1184,8 @@ function ScriptExec(scis, sci) {
 				return RET_ERROR;
 			}
 			let vi;
-			if (token.buf.substr(0, 1) === '&') {
-				vi = declVariable(ei, token.buf.substr(1), param[param.length - j - 1].v);
+			if (token.buf.substring(0, 1) === '&') {
+				vi = declVariable(ei, token.buf.substring(1), param[param.length - j - 1].v);
 				if (!vi) {
 					return RET_ERROR;
 				}

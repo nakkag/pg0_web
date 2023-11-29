@@ -116,7 +116,7 @@ function editorView(editor, lineNumber) {
 		if (that.currentContent.start === undefined) {
 			return -1;
 		}
-		const lines = that.getText().substr(0, that.currentContent.start).split("\n");
+		const lines = that.getText().substring(0, that.currentContent.start).split("\n");
 		return lines.length - 1;
 	};
 	this.getLineNode = function(pos) {
@@ -152,9 +152,9 @@ function editorView(editor, lineNumber) {
 		}
 		if (node && node !== editor) {
 			const pos = getCaretPosition();
-			const lines = that.getText().substr(0, pos).split("\n");
+			const lines = that.getText().substring(0, pos).split("\n");
 			const line = lines[lines.length - 1];
-
+			// Horizontal display
 			const width = getTextWidth(line);
 			let x = editorContainer.scrollLeft;
 			if (width < (x + 1)) {
@@ -169,7 +169,7 @@ function editorView(editor, lineNumber) {
 			if (x !== editorContainer.scrollLeft) {
 				editorContainer.scrollLeft = x;
 			}
-
+			// Vertical display
 			const height = lines.length * node.offsetHeight + that.paddingTop;
 			let y = editorContainer.scrollTop;
 			if ((height - node.offsetHeight) < y) {
@@ -240,6 +240,7 @@ function editorView(editor, lineNumber) {
 		}
 		range.deleteContents();
 		if (startDiv !== endDiv && startDiv.nextSibling === endDiv) {
+			// Joining of nodes
 	    	while (endDiv.childNodes.length > 0) {
 				startDiv.appendChild(endDiv.firstChild);
 			}
@@ -258,17 +259,80 @@ function editorView(editor, lineNumber) {
 			return;
 		}
 		if (selection.focusNode === editor) {
+			// Pasting text into the root node removes extra line breaks
 			text = text.replace(/\n$/, '');
 		}
+		// Inserting text
 		const node = document.createTextNode(text);
 		selection.getRangeAt(0).insertNode(node);
-
 		const newRange = document.createRange();
 		newRange.setStart(node, text.length);
 		newRange.collapse(true);
 		selection.removeAllRanges();
 		selection.addRange(newRange);
 
+		setCurrentContent();
+		updateContent();
+		that.showCaret();
+	};
+
+	this.inputTab = function(shiftKey) {
+		if (that.currentContent.start === that.currentContent.end) {
+			that.deleteSelect();
+			that.insertText("\t");
+			return;
+		}
+		const str = that.getText().substring(that.currentContent.start, that.currentContent.end);
+		if (str.indexOf("\n") === -1) {
+			that.deleteSelect();
+			that.insertText("\t");
+			return;
+		}
+		// Change of indent
+		let lines = that.getText().substring(0, that.currentContent.start).split("\n");
+		const startLine = lines.length - 1;
+		lines = that.getText().substring(0, that.currentContent.end).split("\n");
+		let endLine = lines.length - 1;
+		if (!lines[endLine]) {
+			endLine--;
+		}
+		let startNode, endNode;
+		for (let i = startLine; i <= endLine; i++) {
+			const node = that.getLineNode(i);
+			if (i === startLine) {
+				startNode = node;
+			}
+			if (i === endLine) {
+				endNode = node;
+			}
+			let newStr;
+			if (shiftKey) {
+				// Reduce indent
+				newStr = node.textContent.replace(/^\t/, '');
+			} else {
+				// Increase indent
+				newStr = '\t' + node.textContent;
+			}
+			if (!newStr) {
+				node.innerHTML = '<br />';
+			} else {
+				node.innerHTML = setKeyword(tagEscape(newStr));
+			}
+		}
+		// Restore selection
+		const selection = window.getSelection();
+		if (!selection.rangeCount || !startLine || !endNode) {
+			return;
+		}
+		const range = document.createRange();
+		range.setStart(startNode, 0);
+		if (endNode.nextSibling) {
+			range.setEnd(endNode.nextSibling, 0);
+		} else {
+			range.setEndAfter(endNode);
+		}
+		selection.removeAllRanges();
+		selection.addRange(range);
 		setCurrentContent();
 		updateContent();
 		that.showCaret();
@@ -303,9 +367,10 @@ function editorView(editor, lineNumber) {
 			that.redo();
 		} else if (e.inputType === 'insertText' && e.data === '}') {
 			const pos = getCaretPosition();
-			const lines = that.getText().substr(0, pos).split("\n");
+			const lines = that.getText().substring(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			if (/\t}$/.test(line)) {
+				// lower the indent
 				const selection = window.getSelection();
 				if (!selection.rangeCount) {
 					return;
@@ -314,7 +379,7 @@ function editorView(editor, lineNumber) {
 				while (node && node.tagName !== 'DIV') {
 					node = node.parentNode;
 				}
-				const str = line.replace(/\t}$/, '}') + node.textContent.substr(line.length);
+				const str = line.replace(/\t}$/, '}') + node.textContent.substring(line.length);
 				node.innerHTML = setKeyword(tagEscape(str));
 				setCaretPosition(pos - 1);
 			}
@@ -344,13 +409,13 @@ function editorView(editor, lineNumber) {
 	editor.addEventListener('keydown', function(e) {
 		if (e.key === 'Tab') {
 			e.preventDefault();
-			that.deleteSelect();
-			that.insertText("\t");
+			that.inputTab(e.shiftKey);
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
 			that.deleteSelect();
+			// Inheritance of indent
 			const pos = getCaretPosition();
-			const lines = that.getText().substr(0, pos).split("\n");
+			const lines = that.getText().substring(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			const m = line.match(/^[ \t]+/);
 			let indent = '';
@@ -638,6 +703,7 @@ function editorView(editor, lineNumber) {
 				container = null;
 				offset = 0;
 			} else {
+				// Offset is the node position
 				container = container.childNodes[offset];
 				offset = 0;
 			}
