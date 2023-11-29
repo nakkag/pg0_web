@@ -1,8 +1,8 @@
 "use strict";
 
 const options = {
-	execMode: 'PG0_5',
-	execSpeed: 0,
+	execMode: 'PG0',
+	execSpeed: 250,
 	fontSize: 18,
 	showLineNum: true,
 
