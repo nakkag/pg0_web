@@ -117,9 +117,9 @@ body::before {
 		"console console console console"
 		"key key key key";
 }
-
 #container.full {
-	position: fixed;
+	grid-template-rows: max-content 1fr 0px 0px !important;
+	grid-template-columns: max-content 1fr 0px 0px max-content !important;
 }
 
 #ctrl-container {
@@ -128,7 +128,6 @@ body::before {
 	padding: 5px 10px;
 	border-bottom: 1px solid #ccc;
 }
-
 .ctrl-icon {
 	touch-action: manipulation;
 	width: calc(var(--font-size) * 1.8);
@@ -161,7 +160,6 @@ body::before {
 	background-color: #fff;
 	margin: 0 calc(var(--resize-with) / -2) calc(var(--resize-with) / -2) 0;
 }
-
 #editor-container.full {
 	margin: 0;
 }
@@ -298,7 +296,10 @@ body::before {
 			"console console"
 			"key key";
 	}
-
+	#container.full {
+		grid-template-rows: max-content 1fr 0px 0px 0px 0px max-content !important;
+		grid-template-columns: max-content 1fr !important;
+	}
 	#editor-container {
 		margin: 0 0 calc(var(--resize-with) / -2) 0;
 	}

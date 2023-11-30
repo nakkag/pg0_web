@@ -240,13 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	function setGridTemplate() {
 		if (editFocus) {
 			document.getElementById('container').style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
-			if (checkOrientation() === 0) {
-				document.getElementById('container').style.gridTemplateRows = 'max-content 1fr 0px 0px 0px 0px max-content';
-				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
-			} else {
-				document.getElementById('container').style.gridTemplateRows = 'max-content 1fr 0px 0px';
-				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr 0px 0px max-content';
-			}
 		} else {
 			document.getElementById('container').style.height = 'calc(100dvh - env(safe-area-inset-top))';
 			if (checkOrientation() === 0) {
