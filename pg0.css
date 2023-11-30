@@ -1,6 +1,6 @@
 body {
 	overflow: hidden;
-	background-color: #f1f3f4;
+	background-color: #ddd;
 	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
 	-webkit-text-size-adjust: 100%;
 
@@ -137,8 +137,6 @@ html {
 		"console-resizer console-resizer console-resizer console-resizer"
 		"console console console console"
 		"key key key key";
-	outline-left: 1px solid #ccc;
-	outline-right: 1px solid #ccc;
 }
 
 #container.full {
