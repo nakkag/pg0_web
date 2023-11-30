@@ -341,11 +341,13 @@ function editorView(editor, lineNumber) {
 	this.undo = function() {
 		if (that.currentContent.undo.length > 0) {
 			that.currentContent.redo.push(setUndoText(that.currentContent.undo.pop()));
+			that.saveState();
 		}
 	};
 	this.redo = function() {
 		if (that.currentContent.redo.length > 0) {
 			that.currentContent.undo.push(setUndoText(that.currentContent.redo.pop()));
+			that.saveState();
 		}
 	};
 
@@ -835,7 +837,6 @@ function editorView(editor, lineNumber) {
 		that.currentContent.end = oldDiff.ce;
 		that.restoreSelect();
 		that.showCaret();
-		that.saveState();
 		return newDiff;
 	}
 	function diff(oldText, newText) {
