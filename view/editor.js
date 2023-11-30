@@ -24,6 +24,7 @@ function editorView(editor, lineNumber) {
 	this.undoCount = 50;
 	this.currentContent = {text: '', start: 0, end: 0, name: '', modify: false};
 	that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
+	that.paddingLeft = parseInt(getComputedStyle(editorContainer).paddingLeft);
 
 	this.loadState = function() {
 		const str = localStorage.getItem(that.storageKey);
@@ -158,7 +159,7 @@ function editorView(editor, lineNumber) {
 			const lines = that.getText().substring(0, pos).split("\n");
 			const line = lines[lines.length - 1];
 			// Horizontal display
-			const width = getTextWidth(line);
+			const width = getTextWidth(line) + that.paddingLeft;
 			let x = editorContainer.scrollLeft;
 			if (width < (x + 1)) {
 				x = width - 1;
@@ -464,6 +465,12 @@ function editorView(editor, lineNumber) {
 			document.addEventListener('mouseup', touchend);
 		} else {
 			document.addEventListener('touchend', touchend);
+		}
+	}, false);
+
+	editor.addEventListener('click', function(e) {
+		if (that.currentContent.start === that.currentContent.end) {
+			that.showCaret();
 		}
 	}, false);
 
