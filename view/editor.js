@@ -11,7 +11,8 @@ function editorView(editor, lineNumber) {
 	const regKeywordsEx = new RegExp(`\\b(${keywords_extension.join('|')})\\b`, 'gi');
 	const regKeywordsPrep = new RegExp(`(${keywords_preprocessor.join('|')})`, 'gi');
 
-	if (lineNumber) {
+	if (lineNumber && typeof ResizeObserver === 'function') {
+		// Adjust line number height
 		const observer = new ResizeObserver(function() {
 			lineNumber.style.height = (editorContainer.clientHeight - that.paddingTop) + 'px';
 			lineNumber.scrollTop = editorContainer.scrollTop;
@@ -34,7 +35,9 @@ function editorView(editor, lineNumber) {
 			that.currentContent = state;
 			that.restoreSelect();
 			that.showCaret();
+			return true;
 		}
+		return false;
 	};
 	this.saveState = function() {
 		localStorage.setItem(that.storageKey, JSON.stringify(that.currentContent));

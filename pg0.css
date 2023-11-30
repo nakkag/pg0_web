@@ -113,7 +113,7 @@ body::before {
 	opacity: 0.5;
 	filter: grayscale(1);
 }
-#exec_speed {
+#exec-speed {
 	font-size: calc(var(--font-size) - 4px);
 }
 
@@ -276,7 +276,7 @@ body::before {
 	.ctrl-icon {
 		width: calc(var(--font-size) * 2.2);
 	}
-	#exec_speed {
+	#exec-speed {
 		font-size: calc(var(--font-size) - 2px);
 	}
 	#container {
@@ -342,9 +342,6 @@ body::before {
 	}
 	#editor-container {
 		grid-area: editor;
-		margin: 0;
-	}
-	_:lang(x)+_:-webkit-full-screen-document, #editor-container {
-		margin-top: 20px;
+		margin: 10px 0 0 0;
 	}
 }

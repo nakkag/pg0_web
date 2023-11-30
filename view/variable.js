@@ -7,6 +7,7 @@ function variableView(variable, resizeCallback) {
 	const varVal = document.querySelector('#' + variable.id + ' #var-value');
 
 	let verX = 200;
+	// Width of resize area
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
 	let rw = parseInt(_rw.replace(/[^0-9]/g, ''));
 	const ua = user_agent.get();
@@ -15,8 +16,8 @@ function variableView(variable, resizeCallback) {
 	}
 
 	this.clear = function() {
-		varName.innerHTML = `<div class="var_header">${resource.VARIABLE_NAME}</div>`;
-		varVal.innerHTML = `<div class="var_header">${resource.VARIABLE_VALUE}</div>`;
+		varName.innerHTML = `<div class="var-header">${resource.VARIABLE_NAME}</div>`;
+		varVal.innerHTML = `<div class="var-header">${resource.VARIABLE_VALUE}</div>`;
 	};
 	this.clear();
 
@@ -74,7 +75,7 @@ function variableView(variable, resizeCallback) {
 	});
 
 	variable.addEventListener('click', function(e) {
-		if (e.target.parentNode !== variable) {
+		if (e.target.parentNode !== variable || e.target.id === 'var-resizer') {
 			return;
 		}
 		unselect();
@@ -82,27 +83,28 @@ function variableView(variable, resizeCallback) {
 
 	function setItemEvent(target) {
 		target.addEventListener('click', function(e) {
-			if (e.target.classList.contains('open_icon')) {
+			if (e.target.classList.contains('open-icon')) {
 				return;
 			}
 			const index = getIndex(e.target);
 			const nameNode = varName.childNodes[index + 1];
 			const valNode = varVal.childNodes[index + 1];
-			if (nameNode.classList.contains('var_select')) {
+			if (nameNode.classList.contains('var-select')) {
 				unselect();
 				return;
 			}
 			unselect();
-			nameNode.classList.add('var_select');
-			valNode.classList.add('var_select');
+			nameNode.classList.add('var-select');
+			valNode.classList.add('var-select');
 		});
 		target.addEventListener('dblclick', function(e) {
+			// Copy variable contents to clipboard
 			const index = getIndex(e.target);
 			const nameNode = varName.childNodes[index + 1];
 			const valNode = varVal.childNodes[index + 1];
 			unselect();
-			nameNode.classList.add('var_select');
-			valNode.classList.add('var_select');
+			nameNode.classList.add('var-select');
+			valNode.classList.add('var-select');
 			const str = nameNode.textContent + ' = ' + valNode.textContent;
 			if (navigator.clipboard) {
 				return navigator.clipboard.writeText(str);
@@ -118,17 +120,17 @@ function variableView(variable, resizeCallback) {
 	function getIndex(elm) {
 		const pelm = elm.closest('div');
 		let elms;
-		if (pelm.classList.contains('item_name')) {
-			elms = document.querySelectorAll('.item_name');
+		if (pelm.classList.contains('item-name')) {
+			elms = document.querySelectorAll('.item-name');
 		} else {
-			elms = document.querySelectorAll('.item_val');
+			elms = document.querySelectorAll('.item-val');
 		}
 		return [].slice.call(elms).indexOf(pelm);
 	}
 
 	function unselect() {
-		document.querySelectorAll('.var_select').forEach(function(target) {
-			target.classList.remove('var_select');
+		document.querySelectorAll('.var-select').forEach(function(target) {
+			target.classList.remove('var-select');
 		});
 	}
 
@@ -206,6 +208,7 @@ function variableView(variable, resizeCallback) {
 		let nameNode = document.getElementById(newEid);
 		let valNode;
 		if (nameNode) {
+			// Update value
 			nameNode.setAttribute('exist', 'true');
 			valNode = document.getElementById(newEid + '--val');
 			valNode.setAttribute('exist', 'true');
@@ -214,8 +217,9 @@ function variableView(variable, resizeCallback) {
 				valNode.textContent = buf;
 			}
 		} else {
+			// Insert variable
 			nameNode = document.createElement('div');
-			nameNode.classList.add('item_name');
+			nameNode.classList.add('item-name');
 			nameNode.setAttribute('id', newEid);
 			nameNode.setAttribute('indent', indent);
 			nameNode.setAttribute('exist', 'true');
@@ -224,7 +228,7 @@ function variableView(variable, resizeCallback) {
 			const pspan = document.createElement('span');
 			nameNode.appendChild(pspan);
 			const ospan = document.createElement('span');
-			ospan.classList.add('open_icon');
+			ospan.classList.add('open-icon');
 			setOpenEvent(ospan);
 			pspan.appendChild(ospan);
 			const span = document.createElement('span');
@@ -236,7 +240,7 @@ function variableView(variable, resizeCallback) {
 			valNode = document.createElement('div');
 			valNode.setAttribute('id', newEid + '--val');
 			valNode.setAttribute('exist', 'true');
-			valNode.classList.add('item_val');
+			valNode.classList.add('item-val');
 			valNode.classList.add('modify');
 			valNode.textContent = buf;
 			valNode.setAttribute('indent', indent);
@@ -266,6 +270,7 @@ function variableView(variable, resizeCallback) {
 		function removeNode(elm) {
 			while (elm) {
 				if (elm.getAttribute('exist') !== 'true') {
+					// Delete variable
 					const wk = elm;
 					elm = elm.nextSibling;
 					wk.remove();

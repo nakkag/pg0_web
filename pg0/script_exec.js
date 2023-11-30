@@ -2,6 +2,7 @@
 
 ScriptExec.lib = {};
 
+// Standard functions
 ScriptExec.lib['istype'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;

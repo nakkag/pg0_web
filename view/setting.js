@@ -1,26 +1,11 @@
 "use strict";
 
-const options = {
-	execMode: 'PG0',
-	execSpeed: 250,
-	fontSize: 18,
-	showLineNum: true,
-
-	boundary: {
-		verX: 400,
-		verY: 150,
-		consoleY: 150,
-		variable: 200,
-	},
-};
-
 const settingView = (function () {
 	const me = {};
 
 	me.storageKey = 'pg0_option';
 
 	me.load = function() {
-		let ret = false;
 		const str = localStorage.getItem(me.storageKey);
 		if (str) {
 			const op = JSON.parse(str);
@@ -29,10 +14,7 @@ const settingView = (function () {
 			options.fontSize = (op.fontSize !== undefined) ? op.fontSize : options.fontSize;
 			options.showLineNum = (op.showLineNum !== undefined) ? op.showLineNum : options.showLineNum;
 			options.boundary = (op.boundary !== undefined) ? op.boundary : options.boundary;
-			ret = true;
 		}
-		me.reflection();
-		return ret;
 	};
 
 	me.save = function() {
@@ -54,23 +36,6 @@ const settingView = (function () {
 		document.getElementById('setting-mode').value = options.execMode;
 		document.getElementById('setting-font').value = options.fontSize;
 		document.getElementById('setting-linenum').checked = options.showLineNum;
-	};
-
-	me.reflection = function() {
-		document.getElementById('line-container').style.display = (options.showLineNum) ? 'block' : 'none';
-		document.body.style.setProperty('--font-size', options.fontSize + 'px');
-		if (baseTitle) {
-			if (options.execMode === 'PG0') {
-				baseTitle = 'PG0(Web)';
-			} else {
-				baseTitle = 'PG0.5(Web)';
-			}
-			if (ev && ev.currentContent.name) {
-				document.title = baseTitle + ' - ' + ev.currentContent.name;
-			} else {
-				document.title = baseTitle;
-			}
-		}
 	};
 
 	me.close = function() {
@@ -111,7 +76,8 @@ const settingView = (function () {
 				options.fontSize = document.getElementById('setting-font').value;
 				options.showLineNum = document.getElementById('setting-linenum').checked;
 				me.save();
-				me.reflection();
+				// Notify main event
+				document.dispatchEvent(new CustomEvent('setting_change'));
 			}, false);
 		});
 	}, false);

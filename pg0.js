@@ -1,5 +1,18 @@
 "use strict";
 
+const options = {
+	execMode: 'PG0',
+	execSpeed: 250,
+	fontSize: 18,
+	showLineNum: true,
+	boundary: {
+		verX: 400,
+		verY: 150,
+		consoleY: 150,
+		variable: 200
+	}
+};
+
 let ev, vv, cv;
 let baseTitle = document.title;
 
@@ -14,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}
 
+	// Width of resize area
 	const _rw = window.getComputedStyle(document.body).getPropertyValue('--resize-with');
 	let rw = parseInt(_rw.replace(/[^0-9]/g, ''));
 	const ua = user_agent.get();
@@ -22,9 +36,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.style.setProperty('--resize-with', rw + 'px');
 	}
 
+	// Initializing the view
 	ev = new editorView(document.getElementById('editor'), document.getElementById('line-number'));
 	setTimeout(function() {
-		ev.loadState();
+		if (!ev.loadState()) {
+			ev.setText("cnt = 0\ni = 1\nwhile (i <= 10) {\n\tcnt = cnt + i\n\ti = i + 1\n}\nexit cnt", '');
+			settingView.save();
+		}
 		if (ev.currentContent.name) {
 			document.title = baseTitle + ' - ' + ev.currentContent.name;
 		}
@@ -38,20 +56,34 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('exec-button').setAttribute('title', resource.CTRL_EXEC);
 	document.getElementById('step-button').setAttribute('title', resource.CTRL_STEP_EXEC);
 	document.getElementById('stop-button').setAttribute('title', resource.CTRL_STOP);
-	document.getElementById('exec_speed').setAttribute('title', resource.CTRL_EXEC_SPEED);
+	document.getElementById('exec-speed').setAttribute('title', resource.CTRL_EXEC_SPEED);
 	for (let key in resource.EXEC_SPEED) {
 		const op = document.createElement('option');
 		op.value = key;
 		op.textContent = resource.EXEC_SPEED[key];
-		document.getElementById('exec_speed').append(op);
+		document.getElementById('exec-speed').append(op);
 	}
 
-	if (!settingView.load() && !ev.getText()) {
-		ev.setText("cnt = 0\ni = 1\nwhile (i <= 10) {\n\tcnt = cnt + i\n\ti = i + 1\n}\nexit cnt", '');
-		settingView.save();
-	}
-	document.getElementById('exec_speed').value = options.execSpeed;
+	// Load settings
+	settingView.load();
+	document.getElementById('exec-speed').value = options.execSpeed;
 	vv.setBoundary(options.boundary.variable);
+
+	document.addEventListener('setting_change', function(e) {
+		document.getElementById('line-container').style.display = (options.showLineNum) ? 'block' : 'none';
+		document.body.style.setProperty('--font-size', options.fontSize + 'px');
+		if (options.execMode === 'PG0') {
+			baseTitle = 'PG0(Web)';
+		} else {
+			baseTitle = 'PG0.5(Web)';
+		}
+		if (ev && ev.currentContent.name) {
+			document.title = baseTitle + ' - ' + ev.currentContent.name;
+		} else {
+			document.title = baseTitle;
+		}
+	}, false);
+	document.dispatchEvent(new CustomEvent('setting_change'));
 
 	document.addEventListener('keydown', async function(e) {
 		switch (e.key) {
@@ -273,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.scrollTo(0, 0);
 	}, false);
 
-	document.getElementById('exec_speed').addEventListener('change', function(e) {
+	document.getElementById('exec-speed').addEventListener('change', function(e) {
 		options.execSpeed = parseInt(this.value)
 		settingView.save();
 	}, false);
@@ -521,6 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }, false);
 
+// IO functions
 ScriptExec.lib['error'] = async function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
@@ -558,6 +591,7 @@ ScriptExec.lib['input'] = async function(ei, param, ret) {
 	return 0;
 };
 
+// Exec script
 let run = false;
 let step = false;
 let execLine = -1;
