@@ -20,9 +20,9 @@ function editorView(editor, lineNumber) {
 		observer.observe(editorContainer);
 	}
 
-	this.storageKey = 'pg0_text';
-	this.undoCount = 50;
-	this.currentContent = {text: '', start: 0, end: 0, name: '', modify: false};
+	this.storageKey = 'pg0_text_v1';
+	this.undoCount = 300;
+	this.currentContent = {text: '', start: 0, end: 0, name: '', modify: false, undo: [], redo: []};
 	that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
 	that.paddingLeft = parseInt(getComputedStyle(editorContainer).paddingLeft);
 
@@ -30,7 +30,7 @@ function editorView(editor, lineNumber) {
 		const str = localStorage.getItem(that.storageKey);
 		if (str) {
 			const state = JSON.parse(str);
-			editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
+			editor.textContent = state.text;
 			setAllLine();
 			updateLineNumber();
 			that.currentContent = state;
@@ -48,12 +48,9 @@ function editorView(editor, lineNumber) {
 		editor.textContent = str.replace(/\r/g, '');
 		setAllLine();
 		updateLineNumber();
-		const encodeText = btoa(RawDeflate.deflate(encodeURIComponent(that.getText())));
-		that.currentContent = {text: encodeText, start: 0, end: 0, name: name, modify: false};
+		that.currentContent = {text: that.getText(), start: 0, end: 0, name: name, modify: false, undo: [], redo: []};
 		that.restoreSelect();
 		that.showCaret();
-		undoStack = [];
-		redoStack = [];
 		that.saveState();
 	};
 	this.getText = function() {
@@ -341,20 +338,14 @@ function editorView(editor, lineNumber) {
 		that.showCaret();
 	};
 
-	let undoStack = [];
-	let redoStack = [];
 	this.undo = function() {
-		if (undoStack.length > 0) {
-			redoStack.push(that.currentContent);
-			that.currentContent = undoStack.pop();
-			setUndoText(that.currentContent);
+		if (that.currentContent.undo.length > 0) {
+			that.currentContent.redo.push(setUndoText(that.currentContent.undo.pop()));
 		}
 	};
 	this.redo = function() {
-		if (redoStack.length > 0) {
-			undoStack.push(that.currentContent);
-			that.currentContent = redoStack.pop();
-			setUndoText(that.currentContent);
+		if (that.currentContent.redo.length > 0) {
+			that.currentContent.undo.push(setUndoText(that.currentContent.redo.pop()));
 		}
 	};
 
@@ -813,26 +804,57 @@ function editorView(editor, lineNumber) {
 	}
 
 	function setCurrentContent() {
-		const encodeText = btoa(RawDeflate.deflate(encodeURIComponent(that.getText())));
-		if (that.currentContent.text === encodeText) {
+		const newText = that.getText();
+		if (that.currentContent.text === newText) {
 			return;
 		}
-		undoStack.push(that.currentContent);
-		redoStack = [];
-		if (undoStack.length > that.undoCount) {
-			undoStack.shift();
+		const newDiff = diff(that.currentContent.text, newText);
+		newDiff.cs = that.currentContent.start;
+		newDiff.ce = that.currentContent.end;
+		that.currentContent.undo.push(newDiff);
+		that.currentContent.redo = [];
+		if (that.currentContent.undo.length > that.undoCount) {
+			that.currentContent.undo.shift();
 		}
-		that.currentContent = {text: encodeText, start: 0, end: 0, name: that.currentContent.name, modify: that.currentContent.modify};
+		that.currentContent.text = newText;
+		that.currentContent.start = 0;
+		that.currentContent.end = 0;
 		that.saveSelect();
 	}
-	function setUndoText(state) {
-		editor.textContent = decodeURIComponent(RawDeflate.inflate(atob(state.text)));
+	function setUndoText(oldDiff) {
+		const oldText = that.getText();
+		const newText = applyPatch(oldText, oldDiff);
+		const newDiff = diff(oldText, newText);
+		newDiff.cs = that.currentContent.start;
+		newDiff.ce = that.currentContent.end;
+		editor.textContent = newText;
 		setAllLine();
 		updateLineNumber();
-		that.currentContent.start = state.start;
-		that.currentContent.end = state.end;
+		that.currentContent.text = newText;
+		that.currentContent.start = oldDiff.cs;
+		that.currentContent.end = oldDiff.ce;
 		that.restoreSelect();
 		that.showCaret();
 		that.saveState();
+		return newDiff;
+	}
+	function diff(oldText, newText) {
+		let start = 0;
+		let oend = oldText.length;
+		let nend = newText.length;
+		while (start < oend && start < nend && oldText[start] === newText[start]) {
+			start++;
+		}
+		while (oend > start && nend > start && oldText[oend - 1] === newText[nend - 1]) {
+			oend--;
+			nend--;
+		}
+		if (start === oend) {
+			return {s: start, e: nend, t: ''};
+		}
+		return {s: start, e: nend, t: oldText.slice(start, oend)};
+	}
+	function applyPatch(text, diff) {
+		return text.slice(0, diff.s) + diff.t + text.slice(diff.e);
 	}
 }

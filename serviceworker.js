@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v74';
+const CACHE_VERSION = 'pg0-v78';
 
 const resources = [
 	'./',
@@ -21,8 +21,6 @@ const resources = [
 	'utils/date_format.js',
 	'utils/message.js',
 	'utils/pg0_string.js',
-	'utils/rawdeflate.js',
-	'utils/rawinflate.js',
 	'utils/reset.css',
 	'utils/user_agent.js',
 
