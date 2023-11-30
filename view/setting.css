@@ -37,8 +37,8 @@
 	height: 30px;
 	width: 30px;
 }
-.close:before,
-.close:after {
+.close::before,
+.close::after {
 	content: '';
 	display: block;
 	height: 2px;
@@ -49,10 +49,10 @@
 	top: 14px;
 	left: 7px;
 }
-.close:before {
+.close::before {
 	transform: rotate(45deg);
 }
-.close:after {
+.close::after {
 	transform: rotate(-45deg);
 }
 .close:hover, .close:focus {
