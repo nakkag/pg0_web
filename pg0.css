@@ -17,16 +17,6 @@ body::before {
 	display: none;
 	content: "landscape";
 }
-body::after {
-	content: "";
-	position: absolute;
-	top: env(safe-area-inset-top);
-	left: calc(env(safe-area-inset-left) - 1px);
-	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) + 2px);
-	height: calc(100dvh - env(safe-area-inset-top));
-	background-color: #ccc;
-	z-index: -1;
-}
 
 .menu-toggle {
 	display: none;
