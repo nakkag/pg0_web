@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	let editFocus = false;
 	function setGridTemplate() {
 		if (editFocus) {
-			document.getElementById('container').style.height = window.visualViewport.height + 'px';
+			document.getElementById('container').style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
 			if (checkOrientation() === 0) {
 				document.getElementById('container').style.gridTemplateRows = 'max-content 1fr 0px 0px 0px 0px max-content';
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr 0px 0px max-content';
 			}
 		} else {
-			document.getElementById('container').style.height = '100dvh';
+			document.getElementById('container').style.height = 'calc(100dvh - env(safe-area-inset-top))';
 			if (checkOrientation() === 0) {
 				document.getElementById('container').style.gridTemplateRows = `max-content 1fr ${rw}px ${options.boundary.verY}px ${rw}px ${options.boundary.consoleY}px 0`;
 				document.getElementById('container').style.gridTemplateColumns = 'max-content 1fr';
@@ -290,10 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		}, false);
 		window.visualViewport.addEventListener('resize', function() {
 			if (editFocus) {
-				document.getElementById('container').style.height = window.visualViewport.height + 'px';
+				document.getElementById('container').style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
 				ev.showCaret();
-			} else {
-				document.getElementById('container').style.height = '100dvh';
 			}
 		});
 	} else {

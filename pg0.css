@@ -21,7 +21,7 @@ body::before {
 	cursor: pointer;
 	position: fixed;
 	display: flex;
-	top: 5px;
+	top: calc(5px + env(safe-area-inset-top));
 	right: calc(7px + env(safe-area-inset-left));
 	height: calc(var(--font-size) * 1.8);
 	width: calc(var(--font-size) * 1.8);
@@ -67,6 +67,7 @@ body::before {
 	top: 0;
 	right: calc(-300px - env(safe-area-inset-right));
 	width: calc(300px + env(safe-area-inset-right));
+	padding-top: env(safe-area-inset-top);
 	height: 100%;
 	background-color: #f1f3f4;
 	overflow-y: auto;
@@ -117,12 +118,17 @@ body::before {
 	font-size: calc(var(--font-size) - 4px);
 }
 
+html {
+	min-height: calc(100% + env(safe-area-inset-top));
+}
+
 #container {
 	background-color: #fff;
 	overflow: hidden;
+	top: 0;
 	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
-	margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
-	height: 100dvh;
+	margin: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+	height: calc(100dvh - env(safe-area-inset-top));
 	display: grid;
 	grid-template-rows: max-content 1fr var(--resize-with) 0 0;
 	grid-template-columns: max-content 1fr var(--resize-with) 0;
@@ -131,12 +137,12 @@ body::before {
 		"console-resizer console-resizer console-resizer console-resizer"
 		"console console console console"
 		"key key key key";
-	outline: 1px solid #ccc;
+	outline-left: 1px solid #ccc;
+	outline-right: 1px solid #ccc;
 }
 
 #container.full {
 	position: fixed;
-	top: 0;
 }
 
 #ctrl-container {
