@@ -116,7 +116,7 @@ function editorView(editor, lineNumber) {
 	};
 
 	this.getCaretLineIndex = function() {
-		const lines = that.getText().substring(0, that.caret[0]).split("\n");
+		const lines = that.getText().substring(0, that.currentContent.caret[0]).split("\n");
 		return lines.length - 1;
 	};
 	this.getLineNode = function(pos) {
@@ -277,7 +277,7 @@ function editorView(editor, lineNumber) {
 		selection.removeAllRanges();
 		selection.addRange(newRange);
 
-		setCurrentContent();
+		updateContent();
 		that.showCaret();
 	};
 
@@ -338,7 +338,7 @@ function editorView(editor, lineNumber) {
 		}
 		selection.removeAllRanges();
 		selection.addRange(range);
-		setCurrentContent();
+		updateContent();
 		that.showCaret();
 	};
 
@@ -386,7 +386,7 @@ function editorView(editor, lineNumber) {
 				setCaretPosition(pos - 1);
 			}
 		}
-		setCurrentContent();
+		updateContent();
 	}, false);
 
 	editor.addEventListener('compositionstart', function(e) {
@@ -394,7 +394,7 @@ function editorView(editor, lineNumber) {
 	}, false);
 
 	editor.addEventListener('compositionend', function(e) {
-		setCurrentContent();
+		updateContent();
 	}, false);
 
 	editor.addEventListener('paste', function(e) {
@@ -800,24 +800,22 @@ function editorView(editor, lineNumber) {
 		that.showCaret();
 	}
 
-	function setCurrentContent() {
+	function updateContent() {
 		const newText = that.getText();
-		if (that.currentContent.text === newText) {
-			return;
+		if (that.currentContent.text !== newText) {
+			// Set undo
+			const newDiff = diff(that.currentContent.text, newText);
+			newDiff.c = [that.currentContent.caret[0], that.currentContent.caret[1]];
+			that.currentContent.undo.push(newDiff);
+			that.currentContent.redo = [];
+			if (that.currentContent.undo.length > that.undoCount) {
+				that.currentContent.undo.shift();
+			}
+			that.currentContent.text = newText;
 		}
-		// Create diff
-		const newDiff = diff(that.currentContent.text, newText);
-		newDiff.c = [that.currentContent.caret[0], that.currentContent.caret[1]];
-		// Create currentContent
-		that.currentContent.undo.push(newDiff);
-		that.currentContent.redo = [];
-		if (that.currentContent.undo.length > that.undoCount) {
-			that.currentContent.undo.shift();
-		}
-		that.currentContent.text = newText;
+		// Update text
 		that.currentContent.modify = true;
 		that.saveSelect(true);
-		// Update text
 		if (!editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
 			setAllLine();
 		} else {
