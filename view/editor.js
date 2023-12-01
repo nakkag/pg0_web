@@ -829,17 +829,9 @@ function editorView(editor, lineNumber) {
 		let start = 0;
 		let oend = oldText.length;
 		let nend = newText.length;
-		while (start < oend && start < nend && oldText[start] === newText[start]) {
-			start++;
-		}
-		while (oend > start && nend > start && oldText[oend - 1] === newText[nend - 1]) {
-			oend--;
-			nend--;
-		}
-		if (start === oend) {
-			return {s: [start, nend], t: ''};
-		}
-		return {s: [start, nend], t: oldText.slice(start, oend)};
+		for (; start < oend && start < nend && oldText[start] === newText[start]; start++);
+		for (; oend > start && nend > start && oldText[oend - 1] === newText[nend - 1]; oend--, nend--);
+		return {s: [start, nend], t: ((start === oend) ? '' : oldText.slice(start, oend))};
 	}
 	function applyPatch(text, diff) {
 		return text.slice(0, diff.s[0]) + diff.t + text.slice(diff.s[1]);
