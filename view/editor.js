@@ -50,6 +50,7 @@ function editorView(editor, lineNumber) {
 		updateLineNumber();
 		that.currentContent = initContent();
 		that.currentContent.text = that.getText();
+		that.currentContent.name = name;
 		that.restoreSelect();
 		that.showCaret();
 		that.saveState();
