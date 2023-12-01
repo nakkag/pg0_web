@@ -72,10 +72,17 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.addEventListener('setting_change', function(e) {
 		document.getElementById('line-container').style.display = (options.showLineNum) ? 'block' : 'none';
 		document.body.style.setProperty('--font-size', options.fontSize + 'px');
+		let ex;
 		if (options.execMode === 'PG0') {
 			baseTitle = 'PG0(Web)';
+			ex = false;
 		} else {
 			baseTitle = 'PG0.5(Web)';
+			ex = true;
+		}
+		if (ev.extension !== ex) {
+			ev.extension = ex;
+			ev.loadState();
 		}
 		if (ev && ev.currentContent.name) {
 			document.title = baseTitle + ' - ' + ev.currentContent.name;

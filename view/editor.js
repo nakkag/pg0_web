@@ -22,6 +22,7 @@ function editorView(editor, lineNumber) {
 
 	this.storageKey = 'pg0_text_v2';
 	this.undoCount = 300;
+	this.extension = true;
 	this.currentContent = initContent();
 	that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
 	that.paddingLeft = parseInt(getComputedStyle(editorContainer).paddingLeft);
@@ -572,7 +573,9 @@ function editorView(editor, lineNumber) {
 		str = str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span class="string-literal">&quot;$1&quot;</span>');
 		str = str.replace(/'([^'\\]*(\\.[^'\\]*)*)'/g, '<span class="string-literal">&#39;$1&#39;</span>');
 		str = str.replace(regKeywords, function(match) {return `<span class="keyword">${match}</span>`;});
-		str = str.replace(regKeywordsEx, function(match) {return `<span class="keyword">${match}</span>`;});
+		if (that.extension) {
+			str = str.replace(regKeywordsEx, function(match) {return `<span class="keyword">${match}</span>`;});
+		}
 		str = str.replace(regKeywordsPrep, function(match) {return `<span class="keyword">${match}</span>`;});
 		str = str.replace(/(\/\/.*)$/gm, '<span class="comment">$1</span>');
 		return str;
