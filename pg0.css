@@ -103,7 +103,6 @@ body::before {
 
 #container {
 	overflow: hidden;
-	top: 0;
 	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
 	margin: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 	height: calc(100dvh - env(safe-area-inset-top));

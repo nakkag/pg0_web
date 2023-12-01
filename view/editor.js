@@ -20,9 +20,9 @@ function editorView(editor, lineNumber) {
 		observer.observe(editorContainer);
 	}
 
-	this.storageKey = 'pg0_text_v1';
+	this.storageKey = 'pg0_text_v2';
 	this.undoCount = 300;
-	this.currentContent = {text: '', start: 0, end: 0, name: '', modify: false, undo: [], redo: []};
+	this.currentContent = initContent();
 	that.paddingTop = parseInt(getComputedStyle(editorContainer).paddingTop);
 	that.paddingLeft = parseInt(getComputedStyle(editorContainer).paddingLeft);
 
@@ -48,7 +48,8 @@ function editorView(editor, lineNumber) {
 		editor.textContent = str.replace(/\r/g, '');
 		setAllLine();
 		updateLineNumber();
-		that.currentContent = {text: that.getText(), start: 0, end: 0, name: name, modify: false, undo: [], redo: []};
+		that.currentContent = initContent();
+		that.currentContent.text = that.getText();
 		that.restoreSelect();
 		that.showCaret();
 		that.saveState();
@@ -114,10 +115,7 @@ function editorView(editor, lineNumber) {
 	};
 
 	this.getCaretLineIndex = function() {
-		if (that.currentContent.start === undefined) {
-			return -1;
-		}
-		const lines = that.getText().substring(0, that.currentContent.start).split("\n");
+		const lines = that.getText().substring(0, that.caret[0]).split("\n");
 		return lines.length - 1;
 	};
 	this.getLineNode = function(pos) {
@@ -193,34 +191,40 @@ function editorView(editor, lineNumber) {
 		that.saveSelect();
 	};
 
-	this.saveSelect = function() {
+	this.saveSelect = function(saveInput) {
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
 		}
 		const range = selection.getRangeAt(0);
-		that.currentContent.start = rangeToOffset(range.startContainer, range.startOffset);
-		that.currentContent.end = rangeToOffset(range.endContainer, range.endOffset);
+		that.currentContent.caret = [
+			rangeToOffset(range.startContainer, range.startOffset),
+			rangeToOffset(range.endContainer, range.endOffset)
+		];
+		if (saveInput) {
+			that.currentContent.input = [
+				that.currentContent.caret[0],
+				that.currentContent.caret[1]
+			];
+		}
 		that.saveState();
 	};
 	this.restoreSelect = function() {
-		if (that.currentContent.start !== undefined) {
-			const selection = window.getSelection();
-			if (!selection.rangeCount) {
-				return;
-			}
-			const newRange = document.createRange();
-			const start = offsetToRange(that.currentContent.start);
-			if (start) {
-				newRange.setStart(start.node, start.offset);
-			}
-			const end = offsetToRange(that.currentContent.end);
-			if (end) {
-				newRange.setEnd(end.node, end.offset);
-			}
-			selection.removeAllRanges();
-			selection.addRange(newRange);
+		const selection = window.getSelection();
+		if (!selection.rangeCount) {
+			return;
 		}
+		const newRange = document.createRange();
+		const start = offsetToRange(that.currentContent.caret[0]);
+		if (start) {
+			newRange.setStart(start.node, start.offset);
+		}
+		const end = offsetToRange(that.currentContent.caret[1]);
+		if (end) {
+			newRange.setEnd(end.node, end.offset);
+		}
+		selection.removeAllRanges();
+		selection.addRange(newRange);
 	};
 	this.deleteSelect = function() {
 		const selection = window.getSelection();
@@ -273,26 +277,25 @@ function editorView(editor, lineNumber) {
 		selection.addRange(newRange);
 
 		setCurrentContent();
-		updateContent();
 		that.showCaret();
 	};
 
 	this.inputTab = function(shiftKey) {
-		if (that.currentContent.start === that.currentContent.end) {
+		if (that.currentContent.caret[0] === that.currentContent.caret[1]) {
 			that.deleteSelect();
 			that.insertText("\t");
 			return;
 		}
-		const str = that.getText().substring(that.currentContent.start, that.currentContent.end);
+		const str = that.getText().substring(that.currentContent.caret[0], that.currentContent.caret[1]);
 		if (str.indexOf("\n") === -1) {
 			that.deleteSelect();
 			that.insertText("\t");
 			return;
 		}
 		// Change of indent
-		let lines = that.getText().substring(0, that.currentContent.start).split("\n");
+		let lines = that.getText().substring(0, that.currentContent.caret[0]).split("\n");
 		const startLine = lines.length - 1;
-		lines = that.getText().substring(0, that.currentContent.end).split("\n");
+		lines = that.getText().substring(0, that.currentContent.caret[1]).split("\n");
 		let endLine = lines.length - 1;
 		if (!lines[endLine]) {
 			endLine--;
@@ -358,9 +361,11 @@ function editorView(editor, lineNumber) {
 		if (e.inputType === 'historyUndo') {
 			e.preventDefault();
 			that.undo();
+			return;
 		} else if (e.inputType === 'historyRedo') {
 			e.preventDefault();
 			that.redo();
+			return;
 		} else if (e.inputType === 'insertText' && e.data === '}') {
 			const pos = getCaretPosition();
 			const lines = that.getText().substring(0, pos).split("\n");
@@ -379,11 +384,8 @@ function editorView(editor, lineNumber) {
 				node.innerHTML = setKeyword(tagEscape(str));
 				setCaretPosition(pos - 1);
 			}
-			setCurrentContent();
-		} else {
-			setCurrentContent();
 		}
-		updateContent();
+		setCurrentContent();
 	}, false);
 
 	editor.addEventListener('compositionstart', function(e) {
@@ -392,7 +394,6 @@ function editorView(editor, lineNumber) {
 
 	editor.addEventListener('compositionend', function(e) {
 		setCurrentContent();
-		updateContent();
 	}, false);
 
 	editor.addEventListener('paste', function(e) {
@@ -462,7 +463,7 @@ function editorView(editor, lineNumber) {
 	}, false);
 
 	editor.addEventListener('click', function(e) {
-		if (that.currentContent.start === that.currentContent.end) {
+		if (that.currentContent.caret[0] === that.currentContent.caret[1]) {
 			that.showCaret();
 		}
 	}, false);
@@ -557,6 +558,10 @@ function editorView(editor, lineNumber) {
 				}
 			}
 		};
+	}
+
+	function initContent() {
+		return {text: '', name: '', modify: false, caret: [0, 0], input: [0, 0], undo: [], redo: []};
 	}
 
 	function tagEscape(str) {
@@ -685,17 +690,6 @@ function editorView(editor, lineNumber) {
 		}
 		return false;
 	}
-	function updateContent() {
-		that.currentContent.modify = true;
-		that.saveSelect();
-		if (!editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
-			setAllLine();
-		} else {
-			updateLine();
-		}
-		updateLineNumber();
-		that.restoreSelect();
-	}
 
 	function rangeToOffset(container, offset) {
 		const selection = window.getSelection();
@@ -810,35 +804,28 @@ function editorView(editor, lineNumber) {
 		if (that.currentContent.text === newText) {
 			return;
 		}
+		// Create diff
 		const newDiff = diff(that.currentContent.text, newText);
-		newDiff.cs = that.currentContent.start;
-		newDiff.ce = that.currentContent.end;
+		newDiff.c = [that.currentContent.caret[0], that.currentContent.caret[1]];
+		// Create currentContent
 		that.currentContent.undo.push(newDiff);
 		that.currentContent.redo = [];
 		if (that.currentContent.undo.length > that.undoCount) {
 			that.currentContent.undo.shift();
 		}
 		that.currentContent.text = newText;
-		that.currentContent.start = 0;
-		that.currentContent.end = 0;
-		that.saveSelect();
-	}
-	function setUndoText(oldDiff) {
-		const oldText = that.getText();
-		const newText = applyPatch(oldText, oldDiff);
-		const newDiff = diff(oldText, newText);
-		newDiff.cs = that.currentContent.start;
-		newDiff.ce = that.currentContent.end;
-		editor.textContent = newText;
-		setAllLine();
+		that.currentContent.modify = true;
+		that.saveSelect(true);
+		// Update text
+		if (!editor.childNodes[0] || editor.childNodes[0].nodeName !== 'DIV' || isMultiLine()) {
+			setAllLine();
+		} else {
+			updateLine();
+		}
 		updateLineNumber();
-		that.currentContent.text = newText;
-		that.currentContent.start = oldDiff.cs;
-		that.currentContent.end = oldDiff.ce;
 		that.restoreSelect();
-		that.showCaret();
-		return newDiff;
 	}
+
 	function diff(oldText, newText) {
 		let start = 0;
 		let oend = oldText.length;
@@ -851,11 +838,29 @@ function editorView(editor, lineNumber) {
 			nend--;
 		}
 		if (start === oend) {
-			return {s: start, e: nend, t: ''};
+			return {s: [start, nend], t: ''};
 		}
-		return {s: start, e: nend, t: oldText.slice(start, oend)};
+		return {s: [start, nend], t: oldText.slice(start, oend)};
 	}
 	function applyPatch(text, diff) {
-		return text.slice(0, diff.s) + diff.t + text.slice(diff.e);
+		return text.slice(0, diff.s[0]) + diff.t + text.slice(diff.s[1]);
+	}
+	function setUndoText(oldDiff) {
+		// Restore from diff
+		const oldText = that.getText();
+		const newText = applyPatch(oldText, oldDiff);
+		const newDiff = diff(oldText, newText);
+		newDiff.c = [that.currentContent.input[0], that.currentContent.input[1]];
+		// Updating text
+		editor.textContent = newText;
+		setAllLine();
+		updateLineNumber();
+		// Create currentContent
+		that.currentContent.text = newText;
+		that.currentContent.caret = [oldDiff.c[0], oldDiff.c[1]];
+		that.currentContent.input = [oldDiff.c[0], oldDiff.c[1]];
+		that.restoreSelect();
+		that.showCaret();
+		return newDiff;
 	}
 }
