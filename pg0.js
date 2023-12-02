@@ -69,9 +69,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		settingView.save();
 		setTimeout(function() {
 			messageView.callback = function() {
-				const url = document.getElementById('menu-tutorial').getAttribute('href');
-				if (!window.open(url, '_blank')) {
-					location.href = url;
+				if (!window.open(resource.TUTORIAL_URL, '_blank')) {
+					location.href = resource.TUTORIAL_URL;
 				}
 			};
 			messageView.show(resource.MSG_TUTORIAL);
@@ -411,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('menu-new').textContent = resource.MENU_NEW;
 	document.getElementById('menu-open').textContent = resource.MENU_OPEN;
 	document.getElementById('menu-save').textContent = resource.MENU_SAVE;
-	document.getElementById('menu-run-to-cursor').textContent = resource.MENU_RUN_TO_CURSOR;
+	document.getElementById('menu-exec-to-cursor').textContent = resource.MENU_EXEC_TO_CURSOR;
 	document.getElementById('menu-clear').textContent = resource.MENU_CLEAR;
 	document.getElementById('menu-setting').textContent = resource.MENU_SETTING;
 	document.getElementById('menu-tutorial').textContent = resource.MENU_TUTORIAL;
@@ -452,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			case 'menu-save':
 				await fileSave();
 				break;
-			case 'menu-run-to-cursor':
+			case 'menu-exec-to-cursor':
 				document.getElementById('menu-toggle').checked = false;
 				await execToCursor();
 				break;
@@ -462,6 +461,11 @@ document.addEventListener('DOMContentLoaded', function() {
 				break;
 			case 'menu-setting':
 				settingView.show();
+				break;
+			case 'menu-tutorial':
+				if (!window.open(resource.TUTORIAL_URL, '_blank')) {
+					location.href = resource.TUTORIAL_URL;
+				}
 				break;
 			}
 			document.getElementById('menu-toggle').checked = false;

@@ -1,18 +1,18 @@
 "use strict";
 
 let resource = {
-	EXEC_SPEED: {'0': 'No Wait', '1': 'Fast', '250': 'Normal', '500': 'Slow'},
+	EXEC_SPEED: {'0': 'No wait', '1': 'Fast', '250': 'Normal', '500': 'Slow'},
 
-	SETTING_MODE_TITLE: 'Exec mode',
+	SETTING_MODE_TITLE: 'Execution mode',
 	SETTING_MODE: {'PG0': 'PG0', 'PG0_5': 'PG0.5'},
 	SETTING_FONT_SIZE_TITLE: 'Font size',
 	SETTING_FONT_SIZE: {'14': 'Small', '18': 'Medium', '24': 'Large'},
-	SETTING_LINENUM_TITLE: 'Show Line number',
+	SETTING_LINENUM_TITLE: 'Show line number',
 
-	CTRL_EXEC: 'Exec',
-	CTRL_STEP_EXEC: 'Step exec',
+	CTRL_EXEC: 'Execution',
+	CTRL_STEP_EXEC: 'Step execution',
 	CTRL_STOP: 'Stop',
-	CTRL_EXEC_SPEED: 'Exec speed',
+	CTRL_EXEC_SPEED: 'Execution speed',
 
 	CONSOLE_START: 'Start',
 	CONSOLE_END: 'End',
@@ -22,7 +22,7 @@ let resource = {
 	MENU_NEW: 'New',
 	MENU_OPEN: 'Open local file',
 	MENU_SAVE: 'Save to local file',
-	MENU_RUN_TO_CURSOR: 'Run to Cursor',
+	MENU_EXEC_TO_CURSOR: 'Execute to cursor',
 	MENU_CLEAR: 'Claer console',
 	MENU_SETTING: 'Setting',
 	MENU_TUTORIAL: 'Tutorial',
@@ -33,9 +33,11 @@ let resource = {
 	MSG_NEW: 'Are you sure you want your changes to be discarded?',
 	MSG_SAVE: 'Name of file to be saved',
 	MSG_TUTORIAL: 'Do you want to open the tutorial?<br /><br />(The tutorial can be opened at any time from the menu.)',
-	
+
 	DIALOG_YES: 'Yes',
 	DIALOG_NO: 'No',
+
+	TUTORIAL_URL: 'https://nakka.com/soft/pg0/tutorial/index_eng.html',
 };
 
 if (_lang === 'ja') {
@@ -61,7 +63,7 @@ if (_lang === 'ja') {
 		MENU_NEW: '新規',
 		MENU_OPEN: 'ローカルファイルを開く',
 		MENU_SAVE: 'ローカルファイルに保存',
-		MENU_RUN_TO_CURSOR: 'カーソル行まで実行',
+		MENU_EXEC_TO_CURSOR: 'カーソル行まで実行',
 		MENU_CLEAR: '実行結果のクリア',
 		MENU_SETTING: '設定',
 		MENU_TUTORIAL: 'チュートリアル',
@@ -75,5 +77,7 @@ if (_lang === 'ja') {
 
 		DIALOG_YES: 'はい',
 		DIALOG_NO: 'いいえ',
+
+		TUTORIAL_URL: 'https://nakka.com/soft/pg0/tutorial/',
 	};
 }
