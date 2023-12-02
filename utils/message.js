@@ -32,6 +32,10 @@ let resource = {
 
 	MSG_NEW: 'Are you sure you want your changes to be discarded?',
 	MSG_SAVE: 'Name of file to be saved',
+	MSG_TUTORIAL: 'Do you want to open the tutorial?<br /><br />(The tutorial can be opened at any time from the menu.)',
+	
+	DIALOG_YES: 'Yes',
+	DIALOG_NO: 'No',
 };
 
 if (_lang === 'ja') {
@@ -67,5 +71,9 @@ if (_lang === 'ja') {
 
 		MSG_NEW: '変更を破棄してもよろしいですか？',
 		MSG_SAVE: '保存するファイル名',
+		MSG_TUTORIAL: 'チュートリアルを開きますか？<br /><br />(チュートリアルはメニューからいつでも開けます)',
+
+		DIALOG_YES: 'はい',
+		DIALOG_NO: 'いいえ',
 	};
 }

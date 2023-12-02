@@ -1,4 +1,3 @@
-
 #modal-overlay {
 	z-index: 199;
 	position: fixed;
@@ -9,12 +8,11 @@
 	background-color: rgba(0,0,0,0.3);
 }
 
-#setting {
-	display: none;
+.dialog {
 	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
 	font-size: calc(var(--font-size) + 2px);
 	padding: calc(var(--font-size) * 1.6);
-	width: calc(var(--font-size) * 15);
+	width: calc(var(--font-size) * 20);
 	height: fit-content;
 	z-index: 200;
 	box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -24,6 +22,10 @@
 	position: fixed;
 	inset: 0;
 	margin:auto;
+}
+
+#setting {
+	display: none;
 }
 
 .close {
@@ -77,8 +79,33 @@
 	height: var(--font-size);
 }
 
+#message {
+	display: none;
+}
+.message-button-container {
+	padding: 20px 0px 0px 0px;
+	text-align: center;
+}
+.message-button {
+	cursor: default;
+	background-color: #fff;
+	color: #006cff;
+	font-size: calc(var(--font-size) + 2px);
+	border: 1px solid #006cff;
+	vertical-align: middle;
+	text-align: center;
+	border-radius: 10px;
+	margin: 0 8px;
+	padding: 10px 20px;
+	min-width: 110px
+}
+.message-button:active {
+	background-color: #006cff;
+	color: #fff;
+}
+
 @media (orientation: portrait) {
-	#setting {
+	.dialog {
 		width: 75%;
 	}
 }

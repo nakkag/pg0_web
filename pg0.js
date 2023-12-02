@@ -65,7 +65,18 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	// Load settings
-	settingView.load();
+	if (!settingView.load()) {
+		settingView.save();
+		setTimeout(function() {
+			messageView.callback = function() {
+				const url = document.getElementById('menu-tutorial').getAttribute('href');
+				if (!window.open(url, '_blank')) {
+					location.href = url;
+				}
+			};
+			messageView.show(resource.MSG_TUTORIAL);
+		}, 100);
+	}
 	document.getElementById('exec-speed').value = options.execSpeed;
 	vv.setBoundary(options.boundary.variable);
 

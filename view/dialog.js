@@ -14,13 +14,19 @@ const settingView = (function () {
 			options.fontSize = (op.fontSize !== undefined) ? op.fontSize : options.fontSize;
 			options.showLineNum = (op.showLineNum !== undefined) ? op.showLineNum : options.showLineNum;
 			options.boundary = (op.boundary !== undefined) ? op.boundary : options.boundary;
+			return true;
 		}
+		return false;
 	};
-
 	me.save = function() {
 		localStorage.setItem(me.storageKey, JSON.stringify(options));
 	};
 
+	const keyEvent = function(e) {
+		if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
+			me.close();
+		}
+	};
 	me.show = function() {
 		if (document.getElementById('modal-overlay')) {
 			return;
@@ -36,11 +42,12 @@ const settingView = (function () {
 		document.getElementById('setting-mode').value = options.execMode;
 		document.getElementById('setting-font').value = options.fontSize;
 		document.getElementById('setting-linenum').checked = options.showLineNum;
+		document.addEventListener('keydown', keyEvent, false);
 	};
-
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('setting').style.display = 'none';
+		document.removeEventListener('keydown', keyEvent, false);
 	};
 
 	document.addEventListener('DOMContentLoaded', function() {
@@ -64,12 +71,6 @@ const settingView = (function () {
 			me.close();
 		}, false);
 
-		document.addEventListener('keydown', function(e) {
-			if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
-				me.close();
-			}
-		}, false);
-
 		document.querySelectorAll('.setting-item').forEach(function(item) {
 			item.addEventListener('change', function(e) {
 				options.execMode = document.getElementById('setting-mode').value;
@@ -80,6 +81,50 @@ const settingView = (function () {
 				document.dispatchEvent(new CustomEvent('setting_change'));
 			}, false);
 		});
+	}, false);
+
+	return me;
+})();
+
+const messageView = (function () {
+	const me = {};
+
+	me.callback = null;
+
+	const keyEvent = function(e) {
+		if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
+			me.close();
+		}
+	};
+	me.show = function(msg) {
+		if (document.getElementById('modal-overlay')) {
+			return;
+		}
+		const modal = document.createElement('div');
+		modal.setAttribute('id', 'modal-overlay');
+		document.body.append(modal);
+		document.getElementById('message-text').innerHTML = msg;
+		document.querySelector('#message #yes').value = resource.DIALOG_YES;
+		document.querySelector('#message #no').value = resource.DIALOG_NO;
+		document.getElementById('message').style.display = 'block';
+		document.addEventListener('keydown', keyEvent, false);
+	};
+	me.close = function() {
+		document.getElementById('modal-overlay').remove();
+		document.getElementById('message').style.display = 'none';
+		document.removeEventListener('keydown', keyEvent, false);
+	};
+
+	document.addEventListener('DOMContentLoaded', function() {
+		document.querySelector('#message #yes').addEventListener('click', function(e) {
+			if (me.callback) {
+				me.callback();
+			}
+			me.close();
+		}, false);
+		document.querySelector('#message #no').addEventListener('click', function(e) {
+			me.close();
+		}, false);
 	}, false);
 
 	return me;

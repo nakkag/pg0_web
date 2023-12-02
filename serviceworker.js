@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v97';
+const CACHE_VERSION = 'pg0-v106';
 
 const resources = [
 	'./',
@@ -9,20 +9,20 @@ const resources = [
 	'pg0/script_exec.js',
 	'pg0/script_parse.js',
 
-	'view/console.css',
-	'view/console.js',
 	'view/editor.css',
 	'view/editor.js',
-	'view/setting.css',
-	'view/setting.js',
 	'view/variable.css',
 	'view/variable.js',
+	'view/console.css',
+	'view/console.js',
+	'view/dialog.css',
+	'view/dialog.js',
 
+	'utils/user_agent.js',
 	'utils/date_format.js',
 	'utils/message.js',
 	'utils/pg0_string.js',
 	'utils/reset.css',
-	'utils/user_agent.js',
 
 	'image/close.svg',
 	'image/icon.png',
