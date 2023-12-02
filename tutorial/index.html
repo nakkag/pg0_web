@@ -508,12 +508,11 @@
 	Copyright &copy; 1996-2023 by <a href="mailto:nakka@nakka.com">Ohno Tomoaki</a>. All rights reserved.
 </div>
 
-<script>
+<script type="text/javascript">
 document.querySelector('body').addEventListener("click", function(e) {
-	if (!e.target.classList.contains('copy')) {
-		return;
+	if (e.target.classList.contains('copy')) {
+		copyToClipboard(e.target.closest("pre"), e.target);
 	}
-	copyToClipboard(e.target.closest("pre"), e.target);
 });
 function copyToClipboard(textNode, buttonNode) {
 	if (navigator.clipboard) {
