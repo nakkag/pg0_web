@@ -102,6 +102,8 @@ body::before {
 }
 
 #container {
+	position: fixed;
+	top: 0;
 	overflow: hidden;
 	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
 	margin: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
@@ -324,6 +326,45 @@ body::before {
 	#variable-container {
 		border-left: unset;
 		margin: calc(var(--resize-with) / -2 + 4px) 0 calc(var(--resize-with) / -2) 0;
+	}
+
+	#container.mobile .menu-btn {
+		top: unset;
+		bottom: calc(5px + env(safe-area-inset-bottom));
+	}
+	#container.mobile .menu ul {
+		padding-top: 10px;
+	}
+	#container.mobile {
+		grid-template-rows: 1fr var(--resize-with) 0 var(--resize-with) 0 max-content 0;
+		grid-template-areas: "line-number editor"
+			"var-resizer-y var-resizer-y"
+			"var var"
+			"console-resizer console-resizer"
+			"console console"
+			"ctrl ctrl"
+			"key key";
+	}
+	#container.mobile.full {
+		grid-template-rows: 1fr 0px 0px 0px 0px 0px max-content !important;
+	}
+	#container.mobile #ctrl-container {
+		border-top: 1px solid #ccc;
+	}
+	#container.mobile #ctrl-container.full {
+		display: none;
+	}
+	#container.mobile #ctrl {
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+	#container.mobile #line-container {
+		border-top: 1px solid #ccc;
+	}
+	#container.mobile #editor-container {
+		border-top: 1px solid #ccc;
+	}
+	#container.mobile #console {
+		padding-bottom: 0;
 	}
 }
 

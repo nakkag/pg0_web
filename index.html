@@ -22,7 +22,7 @@
 	<link rel="stylesheet" type="text/css" href="view/editor.css?v=39">
 	<link rel="stylesheet" type="text/css" href="view/variable.css?v=27">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=8">
-	<link rel="stylesheet" type="text/css" href="pg0.css?v=190">
+	<link rel="stylesheet" type="text/css" href="pg0.css?v=200">
 	<script type="text/javascript" src="pg0/script_common.js?v=1"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=2"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=3"></script>
@@ -34,15 +34,17 @@
 	<script type="text/javascript" src="utils/date_format.js?v=1"></script>
 	<script type="text/javascript" src="utils/user_agent.js?v=1"></script>
 	<script type="text/javascript" src="utils/message.js?v=16"></script>
-	<script type="text/javascript" src="pg0.js?v=250"></script>
+	<script type="text/javascript" src="pg0.js?v=254"></script>
 </head>
 <body>
 	<div id="container">
 		<div id="ctrl-container">
-			<input type="image" class="ctrl-icon" id="exec-button" src="image/play.svg" onclick="exec(false);"></input>
-			<input type="image" class="ctrl-icon" id="step-button" src="image/step.svg" onclick="exec(true);"></input>
-			<input type="image" class="ctrl-icon" id="stop-button" src="image/stop.svg" onclick="stop();" disabled></input>
-			<select id="exec-speed"></select>
+			<div id="ctrl">
+				<input type="image" class="ctrl-icon" id="exec-button" src="image/play.svg" onclick="exec(false);"></input>
+				<input type="image" class="ctrl-icon" id="step-button" src="image/step.svg" onclick="exec(true);"></input>
+				<input type="image" class="ctrl-icon" id="stop-button" src="image/stop.svg" onclick="stop();" disabled></input>
+				<select id="exec-speed"></select>
+			</div>
 
 			<input type="checkbox" id="menu-toggle" class="menu-toggle">
 			<label for="menu-toggle" class="menu-btn" tabindex="0"><span></span></label>
