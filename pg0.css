@@ -334,6 +334,7 @@ body::before {
 	}
 	#container.mobile .menu ul {
 		padding-top: 10px;
+		padding-bottom: calc(var(--font-size) * 2.2 + 10px);
 	}
 	#container.mobile {
 		grid-template-rows: 1fr var(--resize-with) 0 var(--resize-with) 0 max-content 0;

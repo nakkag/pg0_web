@@ -254,6 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	const container = document.getElementById('container');
+	const editorContainer = document.getElementById('editor-container');
 	if (ua.isiOS || ua.isAndroid) {
 		container.classList.add('mobile');
 	}
@@ -280,14 +281,16 @@ document.addEventListener('DOMContentLoaded', function() {
 	setGridTemplate();
 
 	if (ua.isiOS || ua.isAndroid) {
+		let scrollTop = 0;
 		document.getElementById('editor').addEventListener('focus', function(e) {
 			if (document.getElementById('editor').getAttribute('contenteditable') === 'false') {
 				return;
 			}
 			editFocus = true;
+			scrollTop = editorContainer.scrollTop;
 			container.classList.add('full');
+			editorContainer.classList.add('full');
 			document.getElementById('ctrl-container').classList.add('full');
-			document.getElementById('editor-container').classList.add('full');
 			document.getElementById('variable-container').classList.add('full');
 			document.getElementById('console-container').classList.add('full');
 			document.getElementById('key-container').classList.add('full');
@@ -297,8 +300,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (editFocus) {
 				editFocus = false;
 				container.classList.remove('full');
+				editorContainer.classList.remove('full');
 				document.getElementById('ctrl-container').classList.remove('full');
-				document.getElementById('editor-container').classList.remove('full');
 				document.getElementById('variable-container').classList.remove('full');
 				document.getElementById('console-container').classList.remove('full');
 				document.getElementById('key-container').classList.remove('full');
@@ -312,11 +315,12 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.visualViewport.addEventListener('resize', function() {
 			if (editFocus) {
 				container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
+				editorContainer.scrollTop = scrollTop;
 				ev.showCaret();
 			}
 		});
 	} else {
-		document.getElementById('editor-container').focus();
+		editorContainer.focus();
 	}
 	
 	window.addEventListener('scroll', function(e) {
