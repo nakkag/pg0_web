@@ -63,6 +63,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		op.textContent = resource.EXEC_SPEED[key];
 		document.getElementById('exec-speed').append(op);
 	}
+	document.getElementById('menu-new').textContent = resource.MENU_NEW;
+	document.getElementById('menu-open').textContent = resource.MENU_OPEN;
+	document.getElementById('menu-save').textContent = resource.MENU_SAVE;
+	document.getElementById('menu-exec-to-cursor').textContent = resource.MENU_EXEC_TO_CURSOR;
+	document.getElementById('menu-clear').textContent = resource.MENU_CLEAR;
+	document.getElementById('menu-setting').textContent = resource.MENU_SETTING;
+	document.getElementById('menu-tutorial').textContent = resource.MENU_TUTORIAL;
 
 	// Load settings
 	if (!settingView.load()) {
@@ -151,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 	let resizeFunc = null;
 
+	// Resize of the container
 	document.getElementById('var-resizer-x').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
@@ -233,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		}, false);
 	});
 
+	// Screen resize events
 	let prev_orientation;
 	window.addEventListener('resize', function(e) {
 		const orientation = checkOrientation();
@@ -318,6 +327,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		window.scrollTo(0, 0);
 	}, false);
 
+	// Control events
 	document.getElementById('exec-speed').addEventListener('change', function(e) {
 		options.execSpeed = parseInt(this.value)
 		settingView.save();
@@ -332,6 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	}, false);
 
+	// Key events for mobile
 	document.getElementById('key-container').addEventListener(touchstart, function(e) {
 		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
 		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
@@ -412,14 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('editor').blur();
 	}, false);
 
-	document.getElementById('menu-new').textContent = resource.MENU_NEW;
-	document.getElementById('menu-open').textContent = resource.MENU_OPEN;
-	document.getElementById('menu-save').textContent = resource.MENU_SAVE;
-	document.getElementById('menu-exec-to-cursor').textContent = resource.MENU_EXEC_TO_CURSOR;
-	document.getElementById('menu-clear').textContent = resource.MENU_CLEAR;
-	document.getElementById('menu-setting').textContent = resource.MENU_SETTING;
-	document.getElementById('menu-tutorial').textContent = resource.MENU_TUTORIAL;
-
+	// Menu events
 	document.querySelector('.menu-btn').addEventListener('keydown', function(e) {
 		if (e.key === 'Enter') {
 			const menuToggle = document.getElementById('menu-toggle');

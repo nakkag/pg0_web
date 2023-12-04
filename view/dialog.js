@@ -71,16 +71,14 @@ const settingView = (function () {
 			me.close();
 		}, false);
 
-		document.querySelectorAll('.setting-item').forEach(function(item) {
-			item.addEventListener('change', function(e) {
-				options.execMode = document.getElementById('setting-mode').value;
-				options.fontSize = document.getElementById('setting-font').value;
-				options.showLineNum = document.getElementById('setting-linenum').checked;
-				me.save();
-				// Notify main event
-				document.dispatchEvent(new CustomEvent('setting_change'));
-			}, false);
-		});
+		document.getElementById('setting').addEventListener('change', function(e) {
+			options.execMode = document.getElementById('setting-mode').value;
+			options.fontSize = document.getElementById('setting-font').value;
+			options.showLineNum = document.getElementById('setting-linenum').checked;
+			me.save();
+			// Notify main event
+			document.dispatchEvent(new CustomEvent('setting_change'));
+		}, false);
 	}, false);
 
 	return me;
