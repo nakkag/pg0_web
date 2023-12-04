@@ -749,10 +749,14 @@ function ScriptExec(scis, sci) {
 			return vret;
 		case SYM_EQEQ:
 		case SYM_NTEQ:
-			if (v1.v.type === TYPE_ARRAY && v2.v.type === TYPE_ARRAY && v1.v.type.length === v2.v.type.length) {
+			if (v1.v.type === TYPE_ARRAY && v2.v.type === TYPE_ARRAY && v1.v.array.length === v2.v.array.length) {
 				result = 1;
-				for (let i = 0; i < v1.v.type.length; i++) {
-					const vi = calcValue(ei, v1, v2, SYM_EQEQ);
+				for (let i = 0; i < v1.v.array.length; i++) {
+					if (v1.v.array[i].name !== v2.v.array[i].name) {
+						result = 0;
+						break;
+					}
+					const vi = calcValue(ei, v1.v.array[i], v2.v.array[i], SYM_EQEQ);
 					if (!ScriptExec.getValueBoolean(vi.v)) {
 						result = 0;
 						break;
