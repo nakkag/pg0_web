@@ -167,8 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		resizeFunc = function(e) {
 			const ex = e.x ? e.x : e.touches[0].clientX;
 			options.boundary.verX += x - ex;
-			if (options.boundary.verX < 0) {
-				options.boundary.verX = 0;
+			if (options.boundary.verX < 4) {
+				options.boundary.verX = 4;
 			} else if (options.boundary.verX > window.innerWidth - 100) {
 				options.boundary.verX = window.innerWidth - 100;
 			} else {
@@ -188,8 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		resizeFunc = function(e) {
 			const ey = e.y ? e.y : e.touches[0].clientY;
 			options.boundary.verY += y - ey;
-			if (options.boundary.verY < 0) {
-				options.boundary.verY = 0;
+			if (options.boundary.verY < 4) {
+				options.boundary.verY = 4;
 			} else if (options.boundary.verY > window.innerHeight - 100) {
 				options.boundary.verY = window.innerHeight - 100;
 			} else {
@@ -217,8 +217,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			} else {
 				options.boundary.consoleY += y - ey;
 			}
-			if (options.boundary.consoleY < 0) {
-				options.boundary.consoleY = 0;
+			if (options.boundary.consoleY < 4) {
+				options.boundary.consoleY = 4;
 			} else if (options.boundary.consoleY > window.innerHeight - 100) {
 				options.boundary.consoleY = window.innerHeight - 100;
 			} else {
