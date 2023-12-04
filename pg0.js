@@ -289,22 +289,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			editFocus = true;
 			scrollTop = editorContainer.scrollTop;
 			container.classList.add('full');
-			editorContainer.classList.add('full');
-			document.getElementById('ctrl-container').classList.add('full');
-			document.getElementById('variable-container').classList.add('full');
-			document.getElementById('console-container').classList.add('full');
-			document.getElementById('key-container').classList.add('full');
 			setGridTemplate();
 		}, false);
 		document.getElementById('editor').addEventListener('blur', function(e) {
 			if (editFocus) {
 				editFocus = false;
 				container.classList.remove('full');
-				editorContainer.classList.remove('full');
-				document.getElementById('ctrl-container').classList.remove('full');
-				document.getElementById('variable-container').classList.remove('full');
-				document.getElementById('console-container').classList.remove('full');
-				document.getElementById('key-container').classList.remove('full');
 				setGridTemplate();
 				const node = ev.getLineNode(ev.getCaretLineIndex());
 				if (node) {
