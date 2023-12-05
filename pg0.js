@@ -163,6 +163,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
+		if (resizeFunc) {
+			return;
+		}
 		let x = e.x ? e.x : e.touches[0].clientX;
 		resizeFunc = function(e) {
 			const ex = e.x ? e.x : e.touches[0].clientX;
@@ -184,6 +187,9 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
+		if (resizeFunc) {
+			return;
+		}
 		let y = e.y ? e.y : e.touches[0].clientY;
 		resizeFunc = function(e) {
 			const ey = e.y ? e.y : e.touches[0].clientY;
@@ -204,6 +210,9 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.getElementById('console-resizer').addEventListener(touchstart, function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
+		}
+		if (resizeFunc) {
+			return;
 		}
 		let y = e.y ? e.y : e.touches[0].clientY;
 		resizeFunc = function(e) {
@@ -232,8 +241,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.addEventListener(touchmove, resizeFunc, false);
 	}, false);
 
-	touchend.forEach(function(e) {
-		document.addEventListener(e, function() {
+	touchend.forEach(function(event) {
+		document.addEventListener(event, function() {
 			if (resizeFunc) {
 				document.removeEventListener(touchmove, resizeFunc, false);
 				resizeFunc = null;
