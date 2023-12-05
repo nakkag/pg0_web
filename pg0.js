@@ -673,6 +673,11 @@ async function exec(_step) {
 	document.getElementById('editor').setAttribute('contenteditable', 'true');
 	stopStep = -1;
 	run = false;
+
+	const ua = user_agent.get();
+	if (!ua.isiOS && !ua.isAndroid) {
+		document.getElementById('editor').focus();
+	}
 }
 
 async function loadScript(file) {
@@ -691,23 +696,33 @@ async function _exec(scis, sci, imp) {
 	try {
 		await sp.parse(sci.src, {
 			import: async function(file) {
-				if (!document.getElementById(file)) {
-					return -1;
-				}
-				const _buf = document.getElementById(file).value;
-				if (!_buf) {
-					return 0;
-				}
-				const _sci = Script.initScriptInfo(_buf, {extension: true});
-				scis.push(_sci);
-				await _exec(scis, _sci, false, true);
-				return 0;
-			},
-			library: async function(file) {
-				try {
-					await loadScript(file);
-				} catch(e) {
-					return -1;
+				if (/\.pg0$/i.test(file)) {
+					let res;
+					let buf;
+					try {
+						const url = (/(^https:\/\/)|(^http:\/\/)/i.test(file)) ? 'import.php?url=' + file : file;
+						res = await fetch(url);
+						if (!res.ok) {
+							return -1;
+						}
+						buf = await res.text();
+					} catch(e) {
+						console.error(e);
+						return -1;
+					}
+					const _sci = Script.initScriptInfo(buf, {extension: true});
+					scis.push(_sci);
+					await _exec(scis, _sci, true);
+					if (_sci.ei) {
+						_sci.ei.imp = true;
+					}
+				} else {
+					try {
+						await loadScript(file);
+					} catch(e) {
+						console.error(e);
+						return -1;
+					}
 				}
 				return 0;
 			},
@@ -717,6 +732,16 @@ async function _exec(scis, sci, imp) {
 					let syncCnt = 0;
 					await se.exec(token, {}, {
 						callback: async function(ei) {
+							let wk = ei;
+							for (; wk.parent; wk = wk.parent);
+							if (imp || wk.imp) {
+								syncCnt++;
+								if (syncCnt > 1000) {
+									await new Promise(resolve => setTimeout(resolve, 0));
+									syncCnt = 0;
+								}
+								return 0;
+							}
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
 								execLine = ei.token[ei.index].line;
 								if (step && (stopStep === -1 || stopStep === execLine)) {

@@ -235,7 +235,7 @@ function ScriptParse(sci) {
 	function getToken(pi) {
 		const prevType = pi.type;
 		
-		pi.buf = pi.buf.replace(/^[ \t　]+/, '');
+		pi.buf = pi.buf.replace(/^[ \t\r　]+/, '');
 		if (!pi.buf) {
 			pi.type = SYM_EOF;
 			return;
@@ -511,7 +511,7 @@ function ScriptParse(sci) {
 		}
 		pi.str = m[0];
 		pi.buf = pi.buf.substring(m[0].length);
-		pi.buf = pi.buf.replace(/^[ \t　]+/, '');
+		pi.buf = pi.buf.replace(/^[ \t\r　]+/, '');
 
 		pi.type = that.keyword[pi.str];
 		if (sci.extension && !pi.type) {
@@ -1554,13 +1554,8 @@ function ScriptParse(sci) {
 		switch(cmd) {
 		case 'import':
 			if (await that.import(content)) {
-				if (!/\.js$/i.test(content)) {
-					content += '.js';
-				}
-				if (await that.library(content)) {
-					pi.err = Script.error(sci, errMsg.ERR_SCRIPT, pi.line);
-					return;
-				}
+				pi.err = Script.error(sci, errMsg.ERR_SCRIPT, pi.line);
+				return;
 			}
 			break;
 		case 'option':
