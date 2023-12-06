@@ -1553,6 +1553,7 @@ function ScriptParse(sci) {
 		}
 		switch(cmd) {
 		case 'import':
+			sci.extension = true;
 			if (await that.import(content)) {
 				pi.err = Script.error(sci, errMsg.ERR_SCRIPT, pi.line);
 				return;
