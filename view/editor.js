@@ -229,6 +229,9 @@ function editorView(editor, lineNumber) {
 		selection.addRange(newRange);
 	};
 	this.deleteSelect = function() {
+		if (editor.getAttribute('contenteditable') === 'false') {
+			return;
+		}
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
@@ -261,6 +264,9 @@ function editorView(editor, lineNumber) {
 	};
 
 	this.insertText = function(text) {
+		if (editor.getAttribute('contenteditable') === 'false') {
+			return;
+		}
 		const selection = window.getSelection();
 		if (!selection.rangeCount) {
 			return;
@@ -283,6 +289,9 @@ function editorView(editor, lineNumber) {
 	};
 
 	this.inputTab = function(shiftKey) {
+		if (editor.getAttribute('contenteditable') === 'false') {
+			return;
+		}
 		if (that.currentContent.caret[0] === that.currentContent.caret[1]) {
 			that.deleteSelect();
 			that.insertText("\t");
@@ -344,12 +353,18 @@ function editorView(editor, lineNumber) {
 	};
 
 	this.undo = function() {
+		if (editor.getAttribute('contenteditable') === 'false') {
+			return;
+		}
 		if (that.currentContent.undo.length > 0) {
 			that.currentContent.redo.push(setUndoText(that.currentContent.undo.pop()));
 			that.saveState();
 		}
 	};
 	this.redo = function() {
+		if (editor.getAttribute('contenteditable') === 'false') {
+			return;
+		}
 		if (that.currentContent.redo.length > 0) {
 			that.currentContent.undo.push(setUndoText(that.currentContent.redo.pop()));
 			that.saveState();
@@ -400,6 +415,9 @@ function editorView(editor, lineNumber) {
 
 	editor.addEventListener('paste', function(e) {
 		e.preventDefault();
+		if (editor.getAttribute('contenteditable') === 'false') {
+			return;
+		}
 		that.deleteSelect();
 		let str = (e.clipboardData || window.clipboardData).getData('text').replace(/\r/g, '');
 		that.insertText(str);
