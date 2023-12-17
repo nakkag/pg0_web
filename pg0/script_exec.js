@@ -450,6 +450,10 @@ function ScriptExec(scis, sci) {
 	}
 
 	function declVariable(ei, name, v) {
+		if (name.substring(0, 1) === '&') {
+			ei.err = Script.error(sci, errMsg.ERR_SENTENCE, ei.token[ei.index].line);
+			return null;
+		}
 		if (name in ei.vi) {
 			ei.err = Script.error(sci, errMsg.ERR_DECLARE, ei.token[ei.index].line);
 			return null;
