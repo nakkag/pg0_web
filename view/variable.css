@@ -97,7 +97,7 @@ _:lang(x)+_:-webkit-full-screen-document, .item-name.array > span > .open-icon:a
 }
 
 .shadowing {
-	background-color: gray;
+	opacity: 0.3;
 }
 .modify {
 	color: red;
