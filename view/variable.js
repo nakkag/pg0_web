@@ -23,7 +23,7 @@ function variableView(variable, resizeCallback) {
 
 	this.set = function(ei) {
 		initVar();
-		setVar(ei);
+		setVar(ei, {});
 		finalizeVar();
 	};
 
@@ -186,16 +186,17 @@ function variableView(variable, resizeCallback) {
 			elm.classList.remove('modify');
 		}
 	}
-	function setVar(ei) {
+	function setVar(ei, childVi) {
 		if (!ei) {
 			return;
 		}
-		setVar(ei.parent);
+		setVar(ei.parent, Object.assign({}, childVi, ei.vi));
 		for (let key in ei.vi) {
-			setvi(variable.id + '-' + ei.id, key, ei.vi[key], 0, true);
+			const shadowing = Object.prototype.hasOwnProperty.call(childVi, key);
+			setvi(variable.id + '-' + ei.id, key, ei.vi[key], 0, true, shadowing);
 		}
 	}
-	function setvi(eid, key, v, indent, open) {
+	function setvi(eid, key, v, indent, open, shadowing) {
 		let buf;
 		if (v.type === TYPE_ARRAY) {
 			buf = '{' + pg0_string.arrayToString(v.array) + '}';
@@ -210,16 +211,19 @@ function variableView(variable, resizeCallback) {
 		if (nameNode) {
 			// Update value
 			nameNode.setAttribute('exist', 'true');
+			nameNode.classList.toggle('shadowing', shadowing);
 			valNode = document.getElementById(newEid + '--val');
 			valNode.setAttribute('exist', 'true');
 			if (valNode.textContent !== buf) {
 				valNode.classList.add('modify');
 				valNode.textContent = buf;
 			}
+			valNode.classList.toggle('shadowing', shadowing);
 		} else {
 			// Insert variable
 			nameNode = document.createElement('div');
 			nameNode.classList.add('item-name');
+			nameNode.classList.toggle('shadowing', shadowing);
 			nameNode.setAttribute('id', newEid);
 			nameNode.setAttribute('indent', indent);
 			nameNode.setAttribute('exist', 'true');
@@ -242,6 +246,7 @@ function variableView(variable, resizeCallback) {
 			valNode.setAttribute('exist', 'true');
 			valNode.classList.add('item-val');
 			valNode.classList.add('modify');
+			valNode.classList.toggle('shadowing', shadowing);
 			valNode.textContent = buf;
 			valNode.setAttribute('indent', indent);
 			prevVal.after(valNode);
@@ -258,7 +263,7 @@ function variableView(variable, resizeCallback) {
 			nameNode.classList.add('array');
 			const op = nameNode.classList.contains('open');
 			v.array.forEach(function(a, i) {
-				setvi(newEid, a.name || i, a.v, indent + 1, open && op);
+				setvi(newEid, a.name || i, a.v, indent + 1, open && op, shadowing);
 			});
 		} else {
 			nameNode.classList.remove('array');
