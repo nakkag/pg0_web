@@ -509,6 +509,8 @@ document.addEventListener('DOMContentLoaded', function() {
 				const text = await file.text();
 				ev.setText(text, file.name);
 				document.title = baseTitle + ' - ' + file.name;
+				editorContainer.scrollTop = 0;
+				editorContainer.scrollLeft = 0;
 			} catch(err) {
 				console.error(err);
 				alert(err);
