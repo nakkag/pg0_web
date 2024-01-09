@@ -732,6 +732,7 @@ async function _exec(scis, sci, imp) {
 				const se = new ScriptExec(scis, sci);
 				try {
 					let syncCnt = 0;
+					let sameCnt = 0;
 					await se.exec(token, {}, {
 						callback: async function(ei) {
 							let wk = ei;
@@ -745,6 +746,7 @@ async function _exec(scis, sci, imp) {
 								return 0;
 							}
 							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
+								sameCnt = 0;
 								execLine = ei.token[ei.index].line;
 								if (step && (stopStep === -1 || stopStep === execLine)) {
 									stopStep = -1;
@@ -767,6 +769,12 @@ async function _exec(scis, sci, imp) {
 										vv.set(ei);
 										await new Promise(resolve => setTimeout(resolve, speed));
 									}
+								}
+							} else if (execLine === ei.token[ei.index].line) {
+								sameCnt++;
+								if (sameCnt > 100) {
+									await new Promise(resolve => setTimeout(resolve, 0));
+									sameCnt = 0;
 								}
 							}
 							if (!run) {
