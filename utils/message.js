@@ -9,6 +9,11 @@ let resource = {
 	SETTING_FONT_SIZE: {'14': 'Small', '18': 'Medium', '24': 'Large'},
 	SETTING_LINENUM_TITLE: 'Show line number',
 
+	ONLINE_SAVE_FILE_TITLE: 'File name',
+	ONLINE_SAVE_PASSWORD_TITLE: 'Edit password',
+	ONLINE_SAVE_OVERWRITE_TITLE: 'Replace existing file',
+	ONLINE_SAVE_BUTTON: 'Save',
+
 	CTRL_EXEC: 'Execution',
 	CTRL_STEP_EXEC: 'Step execution',
 	CTRL_STOP: 'Stop',
@@ -20,8 +25,10 @@ let resource = {
 	CONSOLE_RESULT: 'Result:',
 
 	MENU_NEW: 'New',
-	MENU_OPEN: 'Open local file',
-	MENU_SAVE: 'Save to local file',
+	MENU_ONLINE_OPEN: 'Open online',
+	MENU_ONLINE_SAVE: 'Save to online',
+	MENU_LOCAL_OPEN: 'Open local file',
+	MENU_LOCAL_SAVE: 'Save to local file',
 	MENU_EXEC_TO_CURSOR: 'Execute to cursor',
 	MENU_CLEAR: 'Claer console',
 	MENU_SETTING: 'Setting',
@@ -50,6 +57,11 @@ if (_lang === 'ja') {
 		SETTING_FONT_SIZE: {'14': '小さい', '18': '普通', '24': '大きい'},
 		SETTING_LINENUM_TITLE: '行番号を表示',
 
+		ONLINE_SAVE_FILE_TITLE: 'ファイル名',
+		ONLINE_SAVE_PASSWORD_TITLE: '編集パスワード',
+		ONLINE_SAVE_OVERWRITE_TITLE: '既存のファイルを置き換える',
+		ONLINE_SAVE_BUTTON: '保存',
+
 		CTRL_EXEC: '実行',
 		CTRL_STEP_EXEC: 'ステップ実行',
 		CTRL_STOP: '停止',
@@ -61,8 +73,10 @@ if (_lang === 'ja') {
 		CONSOLE_RESULT: '実行結果:',
 
 		MENU_NEW: '新規',
-		MENU_OPEN: 'ローカルファイルを開く',
-		MENU_SAVE: 'ローカルファイルに保存',
+		MENU_ONLINE_OPEN: 'オンラインを開く',
+		MENU_ONLINE_SAVE: 'オンラインに保存',
+		MENU_LOCAL_OPEN: 'ローカルファイルを開く',
+		MENU_LOCAL_SAVE: 'ローカルファイルに保存',
 		MENU_EXEC_TO_CURSOR: 'カーソル行まで実行',
 		MENU_CLEAR: '実行結果のクリア',
 		MENU_SETTING: '設定',

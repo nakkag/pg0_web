@@ -52,8 +52,12 @@
 				<input type="file" id="file-input" style="display: none;"></input>
 				<ul>
 					<li><a href="#" id="menu-new"></a></li>
-					<li><a href="#" id="menu-open"></a></li>
-					<li><a href="#" id="menu-save"></a></li>
+					<hr />
+					<li><a href="#" id="menu-online-open"></a></li>
+					<li><a href="#" id="menu-online-save"></a></li>
+					<hr />
+					<li><a href="#" id="menu-local-open"></a></li>
+					<li><a href="#" id="menu-local-save"></a></li>
 					<hr />
 					<li><a href="#" id="menu-exec-to-cursor"></a></li>
 					<li><a href="#" id="menu-clear"></a></li>
@@ -101,6 +105,18 @@
 		<div><span id="setting-mode-title"></span> <select class="setting-item" id="setting-mode"></select></div>
 		<div><span id="setting-font-title"></span> <select class="setting-item" id="setting-font"></select></div>
 		<div><input type="checkbox" class="setting-item" id="setting-linenum" /><label id="setting-linenum-title" for="setting-linenum"></label></div>
+	</div>
+	<div id="online-open" class="dialog">
+		<a href="#" class="close"></a>
+		<div id="online-open-search"><input type="text" class="setting-item" id="online-open-search-text"></input><input type="image" src="image/search.svg" id="online-open-search-button"></input></div>
+		<div id="online-open-list"></div>
+	</div>
+	<div id="online-save" class="dialog">
+		<a href="#" class="close"></a>
+		<div><span id="online-save-file-title"></span><br /><input type="text" class="setting-item" id="online-save-file"></input></div>
+		<div><span id="online-save-password-title"></span><br /><input type="password" class="setting-item" id="online-save-password"></input></div>
+		<div><input type="checkbox" class="setting-item" id="online-save-overwrite" /><label id="online-save-overwrite-title" for="online-save-overwrite"></label></div>
+		<div><input type="button" class="setting-item" id="online-save-button"></input></div>
 	</div>
 </body>
 </html>

@@ -64,8 +64,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('exec-speed').append(op);
 	}
 	document.getElementById('menu-new').textContent = resource.MENU_NEW;
-	document.getElementById('menu-open').textContent = resource.MENU_OPEN;
-	document.getElementById('menu-save').textContent = resource.MENU_SAVE;
+	document.getElementById('menu-online-open').textContent = resource.MENU_ONLINE_OPEN;
+	document.getElementById('menu-online-save').textContent = resource.MENU_ONLINE_SAVE;
+	document.getElementById('menu-local-open').textContent = resource.MENU_LOCAL_OPEN;
+	document.getElementById('menu-local-save').textContent = resource.MENU_LOCAL_SAVE;
 	document.getElementById('menu-exec-to-cursor').textContent = resource.MENU_EXEC_TO_CURSOR;
 	document.getElementById('menu-clear').textContent = resource.MENU_CLEAR;
 	document.getElementById('menu-setting').textContent = resource.MENU_SETTING;
@@ -463,10 +465,19 @@ document.addEventListener('DOMContentLoaded', function() {
 				ev.setText('', '');
 				document.title = baseTitle;
 				break;
-			case 'menu-open':
+			case 'menu-online-open':
+				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
+					break;
+				}
+				onlineOpenView.show();
+				break;
+			case 'menu-online-save':
+				onlineSaveView.show();
+				break;
+			case 'menu-local-open':
 				await fileOpen();
 				break;
-			case 'menu-save':
+			case 'menu-local-save':
 				await fileSave();
 				break;
 			case 'menu-exec-to-cursor':

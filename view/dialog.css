@@ -104,6 +104,84 @@
 	color: #fff;
 }
 
+#online-save {
+	display: none;
+}
+#online-save div {
+	margin-bottom: var(--font-size);
+}
+#online-save div:last-child {
+	margin-bottom: 0;
+}
+#online-save input[type="text"], #online-save input[type="password"] {
+	font-size: calc(var(--font-size) - 2px);
+	width: 90%;
+}
+#online-save input[type="button"] {
+	font-size: calc(var(--font-size) - 2px);
+}
+
+#online-open {
+	display: none;
+}
+#online-open input[type="text"] {
+	font-size: calc(var(--font-size) - 2px);
+}
+
+#online-open-search {
+	position: relative;
+	margin-top: 10px;
+	padding: 3px 10px;
+	border: 1px solid #999;
+	border-radius: 20px;
+	overflow: hidden;
+}
+#online-open-search-text {
+	width: 95%;
+	border: none;
+}
+#online-open-search-text:focus {
+	outline: 0;
+}
+#online-open-search-button {
+	cursor: pointer;
+	appearance: none;
+	border: none;
+	outline: none;
+	position: absolute;
+	right: 5px;
+	border-radius: 50%;
+	width: calc(var(--font-size) + 2px);
+}
+#online-open-search-button:hover, #online-open-search-button:focus {
+	opacity: 0.7;
+}
+#online-open-search-button:active {
+	opacity: 0.5;
+}
+
+#online-open-list {
+	width: 100%;
+	min-height: 40px;
+	max-height: calc(100dvh - 200px);
+	overflow-y: scroll;
+	border: 1px solid #999;
+	margin: 15px 0;
+}
+.file-item {
+	padding: 10px;
+	border-bottom: 1px solid #ddd;
+}
+.file-item:last-child {
+	border-bottom: 0px;
+}
+.file-item:hover, .file-item:focus {
+	background-color: #eee;
+}
+.file-item:active {
+	background-color: #ddd;
+}
+
 @media (orientation: portrait) {
 	.dialog {
 		width: 75%;
