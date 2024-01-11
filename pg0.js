@@ -469,10 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
 					break;
 				}
-				onlineOpenView.show();
+				await onlineOpenView.show();
 				break;
 			case 'menu-online-save':
-				onlineSaveView.show();
+				await onlineSaveView.show();
 				break;
 			case 'menu-local-open':
 				await fileOpen();

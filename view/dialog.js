@@ -1,5 +1,7 @@
 "use strict";
 
+const apiServer = 'http://localhost:3000';
+
 const settingView = (function () {
 	const me = {};
 
@@ -14,6 +16,8 @@ const settingView = (function () {
 			options.fontSize = (op.fontSize !== undefined) ? op.fontSize : options.fontSize;
 			options.showLineNum = (op.showLineNum !== undefined) ? op.showLineNum : options.showLineNum;
 			options.boundary = (op.boundary !== undefined) ? op.boundary : options.boundary;
+			options.author = op.author || '';
+			options.keyword = op.keyword || '';
 			return true;
 		}
 		return false;
@@ -132,11 +136,38 @@ const onlineOpenView = (function () {
 	const me = {};
 
 	const keyEvent = function(e) {
-		if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
+		if (!document.getElementById('modal-overlay')) {
+			return;
+		}
+		if (e.key === 'Escape') {
 			me.close();
 		}
+		if (e.key === 'Enter') {
+			if (document.activeElement.id === 'online-open-search-text') {
+				document.getElementById('online-open-search-button').click();
+			} else if (document.activeElement.classList.contains('file-item')) {
+				document.activeElement.click();
+			}
+		}
 	};
-	me.show = function() {
+	const openEvent = async function(e) {
+		const item = e.target.closest('.file-item');
+		if (item) {
+			const id = item.getAttribute('id');
+			try {
+				const code = await (await fetch(apiServer + '/api/codes/item/' + id)).json();
+				ev.setText(code.code, code.name);
+				ev.currentContent.onlineId = id;
+				ev.currentContent.author = code.author;
+				// Notify main event
+				document.dispatchEvent(new CustomEvent('setting_change'));
+				me.close();
+			} catch(e) {
+				console.error(e);
+			}
+		}
+	};
+	me.show = async function() {
 		if (document.getElementById('modal-overlay')) {
 			return;
 		}
@@ -147,36 +178,73 @@ const onlineOpenView = (function () {
 		}, false);
 		document.body.append(modal);
 		document.getElementById('online-open').style.display = 'block';
+		document.getElementById('online-open').focus();
+		document.getElementById('online-open-search-text').value = options.keyword || '';
 		document.addEventListener('keydown', keyEvent, false);
+		document.addEventListener('click', openEvent, false);
 
 		document.getElementById('online-open-list').innerHTML = '';
-		for (let i = 0; i < 30; i++) {
-			const nameNode = document.createElement('div');
-			nameNode.classList.add('file-item');
-			nameNode.tabIndex = 0;
-			nameNode.innerHTML = '<span class="file-name">' + 'test ' + i + '</span>';
-			document.getElementById('online-open-list').appendChild(nameNode);
-		}
-		document.addEventListener('click', function(e) {
-			if (e.target.classList.contains('file-item')) {
-				const filename = e.target.querySelector('.file-name').textContent;
-				ev.setText("cnt = 0\ni = 1\nwhile (i <= 100) {\n\tcnt = cnt + i\n\ti = i + 1\n}\nexit cnt", filename);
-				ev.currentContent.onlineId = 'oldId';
-				// Notify main event
-				document.dispatchEvent(new CustomEvent('setting_change'));
-				me.close();
+		try {
+			const keyword = document.getElementById('online-open-search-text').value;
+			const codes = await (await fetch(apiServer + '/api/codes/' + encodeURIComponent(keyword))).json();
+			if (codes) {
+				codes.forEach((code) => {
+					const nameNode = document.createElement('div');
+					nameNode.classList.add('file-item');
+					nameNode.tabIndex = 0;
+					nameNode.setAttribute('id', code.id);
+					let time = '';
+					if (code.updateTime) {
+						const date = new Date(code.updateTime);
+						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
+					}
+					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
+						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
+					document.getElementById('online-open-list').appendChild(nameNode);
+				});
 			}
-		}, false);
+		} catch(e) {
+			console.error(e);
+		}
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('online-open').style.display = 'none';
 		document.removeEventListener('keydown', keyEvent, false);
+		document.removeEventListener('click', openEvent, false);
 	};
 
 	document.addEventListener('DOMContentLoaded', function() {
 		document.querySelector('#online-open .close').addEventListener('click', function(e) {
 			me.close();
+		}, false);
+		document.getElementById('online-open-search-button').addEventListener('click', async function(e) {
+			document.getElementById('online-open-list').innerHTML = '';
+			try {
+				const keyword = document.getElementById('online-open-search-text').value;
+				options.keyword = keyword;
+				settingView.save();
+
+				const codes = await (await fetch(apiServer + '/api/codes/' + encodeURIComponent(keyword))).json();
+				if (codes) {
+					codes.forEach((code) => {
+						const nameNode = document.createElement('div');
+						nameNode.classList.add('file-item');
+						nameNode.tabIndex = 0;
+						nameNode.setAttribute('id', code.id);
+						let time = '';
+						if (code.updateTime) {
+							const date = new Date(code.updateTime);
+							time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
+						}
+						nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
+							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
+						document.getElementById('online-open-list').appendChild(nameNode);
+					});
+				}
+			} catch(e) {
+				console.error(e);
+			}
 		}, false);
 	}, false);
 
@@ -202,10 +270,10 @@ const onlineSaveView = (function () {
 		}, false);
 		document.body.append(modal);
 		document.getElementById('online-save').style.display = 'block';
-		document.getElementById('online-save-file').value = ev.currentContent.name || 'script.pg0';
-		if (ev.currentContent.password) {
-			document.getElementById('online-save-password').value = ev.currentContent.password;
-		}
+		document.getElementById('online-save').focus();
+		document.getElementById('online-save-file').value = ev.currentContent.name || '';
+		document.getElementById('online-save-author').value = options.author || '';
+		document.getElementById('online-save-password').value = ev.currentContent.password || '';
 		if (ev.currentContent.onlineId) {
 			document.getElementById('online-save-overwrite').checked = true;
 			document.getElementById('online-save-overwrite').parentElement.style.display = 'block';
@@ -223,6 +291,7 @@ const onlineSaveView = (function () {
 
 	document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('online-save-file-title').textContent = resource.ONLINE_SAVE_FILE_TITLE;
+		document.getElementById('online-save-author-title').textContent = resource.ONLINE_SAVE_AUTHOR_TITLE;
 		document.getElementById('online-save-password-title').textContent = resource.ONLINE_SAVE_PASSWORD_TITLE;
 		document.getElementById('online-save-overwrite-title').textContent = resource.ONLINE_SAVE_OVERWRITE_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
@@ -231,21 +300,62 @@ const onlineSaveView = (function () {
 			me.close();
 		}, false);
 
-		document.querySelector('#online-save-button').addEventListener('click', function(e) {
+		document.querySelector('#online-save-button').addEventListener('click', async function(e) {
 			const filename = document.getElementById('online-save-file').value;
+			const author = document.getElementById('online-save-author').value;
 			const password = document.getElementById('online-save-password').value;
-			if (!filename || !password) {
+			if (!filename || !author || !password) {
 				return;
 			}
-			ev.currentContent.name = filename;
-			ev.currentContent.password = password;
-			if (!ev.currentContent.onlineId || !document.getElementById('online-save-overwrite').checked) {
-				ev.currentContent.onlineId = 'newId';
+			const code = {
+				name: filename,
+				author: author,
+				password: pg0_string.crc32(password),
+				code: ev.getText(),
+			};
+			let method = 'POST';
+			let url = apiServer + '/api/codes';
+			if (ev.currentContent.onlineId && document.getElementById('online-save-overwrite').checked) {
+				method = 'PUT';
+				url = apiServer + '/api/codes/' + ev.currentContent.onlineId;
 			}
-			//ev.getText()
-			// Notify main event
-			document.dispatchEvent(new CustomEvent('setting_change'));
-			me.close();
+			try {
+				const res = await fetch(url, {
+					method: method,
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(code),
+				});
+				switch (res.status) {
+				case 200:
+					ev.currentContent.modify = false;
+					ev.currentContent.name = filename;
+					ev.currentContent.author = author;
+					ev.currentContent.password = password;
+					if (method === 'POST') {
+						const data = await res.json();
+						ev.currentContent.onlineId = data.id;
+					}
+					ev.saveState();
+
+					options.author = author;
+					settingView.save();
+
+					// Notify main event
+					document.dispatchEvent(new CustomEvent('setting_change'));
+					me.close();
+					break;
+				case 401:
+					alert(res.statusText);
+					break;
+				case 404:
+					alert(res.statusText);
+					break;
+				}
+			} catch(e) {
+				console.error(e);
+			}
 		}, false);
 	}, false);
 

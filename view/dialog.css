@@ -117,7 +117,7 @@
 	font-size: calc(var(--font-size) - 2px);
 	width: 90%;
 }
-#online-save input[type="button"] {
+#online-save input[type="submit"] {
 	font-size: calc(var(--font-size) - 2px);
 }
 
@@ -181,6 +181,15 @@
 }
 .file-item:active {
 	background-color: #ddd;
+}
+.file-author {
+	font-size: calc(var(--font-size) * 0.8);
+	color: #aaa;
+	margin-left: 5px;
+}
+.file-time {
+	font-size: calc(var(--font-size) * 0.8);
+	color: #aaa;
 }
 
 @media (orientation: portrait) {
