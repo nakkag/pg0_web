@@ -242,6 +242,7 @@ const onlineSaveView = (function () {
 			if (!ev.currentContent.onlineId || !document.getElementById('online-save-overwrite').checked) {
 				ev.currentContent.onlineId = 'newId';
 			}
+			//ev.getText()
 			// Notify main event
 			document.dispatchEvent(new CustomEvent('setting_change'));
 			me.close();

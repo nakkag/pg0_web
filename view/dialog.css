@@ -123,6 +123,7 @@
 
 #online-open {
 	display: none;
+	width: calc(var(--font-size) * 30);
 }
 #online-open input[type="text"] {
 	font-size: calc(var(--font-size) - 2px);
@@ -185,5 +186,8 @@
 @media (orientation: portrait) {
 	.dialog {
 		width: 75%;
+	}
+	#online-open {
+		width: 80%;
 	}
 }
