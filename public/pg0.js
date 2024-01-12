@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	vv.setBoundary(options.boundary.variable);
 
 	document.addEventListener('setting_change', function(e) {
+		document.getElementById('exec-speed').value = options.execSpeed;
 		document.getElementById('line-container').style.display = (options.showLineNum) ? 'block' : 'none';
 		document.body.style.setProperty('--font-size', options.fontSize + 'px');
 		let ex;
@@ -713,7 +714,7 @@ async function _exec(scis, sci, imp) {
 					let res;
 					let buf;
 					try {
-						const url = (/(^https:\/\/)|(^http:\/\/)/i.test(file)) ? 'import.php?url=' + file : file;
+						const url = (/(^https:\/\/)|(^http:\/\/)/i.test(file)) ? apiServer + '/import/?url=' + file : file;
 						res = await fetch(url);
 						if (!res.ok) {
 							return -1;

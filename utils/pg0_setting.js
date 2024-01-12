@@ -1,2 +1,0 @@
-
-const apiServer = 'https://server';

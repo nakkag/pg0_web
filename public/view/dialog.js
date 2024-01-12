@@ -157,6 +157,8 @@ const onlineOpenView = (function () {
 				ev.setText(code.code, code.name);
 				ev.currentContent.onlineId = id;
 				ev.currentContent.author = code.author;
+				options.execSpeed = code.speed;
+				
 				// Notify main event
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				me.close();
@@ -310,6 +312,7 @@ const onlineSaveView = (function () {
 				author: author,
 				password: pg0_string.crc32(password),
 				code: ev.getText(),
+				speed: options.execSpeed
 			};
 			let method = 'POST';
 			let url = apiServer + '/api/codes';
