@@ -1,7 +1,5 @@
 "use strict";
 
-const apiServer = 'http://localhost:3000';
-
 const settingView = (function () {
 	const me = {};
 

@@ -1,5 +1,13 @@
+const settings = require('./settings.js');
 const express = require('express');
 const app = express();
+const fs = require('fs');
+const https = require('https');
+const options = {
+	key:  fs.readFileSync(settings.key),
+	cert: fs.readFileSync(settings.cert)
+};
+const server = https.createServer(options, app);
 
 const codes = [
 	{id: 1, name: 'aaa', code: "cnt = 0\ni = 1\nwhile (i <= 100) {\n\tcnt = cnt + i\n\ti = i + 1\n}\nexit cnt", password: 4027020077},
@@ -16,12 +24,9 @@ app.use(function (req, res, next) {
 	res.header('Access-Control-Max-Age', '86400');
 	next();
 });
+app.use('/', express.static('public'));
 
 app.options('*', function (req, res) {
-	res.sendStatus(200);
-});
-
-app.get('/', (req, res) => {
 	res.sendStatus(200);
 });
 
@@ -96,5 +101,5 @@ app.delete('/api/codes/:id', (req, res) => {
 	res.sendStatus(200);
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Listening on port ${port}...`));
+server.listen(settings.httpsPort, () => console.log(`https Listening on port ${settings.httpsPort}...`));
+app.listen(settings.httpPort, () => console.log(`http Listening on port ${settings.httpPort}...`));
