@@ -117,7 +117,7 @@
 	font-size: calc(var(--font-size) - 2px);
 	width: 90%;
 }
-#online-save input[type="submit"] {
+#online-save input[type="button"] {
 	font-size: calc(var(--font-size) - 2px);
 }
 
@@ -167,7 +167,7 @@
 	max-height: calc(100dvh - 200px);
 	overflow-y: scroll;
 	border: 1px solid #999;
-	margin: 15px 0;
+	margin-top: 15px;
 }
 .file-item {
 	padding: 10px;

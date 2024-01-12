@@ -255,8 +255,14 @@ const onlineSaveView = (function () {
 	const me = {};
 
 	const keyEvent = function(e) {
-		if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
+		if (!document.getElementById('modal-overlay')) {
+			return;
+		}
+		if (e.key === 'Escape') {
 			me.close();
+		}
+		if (e.key === 'Enter') {
+			document.querySelector('#online-save-button').click();
 		}
 	};
 	me.show = function() {
