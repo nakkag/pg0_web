@@ -149,6 +149,10 @@ const onlineOpenView = (function () {
 		}
 	};
 	const openEvent = async function(e) {
+		if (e.target.closest('.read-item')) {
+			getList();
+			return;
+		}
 		const item = e.target.closest('.file-item');
 		if (item) {
 			const id = item.getAttribute('id');
@@ -157,8 +161,11 @@ const onlineOpenView = (function () {
 				ev.setText(code.code, code.name);
 				ev.currentContent.onlineId = id;
 				ev.currentContent.author = code.author;
+				ev.saveState();
+
 				options.execSpeed = code.speed;
-				
+				settingView.save();
+
 				// Notify main event
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				me.close();
@@ -167,6 +174,42 @@ const onlineOpenView = (function () {
 			}
 		}
 	};
+	const getList = async function() {
+		try {
+			const keyword = document.getElementById('online-open-search-text').value;
+			const codes = await (await fetch(apiServer + '/api/codes/' + encodeURIComponent(keyword) + '?skip=' + me.skip)).json();
+			if (codes) {
+				if (document.querySelector('.read-item')) {
+					document.querySelector('.read-item').remove();
+				}
+				codes.forEach((code) => {
+					const nameNode = document.createElement('div');
+					nameNode.classList.add('file-item');
+					nameNode.tabIndex = 0;
+					nameNode.setAttribute('id', code.id);
+					let time = '';
+					if (code.updateTime) {
+						const date = new Date(code.updateTime);
+						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
+					}
+					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
+						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
+					document.getElementById('online-open-list').appendChild(nameNode);
+				});
+				if (codes.length > 0) {
+					me.skip += codes.length;
+					const readNode = document.createElement('div');
+					readNode.classList.add('read-item');
+					readNode.tabIndex = 0;
+					readNode.innerHTML = resource.ONLINE_OPEN_READ_TITLE;
+					document.getElementById('online-open-list').appendChild(readNode);
+				}
+			}
+		} catch(e) {
+			console.error(e);
+		}
+	};
+	
 	me.show = async function() {
 		if (document.getElementById('modal-overlay')) {
 			return;
@@ -184,28 +227,8 @@ const onlineOpenView = (function () {
 		document.addEventListener('click', openEvent, false);
 
 		document.getElementById('online-open-list').innerHTML = '';
-		try {
-			const keyword = document.getElementById('online-open-search-text').value;
-			const codes = await (await fetch(apiServer + '/api/codes/' + encodeURIComponent(keyword))).json();
-			if (codes) {
-				codes.forEach((code) => {
-					const nameNode = document.createElement('div');
-					nameNode.classList.add('file-item');
-					nameNode.tabIndex = 0;
-					nameNode.setAttribute('id', code.id);
-					let time = '';
-					if (code.updateTime) {
-						const date = new Date(code.updateTime);
-						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
-					}
-					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
-						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
-					document.getElementById('online-open-list').appendChild(nameNode);
-				});
-			}
-		} catch(e) {
-			console.error(e);
-		}
+		me.skip = 0;
+		getList();
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
@@ -224,24 +247,8 @@ const onlineOpenView = (function () {
 				const keyword = document.getElementById('online-open-search-text').value;
 				options.keyword = keyword;
 				settingView.save();
-
-				const codes = await (await fetch(apiServer + '/api/codes/' + encodeURIComponent(keyword))).json();
-				if (codes) {
-					codes.forEach((code) => {
-						const nameNode = document.createElement('div');
-						nameNode.classList.add('file-item');
-						nameNode.tabIndex = 0;
-						nameNode.setAttribute('id', code.id);
-						let time = '';
-						if (code.updateTime) {
-							const date = new Date(code.updateTime);
-							time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
-						}
-						nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
-							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
-						document.getElementById('online-open-list').appendChild(nameNode);
-					});
-				}
+				me.skip = 0;
+				getList();
 			} catch(e) {
 				console.error(e);
 			}
@@ -281,11 +288,10 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-author').value = options.author || '';
 		document.getElementById('online-save-password').value = ev.currentContent.password || '';
 		if (ev.currentContent.onlineId) {
-			document.getElementById('online-save-overwrite').checked = true;
-			document.getElementById('online-save-overwrite').parentElement.style.display = 'block';
+			document.getElementById('online-save-new').checked = false;
+			document.getElementById('online-save-new').parentElement.style.display = 'block';
 		} else {
-			document.getElementById('online-save-overwrite').checked = false;
-			document.getElementById('online-save-overwrite').parentElement.style.display = 'none';
+			document.getElementById('online-save-new').parentElement.style.display = 'none';
 		}
 		document.addEventListener('keydown', keyEvent, false);
 	};
@@ -299,7 +305,7 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-file-title').textContent = resource.ONLINE_SAVE_FILE_TITLE;
 		document.getElementById('online-save-author-title').textContent = resource.ONLINE_SAVE_AUTHOR_TITLE;
 		document.getElementById('online-save-password-title').textContent = resource.ONLINE_SAVE_PASSWORD_TITLE;
-		document.getElementById('online-save-overwrite-title').textContent = resource.ONLINE_SAVE_OVERWRITE_TITLE;
+		document.getElementById('online-save-new-title').textContent = resource.ONLINE_SAVE_NEW_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
 
 		document.querySelector('#online-save .close').addEventListener('click', function(e) {
@@ -322,7 +328,7 @@ const onlineSaveView = (function () {
 			};
 			let method = 'POST';
 			let url = apiServer + '/api/codes';
-			if (ev.currentContent.onlineId && document.getElementById('online-save-overwrite').checked) {
+			if (ev.currentContent.onlineId && !document.getElementById('online-save-new').checked) {
 				method = 'PUT';
 				url = apiServer + '/api/codes/' + ev.currentContent.onlineId;
 			}

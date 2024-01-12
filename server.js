@@ -42,11 +42,12 @@ app.get('/import', async (req, res) => {
 });
 
 app.get('/api/codes', async (req, res) => {
+	const skip = parseInt(req.query.skip || 0);
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
 		const db = client.db('pg0');
-		const cursor = db.collection('codes').find({}, {_id: 0}).sort({updateTime: -1}).limit(30).skip(0);
+		const cursor = db.collection('codes').find({}, {_id: 0}).sort({updateTime: -1}).limit(settings.listCount).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({id: doc.id, name: doc.name, author: doc.author, updateTime: doc.updateTime});
@@ -61,11 +62,12 @@ app.get('/api/codes', async (req, res) => {
 });
 
 app.get('/api/codes/:keyword', async (req, res) => {
+	const skip = parseInt(req.query.skip || 0);
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
 		const db = client.db('pg0');
-		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}, {_id: 0}).sort({updateTime: -1}).limit(30).skip(0);
+		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}, {_id: 0}).sort({updateTime: -1}).limit(settings.listCount).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({id: doc.id, name: doc.name, author: doc.author, updateTime: doc.updateTime});

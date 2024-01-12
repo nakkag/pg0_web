@@ -192,6 +192,18 @@
 	color: #aaa;
 }
 
+.read-item {
+	padding: 20px;
+	text-align: center;
+	color: #aaa;
+}
+.read-item:hover, .read-item:focus {
+	background-color: #eee;
+}
+.read-item:active {
+	background-color: #ddd;
+}
+
 @media (orientation: portrait) {
 	.dialog {
 		width: 75%;

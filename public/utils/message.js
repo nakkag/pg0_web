@@ -9,10 +9,12 @@ let resource = {
 	SETTING_FONT_SIZE: {'14': 'Small', '18': 'Medium', '24': 'Large'},
 	SETTING_LINENUM_TITLE: 'Show line number',
 
+	ONLINE_OPEN_READ_TITLE: 'Read more...',
+
 	ONLINE_SAVE_FILE_TITLE: 'File name',
 	ONLINE_SAVE_AUTHOR_TITLE: 'Author',
 	ONLINE_SAVE_PASSWORD_TITLE: 'Edit password',
-	ONLINE_SAVE_OVERWRITE_TITLE: 'Replace existing file',
+	ONLINE_SAVE_NEW_TITLE: 'Save as new file',
 	ONLINE_SAVE_BUTTON: 'Save',
 
 	CTRL_EXEC: 'Execution',
@@ -58,10 +60,12 @@ if (_lang === 'ja') {
 		SETTING_FONT_SIZE: {'14': '小さい', '18': '普通', '24': '大きい'},
 		SETTING_LINENUM_TITLE: '行番号を表示',
 
+		ONLINE_OPEN_READ_TITLE: 'さらに読み込む...',
+
 		ONLINE_SAVE_FILE_TITLE: 'ファイル名',
 		ONLINE_SAVE_AUTHOR_TITLE: '作成者',
 		ONLINE_SAVE_PASSWORD_TITLE: '編集パスワード',
-		ONLINE_SAVE_OVERWRITE_TITLE: '既存のファイルを置き換える',
+		ONLINE_SAVE_NEW_TITLE: '新しいファイルとして保存する',
 		ONLINE_SAVE_BUTTON: '保存',
 
 		CTRL_EXEC: '実行',
