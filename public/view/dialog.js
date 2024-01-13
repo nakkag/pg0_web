@@ -181,6 +181,9 @@ const onlineOpenView = (function () {
 			const count = 30;
 			const codes = await (await fetch(`${apiServer}/api/codes/${encodeURIComponent(keyword)}?count=${count}&skip=${me.skip}`)).json();
 			if (codes) {
+				if (document.getElementById('loading')) {
+					document.getElementById('loading').remove();
+				}
 				if (document.querySelector('.read-item')) {
 					document.querySelector('.read-item').remove();
 				}
@@ -228,7 +231,7 @@ const onlineOpenView = (function () {
 		document.addEventListener('keydown', keyEvent, false);
 		document.addEventListener('click', openEvent, false);
 
-		document.getElementById('online-open-list').innerHTML = '';
+		document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
 		me.skip = 0;
 		getList();
 	};
@@ -244,7 +247,7 @@ const onlineOpenView = (function () {
 			me.close();
 		}, false);
 		document.getElementById('online-open-search-button').addEventListener('click', async function(e) {
-			document.getElementById('online-open-list').innerHTML = '';
+			document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
 			try {
 				const keyword = document.getElementById('online-open-search-text').value;
 				options.keyword = keyword;

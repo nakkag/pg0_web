@@ -52,7 +52,7 @@ app.get('/api/codes', async (req, res) => {
 	}
 	let client;
 	try {
-		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
+		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const cursor = db.collection('codes').find({}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
@@ -79,7 +79,7 @@ app.get('/api/codes/:keyword', async (req, res) => {
 	}
 	let client;
 	try {
-		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
+		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
@@ -98,7 +98,7 @@ app.get('/api/codes/:keyword', async (req, res) => {
 app.get('/api/codes/item/:id', async (req, res) => {
 	let client;
 	try {
-		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
+		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const doc = await db.collection('codes').findOne({id: req.params.id});
 		if (!doc) {
@@ -121,7 +121,7 @@ app.post('/api/codes', async (req, res) => {
 
 	let client;
 	try {
-		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
+		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const docs = await db.collection('codes').insertOne({
 			id: newId,
@@ -145,7 +145,7 @@ app.post('/api/codes', async (req, res) => {
 app.put('/api/codes/:id', async (req, res) => {
 	let client;
 	try {
-		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
+		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const doc = await db.collection('codes').findOne({id: req.params.id});
 		if (!doc) {
@@ -173,7 +173,7 @@ app.put('/api/codes/:id', async (req, res) => {
 app.delete('/api/codes/:id', async (req, res) => {
 	let client;
 	try {
-		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
+		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const doc = await db.collection('codes').findOne({id: req.params.id});
 		if (!doc) {

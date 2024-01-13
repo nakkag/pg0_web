@@ -1,3 +1,5 @@
+exports.dbOption = 'mongodb://user:pass@127.0.0.1:27017/pg0';
+
 exports.key = 'privkey.pem';
 exports.cert = 'cert.pem';
 
