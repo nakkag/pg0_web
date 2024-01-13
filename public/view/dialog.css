@@ -179,6 +179,7 @@
 	transform: translate(-50%, -50%);
 }
 .file-item {
+	cursor: pointer;
 	padding: 10px;
 	border-bottom: 1px solid #ddd;
 }
@@ -202,6 +203,7 @@
 }
 
 .read-item {
+	cursor: pointer;
 	padding: 20px;
 	text-align: center;
 	color: #aaa;
