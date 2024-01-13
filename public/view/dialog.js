@@ -155,11 +155,11 @@ const onlineOpenView = (function () {
 		}
 		const item = e.target.closest('.file-item');
 		if (item) {
-			const id = item.getAttribute('id');
+			const cid = item.id;
 			try {
-				const code = await (await fetch(apiServer + '/api/codes/item/' + id)).json();
+				const code = await (await fetch(`${apiServer}/api/codes/item/${cid}`)).json();
 				ev.setText(code.code, code.name);
-				ev.currentContent.onlineId = id;
+				ev.currentContent.cid = cid;
 				ev.currentContent.author = code.author;
 				ev.saveState();
 
@@ -170,6 +170,7 @@ const onlineOpenView = (function () {
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				me.close();
 				document.getElementById('editor').blur();
+				history.replaceState('', '', `${location.pathname}?cid=${cid}`);
 			} catch(e) {
 				console.error(e);
 			}
@@ -189,9 +190,9 @@ const onlineOpenView = (function () {
 				}
 				codes.forEach((code) => {
 					const nameNode = document.createElement('div');
+					nameNode.id = code.cid;
 					nameNode.classList.add('file-item');
 					nameNode.tabIndex = 0;
-					nameNode.setAttribute('id', code.id);
 					let time = '';
 					if (code.updateTime) {
 						const date = new Date(code.updateTime);
@@ -292,7 +293,7 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-file').value = ev.currentContent.name || '';
 		document.getElementById('online-save-author').value = options.author || '';
 		document.getElementById('online-save-password').value = ev.currentContent.password || '';
-		if (ev.currentContent.onlineId) {
+		if (ev.currentContent.cid) {
 			document.getElementById('online-save-new').checked = false;
 			document.getElementById('online-save-new').parentElement.style.display = 'block';
 		} else {
@@ -332,10 +333,10 @@ const onlineSaveView = (function () {
 				speed: options.execSpeed
 			};
 			let method = 'POST';
-			let url = apiServer + '/api/codes';
-			if (ev.currentContent.onlineId && !document.getElementById('online-save-new').checked) {
+			let url = `${apiServer}/api/codes`;
+			if (ev.currentContent.cid && !document.getElementById('online-save-new').checked) {
 				method = 'PUT';
-				url = apiServer + '/api/codes/' + ev.currentContent.onlineId;
+				url = `${apiServer}/api/codes/${ev.currentContent.cid}`;
 			}
 			try {
 				const res = await fetch(url, {
@@ -353,7 +354,8 @@ const onlineSaveView = (function () {
 					ev.currentContent.password = password;
 					if (method === 'POST') {
 						const data = await res.json();
-						ev.currentContent.onlineId = data.id;
+						ev.currentContent.cid = data.cid;
+						history.replaceState('', '', `${location.pathname}?cid=${data.cid}`);
 					}
 					ev.saveState();
 

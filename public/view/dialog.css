@@ -166,8 +166,7 @@
 #online-open-list {
 	position: relative;
 	width: 100%;
-	min-height: 80px;
-	max-height: calc(100dvh - 200px);
+	height: calc(100dvh - 200px);
 	overflow-y: scroll;
 	border: 1px solid #999;
 	margin-top: 15px;
@@ -182,9 +181,6 @@
 	cursor: pointer;
 	padding: 10px;
 	border-bottom: 1px solid #ddd;
-}
-.file-item:last-child {
-	border-bottom: 0px;
 }
 .file-item:hover, .file-item:focus {
 	background-color: #eee;
@@ -207,6 +203,7 @@
 	padding: 20px;
 	text-align: center;
 	color: #aaa;
+	border-bottom: 1px solid #ddd;
 }
 .read-item:hover, .read-item:focus {
 	background-color: #eee;

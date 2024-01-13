@@ -465,6 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				}
 				ev.setText('', '');
 				document.title = baseTitle;
+				history.replaceState('', '', location.pathname);
 				break;
 			case 'menu-online-open':
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
@@ -523,6 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				document.title = baseTitle + ' - ' + file.name;
 				editorContainer.scrollTop = 0;
 				editorContainer.scrollLeft = 0;
+				history.replaceState('', '', location.pathname);
 			} catch(err) {
 				console.error(err);
 				alert(err);
@@ -548,6 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			alert(err);
 		};
 		reader.readAsText(file);
+		history.replaceState('', '', location.pathname);
 	}, false);
 
 	async function fileSave() {

@@ -57,7 +57,7 @@ app.get('/api/codes', async (req, res) => {
 		const cursor = db.collection('codes').find({}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
-			ret.push({id: doc.id, name: doc.name, author: doc.author, updateTime: doc.updateTime});
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
 		}
 		res.json(ret);
 	} catch (error) {
@@ -84,7 +84,7 @@ app.get('/api/codes/:keyword', async (req, res) => {
 		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
-			ret.push({id: doc.id, name: doc.name, author: doc.author, updateTime: doc.updateTime});
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
 		}
 		res.json(ret);
 	} catch (error) {
@@ -95,12 +95,12 @@ app.get('/api/codes/:keyword', async (req, res) => {
 	}
 });
 
-app.get('/api/codes/item/:id', async (req, res) => {
+app.get('/api/codes/item/:cid', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({id: req.params.id});
+		const doc = await db.collection('codes').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
@@ -116,7 +116,7 @@ app.get('/api/codes/item/:id', async (req, res) => {
 });
 
 app.post('/api/codes', async (req, res) => {
-	const newId = crypto.randomUUID();
+	const newCid = crypto.randomUUID();
 	const time = new Date().getTime();
 
 	let client;
@@ -124,7 +124,7 @@ app.post('/api/codes', async (req, res) => {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
 		const docs = await db.collection('codes').insertOne({
-			id: newId,
+			cid: newCid,
 			name: req.body.name,
 			author: req.body.author,
 			password: req.body.password,
@@ -133,7 +133,7 @@ app.post('/api/codes', async (req, res) => {
 			createTime: time,
 			updateTime: time,
 		});
-		res.send({id: newId});
+		res.send({cid: newCid});
 	} catch (error) {
 		console.error(error);
 		return res.status(500).send('Internal Server Error.');
@@ -142,19 +142,19 @@ app.post('/api/codes', async (req, res) => {
 	}
 });
 
-app.put('/api/codes/:id', async (req, res) => {
+app.put('/api/codes/:cid', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({id: req.params.id});
+		const doc = await db.collection('codes').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
 		if (doc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
 		}
-		await db.collection('codes').updateOne({id: req.params.id}, {$set: {
+		await db.collection('codes').updateOne({cid: req.params.cid}, {$set: {
 			name: req.body.name,
 			author: req.body.author,
 			code: req.body.code,
@@ -170,19 +170,19 @@ app.put('/api/codes/:id', async (req, res) => {
 	}
 });
 
-app.delete('/api/codes/:id', async (req, res) => {
+app.delete('/api/codes/:cid', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({id: req.params.id});
+		const doc = await db.collection('codes').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
 		if (doc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
 		}
-		await db.collection('codes').deleteOne({id: req.params.id});
+		await db.collection('codes').deleteOne({cid: req.params.cid});
 		res.sendStatus(200);
 	} catch (error) {
 		console.error(error);
