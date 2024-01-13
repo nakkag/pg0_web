@@ -43,11 +43,18 @@ app.get('/import', async (req, res) => {
 
 app.get('/api/codes', async (req, res) => {
 	const skip = parseInt(req.query.skip || 0);
+	let count = parseInt(req.query.count || settings.listCount);
+	if (count < 0) {
+		count = settings.listCount;
+	}
+	if (count > settings.maxCount) {
+		count = settings.maxCount;
+	}
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
 		const db = client.db('pg0');
-		const cursor = db.collection('codes').find({}, {_id: 0}).sort({updateTime: -1}).limit(settings.listCount).skip(skip);
+		const cursor = db.collection('codes').find({}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({id: doc.id, name: doc.name, author: doc.author, updateTime: doc.updateTime});
@@ -63,11 +70,18 @@ app.get('/api/codes', async (req, res) => {
 
 app.get('/api/codes/:keyword', async (req, res) => {
 	const skip = parseInt(req.query.skip || 0);
+	let count = parseInt(req.query.count || settings.listCount);
+	if (count < 0) {
+		count = settings.listCount;
+	}
+	if (count > settings.maxCount) {
+		count = settings.maxCount;
+	}
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
 		const db = client.db('pg0');
-		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}, {_id: 0}).sort({updateTime: -1}).limit(settings.listCount).skip(skip);
+		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({id: doc.id, name: doc.name, author: doc.author, updateTime: doc.updateTime});
@@ -86,10 +100,11 @@ app.get('/api/codes/item/:id', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect('mongodb://pg0:pg0pass@127.0.0.1:27017/pg0');
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({id: req.params.id}, {_id: 0, password: 0});
+		const doc = await db.collection('codes').findOne({id: req.params.id});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
+		delete doc._id;
 		delete doc.password;
 		res.json(doc);
 	} catch (error) {

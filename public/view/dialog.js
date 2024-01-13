@@ -178,7 +178,8 @@ const onlineOpenView = (function () {
 	const getList = async function() {
 		try {
 			const keyword = document.getElementById('online-open-search-text').value;
-			const codes = await (await fetch(apiServer + '/api/codes/' + encodeURIComponent(keyword) + '?skip=' + me.skip)).json();
+			const count = 30;
+			const codes = await (await fetch(`${apiServer}/api/codes/${encodeURIComponent(keyword)}?count=${count}&skip=${me.skip}`)).json();
 			if (codes) {
 				if (document.querySelector('.read-item')) {
 					document.querySelector('.read-item').remove();
@@ -197,7 +198,7 @@ const onlineOpenView = (function () {
 						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
-				if (codes.length > 0) {
+				if (codes.length >= count) {
 					me.skip += codes.length;
 					const readNode = document.createElement('div');
 					readNode.classList.add('read-item');
