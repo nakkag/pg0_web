@@ -114,8 +114,12 @@
 	margin-bottom: 0;
 }
 #online-save input[type="text"], #online-save input[type="password"] {
-	font-size: calc(var(--font-size) - 2px);
+	font-size: var(--font-size);
 	width: 90%;
+}
+#online-save input[type="checkbox"] {
+	width: var(--font-size);
+	height: var(--font-size);
 }
 #online-save input[type="button"] {
 	font-size: calc(var(--font-size) - 2px);

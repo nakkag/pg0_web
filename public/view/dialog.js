@@ -163,6 +163,7 @@ const onlineOpenView = (function () {
 				ev.currentContent.author = code.author;
 				ev.saveState();
 
+				options.execMode = code.type;
 				options.execSpeed = code.speed;
 				settingView.save();
 
@@ -327,7 +328,7 @@ const onlineSaveView = (function () {
 			}
 			const code = {
 				name: filename,
-				type: 'pg0',
+				type: options.execMode,
 				author: author,
 				password: pg0_string.crc32(password),
 				code: ev.getText(),
