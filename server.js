@@ -126,6 +126,7 @@ app.post('/api/codes', async (req, res) => {
 		const docs = await db.collection('codes').insertOne({
 			cid: newCid,
 			name: req.body.name,
+			type: req.body.type,
 			author: req.body.author,
 			password: req.body.password,
 			code: req.body.code,
@@ -156,6 +157,7 @@ app.put('/api/codes/:cid', async (req, res) => {
 		}
 		await db.collection('codes').updateOne({cid: req.params.cid}, {$set: {
 			name: req.body.name,
+			type: req.body.type,
 			author: req.body.author,
 			code: req.body.code,
 			speed: req.body.speed,

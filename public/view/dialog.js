@@ -327,6 +327,7 @@ const onlineSaveView = (function () {
 			}
 			const code = {
 				name: filename,
+				type: 'pg0',
 				author: author,
 				password: pg0_string.crc32(password),
 				code: ev.getText(),
