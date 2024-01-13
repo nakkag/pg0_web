@@ -169,6 +169,7 @@ const onlineOpenView = (function () {
 				// Notify main event
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				me.close();
+				document.getElementById('editor').blur();
 			} catch(e) {
 				console.error(e);
 			}
