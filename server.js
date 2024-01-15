@@ -81,7 +81,12 @@ app.get('/api/codes/:keyword', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const cursor = await db.collection('codes').find({$text: {$search: req.params.keyword}}).sort({updateTime: -1}).limit(count).skip(skip);
+		const list = req.params.keyword.split(' ');
+		const regs = [];
+		list.forEach(function(d) {
+			regs.push({keyword: new RegExp(d, 'i')});
+		});
+		const cursor = await db.collection('codes').find({$and: regs}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
@@ -131,6 +136,7 @@ app.post('/api/codes', async (req, res) => {
 			password: req.body.password,
 			code: req.body.code,
 			speed: req.body.speed,
+			keyword: req.body.name + ' ' + req.body.author,
 			createTime: time,
 			updateTime: time,
 		});
@@ -161,6 +167,7 @@ app.put('/api/codes/:cid', async (req, res) => {
 			author: req.body.author,
 			code: req.body.code,
 			speed: req.body.speed,
+			keyword: req.body.name + ' ' + req.body.author,
 			updateTime: new Date().getTime(),
 		}});
 		res.sendStatus(200);
