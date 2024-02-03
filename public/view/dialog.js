@@ -173,7 +173,7 @@ const onlineOpenView = (function () {
 			}
 			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
 			try {
-				const res = await fetch(`${apiServer}/api/codes/${cid}`, {
+				const res = await fetch(`${apiServer}/api/script/${cid}`, {
 					method: 'DELETE',
 					headers: {
 						'Content-Type': 'application/json'
@@ -205,7 +205,7 @@ const onlineOpenView = (function () {
 		}
 		const item = e.target.closest('.file-item');
 		if (item) {
-			if (await me.getCode(item.id)) {
+			if (await me.getScript(item.id)) {
 				me.close();
 				document.getElementById('editor').blur();
 			}
@@ -215,30 +215,30 @@ const onlineOpenView = (function () {
 		try {
 			const keyword = document.getElementById('online-open-search-text').value;
 			const count = 30;
-			const codes = await (await fetch(`${apiServer}/api/codes/${encodeURIComponent(keyword)}?count=${count}&skip=${me.skip}`)).json();
-			if (codes) {
+			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${count}&skip=${me.skip}`)).json();
+			if (scripts) {
 				if (document.getElementById('loading')) {
 					document.getElementById('loading').remove();
 				}
 				if (document.querySelector('.read-item')) {
 					document.querySelector('.read-item').remove();
 				}
-				codes.forEach((code) => {
+				scripts.forEach((script) => {
 					const nameNode = document.createElement('div');
-					nameNode.id = code.cid;
+					nameNode.id = script.cid;
 					nameNode.classList.add('file-item');
 					nameNode.tabIndex = 0;
 					let time = '';
-					if (code.updateTime) {
-						const date = new Date(code.updateTime);
+					if (script.updateTime) {
+						const date = new Date(script.updateTime);
 						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 					}
-					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
-						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
+					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
+						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
-				if (codes.length >= count) {
-					me.skip += codes.length;
+				if (scripts.length >= count) {
+					me.skip += scripts.length;
 					const readNode = document.createElement('div');
 					readNode.classList.add('read-item');
 					readNode.tabIndex = 0;
@@ -252,17 +252,17 @@ const onlineOpenView = (function () {
 		}
 	};
 	
-	me.getCode = async function(cid) {
+	me.getScript = async function(cid) {
 		let ret = true;
 		try {
-			const code = await (await fetch(`${apiServer}/api/codes/item/${cid}`)).json();
-			ev.setText(code.code, code.name);
+			const script = await (await fetch(`${apiServer}/api/script/item/${cid}`)).json();
+			ev.setText(script.code, script.name);
 			ev.currentContent.cid = cid;
-			ev.currentContent.author = code.author;
+			ev.currentContent.author = script.author;
 			ev.saveState();
 
-			options.execMode = code.type;
-			options.execSpeed = code.speed;
+			options.execMode = script.type;
+			options.execSpeed = script.speed;
 			settingView.save();
 
 			// Notify main event
@@ -410,7 +410,7 @@ const onlineSaveView = (function () {
 			if (!filename || !author || !password) {
 				return;
 			}
-			const code = {
+			const script = {
 				name: filename,
 				type: options.execMode,
 				author: author,
@@ -419,10 +419,10 @@ const onlineSaveView = (function () {
 				speed: options.execSpeed
 			};
 			let method = 'POST';
-			let url = `${apiServer}/api/codes`;
+			let url = `${apiServer}/api/script`;
 			if (ev.currentContent.cid && !document.getElementById('online-save-new').checked) {
 				method = 'PUT';
-				url = `${apiServer}/api/codes/${ev.currentContent.cid}`;
+				url = `${apiServer}/api/script/${ev.currentContent.cid}`;
 			}
 			try {
 				const res = await fetch(url, {
@@ -430,7 +430,7 @@ const onlineSaveView = (function () {
 					headers: {
 						'Content-Type': 'application/json'
 					},
-					body: JSON.stringify(code),
+					body: JSON.stringify(script),
 				});
 				switch (res.status) {
 				case 200:

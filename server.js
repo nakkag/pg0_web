@@ -34,14 +34,15 @@ app.options('*', function (req, res) {
 });
 
 app.get('/import', async (req, res) => {
-	const r = await fetch(req.query.url);
+	const url = req.query.url.replace(/\r\n/, '');
+	const r = await fetch(url);
 	if (!r.ok) {
 		return res.status(r.status).send(r.statusText);
 	}
 	await r.body.pipe(res);
 });
 
-app.get('/api/codes', async (req, res) => {
+app.get('/api/script', async (req, res) => {
 	const skip = parseInt(req.query.skip || 0);
 	let count = parseInt(req.query.count || settings.listCount);
 	if (count < 0) {
@@ -54,7 +55,7 @@ app.get('/api/codes', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const cursor = db.collection('codes').find({}).sort({updateTime: -1}).limit(count).skip(skip);
+		const cursor = db.collection('script').find({}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
@@ -68,7 +69,7 @@ app.get('/api/codes', async (req, res) => {
 	}
 });
 
-app.get('/api/codes/:keyword', async (req, res) => {
+app.get('/api/script/:keyword', async (req, res) => {
 	const skip = parseInt(req.query.skip || 0);
 	let count = parseInt(req.query.count || settings.listCount);
 	if (count < 0) {
@@ -86,7 +87,7 @@ app.get('/api/codes/:keyword', async (req, res) => {
 		list.forEach(function(d) {
 			regs.push({keyword: new RegExp(d, 'i')});
 		});
-		const cursor = await db.collection('codes').find({$and: regs}).sort({updateTime: -1}).limit(count).skip(skip);
+		const cursor = await db.collection('script').find({$and: regs}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
@@ -100,12 +101,12 @@ app.get('/api/codes/:keyword', async (req, res) => {
 	}
 });
 
-app.get('/api/codes/item/:cid', async (req, res) => {
+app.get('/api/script/item/:cid', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({cid: req.params.cid});
+		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
@@ -120,7 +121,7 @@ app.get('/api/codes/item/:cid', async (req, res) => {
 	}
 });
 
-app.post('/api/codes', async (req, res) => {
+app.post('/api/script', async (req, res) => {
 	const newCid = crypto.randomUUID();
 	const time = new Date().getTime();
 
@@ -128,7 +129,7 @@ app.post('/api/codes', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const docs = await db.collection('codes').insertOne({
+		const docs = await db.collection('script').insertOne({
 			cid: newCid,
 			name: req.body.name,
 			type: req.body.type,
@@ -149,12 +150,12 @@ app.post('/api/codes', async (req, res) => {
 	}
 });
 
-app.put('/api/codes/:cid', async (req, res) => {
+app.put('/api/script/:cid', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({cid: req.params.cid});
+		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
@@ -162,7 +163,7 @@ app.put('/api/codes/:cid', async (req, res) => {
 			return res.status(401).send('Unauthorized.');
 		}
 		await addHistory(req.params.cid);
-		await db.collection('codes').updateOne({cid: req.params.cid}, {$set: {
+		await db.collection('script').updateOne({cid: req.params.cid}, {$set: {
 			name: req.body.name,
 			type: req.body.type,
 			author: req.body.author,
@@ -180,12 +181,12 @@ app.put('/api/codes/:cid', async (req, res) => {
 	}
 });
 
-app.delete('/api/codes/:cid', async (req, res) => {
+app.delete('/api/script/:cid', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({cid: req.params.cid});
+		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
@@ -193,7 +194,7 @@ app.delete('/api/codes/:cid', async (req, res) => {
 			return res.status(401).send('Unauthorized.');
 		}
 		await addHistory(req.params.cid);
-		await db.collection('codes').deleteOne({cid: req.params.cid});
+		await db.collection('script').deleteOne({cid: req.params.cid});
 		res.sendStatus(200);
 	} catch (error) {
 		console.error(error);
@@ -211,11 +212,11 @@ async function addHistory(cid) {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('codes').findOne({cid: cid});
+		const doc = await db.collection('script').findOne({cid: cid});
 		if (doc) {
 			delete doc._id;
 			doc.hisotryTime = new Date().getTime();
-			await db.collection('codes_history').insertOne(doc);
+			await db.collection('script_history').insertOne(doc);
 		}
 	} catch (error) {
 		console.error(error);
@@ -230,9 +231,9 @@ async function diffHistory(cid) {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc1 = await db.collection('codes').findOne({cid: cid});
+		const doc1 = await db.collection('script').findOne({cid: cid});
 		if (doc1) {
-			const cursor = db.collection('codes_history').find({cid: cid}).sort({hisotryTime: -1}).limit(1);
+			const cursor = db.collection('script_history').find({cid: cid}).sort({hisotryTime: -1}).limit(1);
 			if (cursor) {
 				const doc2 = await cursor.next();
 				if (doc2) {

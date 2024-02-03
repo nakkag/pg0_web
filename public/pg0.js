@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		const param = getUrlParam();
 		if (param.cid && ev.currentContent.cid !== param.cid &&
 			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
-			await onlineOpenView.getCode(param.cid);
+			await onlineOpenView.getScript(param.cid);
 		}
 	}, 100);
 
