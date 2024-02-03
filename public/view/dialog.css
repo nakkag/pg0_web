@@ -48,10 +48,10 @@
 .dialog-menu div:last-child {
 	border-bottom: 0px;
 }
-.dialog-menu div:hover, .dialog-menu div:focus {
+.dialog-menu a:hover, .dialog-menu a:focus {
 	background-color: #eee;
 }
-.dialog-menu div:active {
+.dialog-menu a:active {
 	background-color: #ddd;
 }
 .dialog-menu a {
@@ -261,16 +261,14 @@
 	text-align: center;
 }
 
-#online-open-remove-div {
-	background-color: #f44336;
-}
 #online-open-remove-div a {
+	background-color: #f44336;
 	color: #fff;
 }
-#online-open-remove-div:hover, #online-open-remove-div:focus {
+#online-open-remove-div a:hover, #online-open-remove-div a:focus {
 	background-color: #d32f2f;
 }
-#online-open-remove-div:active {
+#online-open-remove-div a:active {
 	background-color: #b71c1c;
 }
 

@@ -145,6 +145,8 @@ const onlineOpenView = (function () {
 				document.getElementById('online-open-search-button').click();
 			} else if (document.activeElement.classList.contains('file-item')) {
 				document.activeElement.click();
+			} else if (document.activeElement.classList.contains('file-menu')) {
+				me.showMenu(e.target);
 			}
 		}
 	};
