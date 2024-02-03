@@ -255,6 +255,19 @@
 	display: none;
 }
 
+#online-open-remove-div {
+	background-color: #f44336;
+}
+#online-open-remove-div a {
+	color: #fff;
+}
+#online-open-remove-div:hover, #online-open-remove-div:focus {
+	background-color: #d32f2f;
+}
+#online-open-remove-div:active {
+	background-color: #b71c1c;
+}
+
 .read-item {
 	cursor: pointer;
 	padding: 20px;
