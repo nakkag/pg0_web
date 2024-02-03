@@ -193,26 +193,9 @@ const onlineOpenView = (function () {
 		}
 		const item = e.target.closest('.file-item');
 		if (item) {
-			const cid = item.id;
-			try {
-				const code = await (await fetch(`${apiServer}/api/codes/item/${cid}`)).json();
-				ev.setText(code.code, code.name);
-				ev.currentContent.cid = cid;
-				ev.currentContent.author = code.author;
-				ev.saveState();
-
-				options.execMode = code.type;
-				options.execSpeed = code.speed;
-				settingView.save();
-
-				// Notify main event
-				document.dispatchEvent(new CustomEvent('setting_change'));
+			if (await me.getCode(item.id)) {
 				me.close();
 				document.getElementById('editor').blur();
-				history.replaceState('', '', `${location.pathname}?cid=${cid}`);
-			} catch(e) {
-				console.error(e);
-				alert(resource.ONLINE_ERROR_CONNECTION);
 			}
 		}
 	};
@@ -257,6 +240,30 @@ const onlineOpenView = (function () {
 		}
 	};
 	
+	me.getCode = async function(cid) {
+		let ret = true;
+		try {
+			const code = await (await fetch(`${apiServer}/api/codes/item/${cid}`)).json();
+			ev.setText(code.code, code.name);
+			ev.currentContent.cid = cid;
+			ev.currentContent.author = code.author;
+			ev.saveState();
+
+			options.execMode = code.type;
+			options.execSpeed = code.speed;
+			settingView.save();
+
+			// Notify main event
+			document.dispatchEvent(new CustomEvent('setting_change'));
+			history.replaceState('', '', `${location.pathname}?cid=${cid}`);
+		} catch(e) {
+			console.error(e);
+			alert(resource.ONLINE_ERROR_CONNECTION);
+			ret = false;
+		}
+		return ret;
+	};
+
 	me.show = async function() {
 		if (document.getElementById('modal-overlay')) {
 			return;

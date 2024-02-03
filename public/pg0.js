@@ -16,7 +16,7 @@ const options = {
 let ev, vv, cv;
 let baseTitle = document.title;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
 	if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator) {
 		navigator.serviceWorker.register('/pg0/serviceworker.js', {scope: '/pg0/'}).then(function (registration) {
 			registration.onupdatefound = function() {
@@ -598,6 +598,23 @@ document.addEventListener('DOMContentLoaded', function() {
 			}, 0);
 		}
 	}
+
+	function getUrlParam() {
+		var arg = new Object;
+		var pair = location.search.substring(1).split('&');
+		for(var i = 0; pair[i]; i++) {
+			var kv = pair[i].split('=');
+			arg[kv[0]] = decodeURIComponent(kv[1]);
+		}
+		return arg;
+	}
+	setTimeout(async function() {
+		const param = getUrlParam();
+		if (param.cid && ev.currentContent.cid !== param.cid &&
+			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
+			await onlineOpenView.getCode(param.cid);
+		}
+	}, 100);
 
 }, false);
 
