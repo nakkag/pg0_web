@@ -43,7 +43,10 @@
 	position: fixed;
 }
 .dialog-menu div {
-	padding: 20px;
+	border-bottom: 1px solid #ddd;
+}
+.dialog-menu div:last-child {
+	border-bottom: 0px;
 }
 .dialog-menu div:hover, .dialog-menu div:focus {
 	background-color: #eee;
@@ -55,6 +58,8 @@
 	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
 	color: black;
 	text-decoration: none;
+	display: block;
+	padding: 20px;
 }
 
 #setting {
@@ -253,6 +258,7 @@
 
 #online-open-menu {
 	display: none;
+	text-align: center;
 }
 
 #online-open-remove-div {
