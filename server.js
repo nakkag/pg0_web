@@ -161,6 +161,7 @@ app.put('/api/codes/:cid', async (req, res) => {
 		if (doc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
 		}
+		await addHistory(req.params.cid);
 		await db.collection('codes').updateOne({cid: req.params.cid}, {$set: {
 			name: req.body.name,
 			type: req.body.type,
@@ -191,6 +192,7 @@ app.delete('/api/codes/:cid', async (req, res) => {
 		if (doc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
 		}
+		await addHistory(req.params.cid);
 		await db.collection('codes').deleteOne({cid: req.params.cid});
 		res.sendStatus(200);
 	} catch (error) {
@@ -200,6 +202,58 @@ app.delete('/api/codes/:cid', async (req, res) => {
 		client.close();
 	}
 });
+
+async function addHistory(cid) {
+	if (await diffHistory(cid)) {
+		return;
+	}
+	let client;
+	try {
+		client = await mongodb.MongoClient.connect(settings.dbOption);
+		const db = client.db('pg0');
+		const doc = await db.collection('codes').findOne({cid: cid});
+		if (doc) {
+			delete doc._id;
+			doc.hisotryTime = new Date().getTime();
+			await db.collection('codes_history').insertOne(doc);
+		}
+	} catch (error) {
+		console.error(error);
+	} finally {
+		client.close();
+	}
+}
+
+async function diffHistory(cid) {
+	let ret = false;
+	let client;
+	try {
+		client = await mongodb.MongoClient.connect(settings.dbOption);
+		const db = client.db('pg0');
+		const doc1 = await db.collection('codes').findOne({cid: cid});
+		if (doc1) {
+			const cursor = db.collection('codes_history').find({cid: cid}).sort({hisotryTime: -1}).limit(1);
+			if (cursor) {
+				const doc2 = await cursor.next();
+				if (doc2) {
+					if (doc1.name === doc2.name &&
+						doc1.type === doc2.type &&
+						doc1.author === doc2.author &&
+						doc1.password === doc2.password &&
+						doc1.code === doc2.code &&
+						doc1.speed === doc2.speed) {
+						ret = true;
+					}
+				}
+			}
+		}
+	} catch (error) {
+		console.error(error);
+	} finally {
+		client.close();
+	}
+	return ret;
+}
 
 server.listen(settings.httpsPort, () => console.log(`https Listening on port ${settings.httpsPort}...`));
 app.listen(settings.httpPort, () => console.log(`http Listening on port ${settings.httpPort}...`));

@@ -9,6 +9,8 @@ let resource = {
 	SETTING_FONT_SIZE: {'14': 'Small', '18': 'Medium', '24': 'Large'},
 	SETTING_LINENUM_TITLE: 'Show line number',
 
+	ONLINE_OPEN_REMOVE: 'Remove',
+	ONLINE_OPEN_REMOVE_PASSWORD: 'Enter the edit password.',
 	ONLINE_OPEN_READ_TITLE: 'Read more...',
 
 	ONLINE_SAVE_FILE_TITLE: 'File name',
@@ -16,6 +18,10 @@ let resource = {
 	ONLINE_SAVE_PASSWORD_TITLE: 'Edit password',
 	ONLINE_SAVE_NEW_TITLE: 'Save as new file',
 	ONLINE_SAVE_BUTTON: 'Save',
+
+	ONLINE_ERROR_UNAUTHORIZED: 'Incorrect password.',
+	ONLINE_ERROR_NOT_FOUND: 'File not found.',
+	ONLINE_ERROR_CONNECTION: 'Connection failed.',
 
 	CTRL_EXEC: 'Execution',
 	CTRL_STEP_EXEC: 'Step execution',
@@ -60,6 +66,8 @@ if (_lang === 'ja') {
 		SETTING_FONT_SIZE: {'14': '小さい', '18': '普通', '24': '大きい'},
 		SETTING_LINENUM_TITLE: '行番号を表示',
 
+		ONLINE_OPEN_REMOVE: '削除',
+		ONLINE_OPEN_REMOVE_PASSWORD: '編集パスワードを入力してください。',
 		ONLINE_OPEN_READ_TITLE: 'さらに読み込む...',
 
 		ONLINE_SAVE_FILE_TITLE: 'ファイル名',
@@ -67,6 +75,10 @@ if (_lang === 'ja') {
 		ONLINE_SAVE_PASSWORD_TITLE: '編集パスワード',
 		ONLINE_SAVE_NEW_TITLE: '新しいファイルとして保存する',
 		ONLINE_SAVE_BUTTON: '保存',
+
+		ONLINE_ERROR_UNAUTHORIZED: 'パスワードが間違っています。',
+		ONLINE_ERROR_NOT_FOUND: 'ファイルが見つかりません。',
+		ONLINE_ERROR_CONNECTION: '接続に失敗しました。',
 
 		CTRL_EXEC: '実行',
 		CTRL_STEP_EXEC: 'ステップ実行',

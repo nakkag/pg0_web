@@ -149,6 +149,44 @@ const onlineOpenView = (function () {
 		}
 	};
 	const openEvent = async function(e) {
+		if (e.target.closest('.file-menu')) {
+			me.showMenu(e.target);
+			return;
+		}
+		if (e.target.id === 'online-open-remove') {
+			me.closeMenu();
+			const password = window.prompt(resource.ONLINE_OPEN_REMOVE_PASSWORD);
+			if (password === null) {
+				return;
+			}
+			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
+			try {
+				const res = await fetch(`${apiServer}/api/codes/${cid}`, {
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						password: pg0_string.crc32(password),
+					}),
+				});
+				switch (res.status) {
+				case 200:
+					document.getElementById(cid).remove();
+					break;
+				case 401:
+					alert(resource.ONLINE_ERROR_UNAUTHORIZED);
+					break;
+				case 404:
+					alert(resource.ONLINE_ERROR_NOT_FOUND);
+					break;
+				}
+			} catch(e) {
+				console.error(e);
+				alert(resource.ONLINE_ERROR_CONNECTION);
+			}
+			return;
+		}
 		if (e.target.closest('.read-item')) {
 			getList();
 			return;
@@ -174,6 +212,7 @@ const onlineOpenView = (function () {
 				history.replaceState('', '', `${location.pathname}?cid=${cid}`);
 			} catch(e) {
 				console.error(e);
+				alert(resource.ONLINE_ERROR_CONNECTION);
 			}
 		}
 	};
@@ -200,7 +239,7 @@ const onlineOpenView = (function () {
 						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 					}
 					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(code.name) + '</span></div>' +
-						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div>';
+						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(code.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
 				if (codes.length >= count) {
@@ -214,6 +253,7 @@ const onlineOpenView = (function () {
 			}
 		} catch(e) {
 			console.error(e);
+			alert(resource.ONLINE_ERROR_CONNECTION);
 		}
 	};
 	
@@ -244,7 +284,31 @@ const onlineOpenView = (function () {
 		document.removeEventListener('click', openEvent, false);
 	};
 
+	me.showMenu = async function(elm) {
+		if (document.getElementById('menu-overlay')) {
+			return;
+		}
+		const modal = document.createElement('div');
+		modal.setAttribute('id', 'menu-overlay');
+		modal.addEventListener('click', function(e) {
+			me.closeMenu();
+		}, false);
+		document.body.append(modal);
+		
+		document.getElementById('online-open-menu').setAttribute('cid', elm.parentNode.id);
+		document.getElementById('online-open-menu').style.display = 'block';
+		document.getElementById('online-open-menu').style.top = elm.y + 'px';
+		document.getElementById('online-open-menu').style.left = elm.x + 'px';
+		document.getElementById('online-open-menu').focus();
+	};
+	me.closeMenu = function() {
+		document.getElementById('menu-overlay').remove();
+		document.getElementById('online-open-menu').style.display = 'none';
+	};
+
 	document.addEventListener('DOMContentLoaded', function() {
+		document.getElementById('online-open-remove').textContent = resource.ONLINE_OPEN_REMOVE;
+
 		document.querySelector('#online-open .close').addEventListener('click', function(e) {
 			me.close();
 		}, false);
@@ -369,14 +433,15 @@ const onlineSaveView = (function () {
 					me.close();
 					break;
 				case 401:
-					alert(res.statusText);
+					alert(resource.ONLINE_ERROR_UNAUTHORIZED);
 					break;
 				case 404:
-					alert(res.statusText);
+					alert(resource.ONLINE_ERROR_NOT_FOUND);
 					break;
 				}
 			} catch(e) {
 				console.error(e);
+				alert(resource.ONLINE_ERROR_CONNECTION);
 			}
 		}, false);
 	}, false);
