@@ -133,13 +133,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 		case 'o':
 			if (e.ctrlKey) {
 				e.preventDefault();
-				await fileOpen();
+				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
+					break;
+				}
+				await onlineOpenView.show();
 			}
 			break;
 		case 's':
 			if (e.ctrlKey) {
 				e.preventDefault();
-				await fileSave();
+				await onlineSaveView.show();
 			}
 			break;
 		case 'Escape':

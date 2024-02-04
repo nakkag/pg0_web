@@ -1,6 +1,8 @@
 "use strict";
 
 ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
+	ScriptExec.lib['$oscillators'] = [];
+
 	let _touchstart = 'mousedown';
 	let _touchmove = 'mousemove';
 	let _touchend = ['mouseup', 'mouseleave'];
@@ -936,7 +938,6 @@ function convHertz(str) {
 	return hertz;
 }
 
-let activeOscillators = [];
 ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
@@ -960,21 +961,25 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	oscillator.connect(gainNode).connect(ctx.destination);
 	oscillator.start(ctx.currentTime + (start / 1000));
 	oscillator.stop(ctx.currentTime + (start / 1000) + (end / 1000));
+	
+	if (!ScriptExec.lib['$oscillators']) {
+		ScriptExec.lib['$oscillators'] = [];
+	}
+	ScriptExec.lib['$oscillators'].push(oscillator);
 	setTimeout(function() {
-		const index = activeOscillators.indexOf(oscillator);
+		const index = ScriptExec.lib['$oscillators'].indexOf(oscillator);
 		if (index > -1) {
-			activeOscillators.splice(index, 1);
+			ScriptExec.lib['$oscillators'].splice(index, 1);
 		}
 	}, end);
-	activeOscillators.push(oscillator);
 	return 0;
 };
 
 function stopSound() {
-	activeOscillators.forEach(function(oscillator) {
+	ScriptExec.lib['$oscillators'].forEach(function(oscillator) {
 		oscillator.stop();
 	});
-	activeOscillators = [];
+	ScriptExec.lib['$oscillators'] = [];
 }
 ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
 	stopSound();
