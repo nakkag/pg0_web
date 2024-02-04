@@ -1,9 +1,10 @@
-const CACHE_VERSION = 'pg0-v161';
+const CACHE_VERSION = 'pg0-v162';
 
 const resources = [
 	'./',
 	'pg0.css',
 	'pg0.js',
+	'pg0_settings.js',
 
 	'pg0/script_common.js',
 	'pg0/script_exec.js',
@@ -28,7 +29,9 @@ const resources = [
 	'image/icon.png',
 	'image/icon_256.png',
 	'image/icon.svg',
+	'image/kebob_menu.svg',
 	'image/left.svg',
+	'image/load.svg',
 	'image/paste.svg',
 	'image/play.svg',
 	'image/redo.svg',
@@ -37,6 +40,9 @@ const resources = [
 	'image/stop.svg',
 	'image/tab.svg',
 	'image/undo.svg',
+
+	'lib/math.js',
+	'lib/screen.js',
 ];
 
 self.addEventListener('install', function (event) {
