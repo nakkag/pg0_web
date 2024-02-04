@@ -907,6 +907,60 @@ function _getArrayValue(array, key) {
 	});
 }
 
+function convHertz(str) {
+	let hertz = 0;
+	switch (str.toLowerCase()) {
+	case 'c':
+		hertz = 262
+		break
+	case 'd':
+		hertz = 294
+		break
+	case 'e':
+		hertz = 330
+		break
+	case 'f':
+		hertz = 350
+		break
+	case 'g':
+		hertz = 392
+		break
+	case 'a':
+		hertz = 440
+		break
+	case 'b':
+		hertz = 494
+		break
+	}
+	return hertz;
+}
+
+ScriptExec.lib['playsound'] = async function(ei, param, ret) {
+	if (param.length < 3) {
+		return -2;
+	}
+	let hertz = param[0].v.num;
+	if (param[0].v.type === TYPE_STRING) {
+		hertz = convHertz(param[0].v.str);
+	}
+	const start = param[1].v.num;
+	const end = param[2].v.num;
+	let volume = 1.0;
+	if (param.length >= 4) {
+		volume = param[3].v.num;
+	}
+	const ctx = new (window.AudioContext || window.webkitAudioContext)();
+	const gainNode = ctx.createGain();
+	gainNode.gain.value = volume;
+	const oscillator = ctx.createOscillator();
+	oscillator.type = 'sine';
+	oscillator.frequency.setValueAtTime(hertz, ctx.currentTime);
+	oscillator.connect(gainNode).connect(ctx.destination);
+	oscillator.start(ctx.currentTime + (start / 1000));
+	oscillator.stop(ctx.currentTime + (start / 1000) + (end / 1000));
+	return 0;
+};
+
 function _resize() {
 	const screen = document.getElementById('lib-screen');
 	if (!screen) {
