@@ -6,6 +6,10 @@ const mongodb = require('mongodb');
 const MongoClient = mongodb.MongoClient;
 const crypto = require('crypto');
 
+const log4js = require('log4js');
+log4js.configure('server_log.json');
+const logger = log4js.getLogger('pg0_server');
+
 const fetch = async function (url, init) {
 	const {default: fetch} = await import('node-fetch');
 	return await fetch(url, init);
@@ -18,6 +22,8 @@ const server = https.createServer({
 	cert: fs.readFileSync(settings.cert)
 }, app);
 
+app.disable('x-powered-by');
+app.use(log4js.connectLogger(logger));
 app.use(express.json());
 app.use(function (req, res, next) {
 	res.header('Access-Control-Allow-Origin', req.headers.origin);
@@ -25,6 +31,12 @@ app.use(function (req, res, next) {
 	res.header('Access-Control-Allow-Methods', 'POST, GET, PUT, DELETE, OPTIONS');
 	res.header('Access-Control-Allow-Credentials', true);
 	res.header('Access-Control-Max-Age', '86400');
+
+	res.header('Content-Security-Policy', 'upgrade-insecure-requests');
+	res.header('X-Content-Type-Options', 'nosniff');
+	res.header('X-XSS-Protection', '1; mode=block');
+	res.header('Expect-CT', 'max-age=7776000, enforce');
+	res.header('Referrer-Policy', 'no-referrer-when-downgrade');
 	next();
 });
 app.use('/', express.static('public'));
@@ -62,7 +74,7 @@ app.get('/api/script', async (req, res) => {
 		}
 		res.json(ret);
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
 	} finally {
 		client.close();
@@ -94,7 +106,7 @@ app.get('/api/script/:keyword', async (req, res) => {
 		}
 		res.json(ret);
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
 	} finally {
 		client.close();
@@ -114,7 +126,7 @@ app.get('/api/script/item/:cid', async (req, res) => {
 		delete doc.password;
 		res.json(doc);
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
 	} finally {
 		client.close();
@@ -143,7 +155,7 @@ app.post('/api/script', async (req, res) => {
 		});
 		res.send({cid: newCid});
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
 	} finally {
 		client.close();
@@ -174,7 +186,7 @@ app.put('/api/script/:cid', async (req, res) => {
 		}});
 		res.sendStatus(200);
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
 	} finally {
 		client.close();
@@ -197,7 +209,7 @@ app.delete('/api/script/:cid', async (req, res) => {
 		await db.collection('script').deleteOne({cid: req.params.cid});
 		res.sendStatus(200);
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
 	} finally {
 		client.close();
@@ -219,7 +231,7 @@ async function addHistory(cid) {
 			await db.collection('script_history').insertOne(doc);
 		}
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 	} finally {
 		client.close();
 	}
@@ -249,12 +261,12 @@ async function diffHistory(cid) {
 			}
 		}
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 	} finally {
 		client.close();
 	}
 	return ret;
 }
 
-server.listen(settings.httpsPort, () => console.log(`https Listening on port ${settings.httpsPort}...`));
-app.listen(settings.httpPort, () => console.log(`http Listening on port ${settings.httpPort}...`));
+server.listen(settings.httpsPort, () => logger.info(`https Listening on port ${settings.httpsPort}...`));
+app.listen(settings.httpPort, () => logger.info(`http Listening on port ${settings.httpPort}...`));
