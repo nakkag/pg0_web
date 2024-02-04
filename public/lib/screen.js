@@ -302,6 +302,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			if (touchClose) {
 				e.preventDefault();
 				stop();
+				stopSound();
 			}
 			touchClose = false;
 		}, false);
@@ -935,6 +936,7 @@ function convHertz(str) {
 	return hertz;
 }
 
+let activeOscillators = [];
 ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
@@ -958,8 +960,26 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	oscillator.connect(gainNode).connect(ctx.destination);
 	oscillator.start(ctx.currentTime + (start / 1000));
 	oscillator.stop(ctx.currentTime + (start / 1000) + (end / 1000));
+	setTimeout(function() {
+		const index = activeOscillators.indexOf(oscillator);
+		if (index > -1) {
+			activeOscillators.splice(index, 1);
+		}
+	}, end);
+	activeOscillators.push(oscillator);
 	return 0;
 };
+
+function stopSound() {
+	activeOscillators.forEach(function(oscillator) {
+		oscillator.stop();
+	});
+	activeOscillators = [];
+}
+ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
+	stopSound();
+	return 0;
+}
 
 function _resize() {
 	const screen = document.getElementById('lib-screen');
