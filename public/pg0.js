@@ -733,11 +733,11 @@ async function _exec(scis, sci, imp) {
 	try {
 		await sp.parse(sci.src, {
 			import: async function(file) {
-				if (/\.pg0$/i.test(file)) {
+				if (/\.pg0$/i.test(file) || /cid *= */.test(file)) {
 					let res;
 					let buf;
 					try {
-						const url = (/(^https:\/\/)|(^http:\/\/)/i.test(file)) ? apiServer + '/import/?url=' + file : file;
+						const url = apiServer + '/import/?url=' + file;
 						res = await fetch(url);
 						if (!res.ok) {
 							return -1;

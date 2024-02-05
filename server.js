@@ -46,12 +46,45 @@ app.options('*', function (req, res) {
 });
 
 app.get('/import', async (req, res) => {
-	const url = req.query.url.replace(/\r\n/, '');
-	const r = await fetch(url);
-	if (!r.ok) {
-		return res.status(r.status).send(r.statusText);
+	try {
+		const url = req.query.url.replace(/\r\n/, '');
+		if (/cid *= */.test(url)) {
+			let cid = '';
+			try {
+				const cUrl = new URL(url);
+				cid = cUrl.searchParams.get('cid');
+			} catch (error) {
+				const result = url.match(/cid *= *([a-zA-Z0-9\-]+)/);
+				if (result.length >= 2) {
+					cid = result[1];
+				}
+			}
+			let client;
+			try {
+				client = await mongodb.MongoClient.connect(settings.dbOption);
+				const db = client.db('pg0');
+				const doc = await db.collection('script').findOne({cid: cid});
+				if (!doc) {
+					return res.status(404).send('Not found.');
+				}
+				res.send(doc.code);
+			} catch (error) {
+				logger.error(error);
+				return res.status(500).send('Internal Server Error.');
+			} finally {
+				client.close();
+			}
+		} else {
+			const r = await fetch(url);
+			if (!r.ok) {
+				return res.status(r.status).send(r.statusText);
+			}
+			await r.body.pipe(res);
+		}
+	} catch (error) {
+		logger.error(error);
+		return res.status(500).send('Internal Server Error.');
 	}
-	await r.body.pipe(res);
 });
 
 app.get('/api/script', async (req, res) => {
@@ -134,13 +167,20 @@ app.get('/api/script/item/:cid', async (req, res) => {
 });
 
 app.post('/api/script', async (req, res) => {
-	const newCid = crypto.randomUUID();
+	let newCid = crypto.randomUUID();
 	const time = new Date().getTime();
 
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
+		while(true) {
+			const doc = await db.collection('script').findOne({cid: newCid});
+			if (!doc) {
+				break;
+			}
+			newCid = crypto.randomUUID();
+		}
 		const docs = await db.collection('script').insertOne({
 			cid: newCid,
 			name: req.body.name,
