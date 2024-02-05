@@ -713,7 +713,12 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	}
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
-	const text = param[0].v.str;
+	let text = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		text = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
+	} else {
+		text = ScriptExec.getValueString(param[0].v);
+	}
 	const x = param[1].v.num;
 	const y = param[2].v.num;
 	let color = '#000';
@@ -765,7 +770,12 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 	}
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
-	const text = param[0].v.str;
+	let text = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		text = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
+	} else {
+		text = ScriptExec.getValueString(param[0].v);
+	}
 	let fontStyle = '';
 	let fontSize = 30;
 	let fontFace = 'sans-serif';
