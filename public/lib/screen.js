@@ -174,7 +174,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				back.setAttribute('icon-left', left + 'px');
 				back.setAttribute('icon-top', top + 'px');
 			}
-			_resize();
+			_screenResize();
 		};
 		const backTouchEnd = function(e) {
 			e.preventDefault();
@@ -205,6 +205,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		back.append(screen);
 		document.addEventListener('keydown', _keyDown, false);
 		document.addEventListener('keyup', _keyUp, false);
+
+		ScriptExec.lib['$offscreen'] = document.createElement('canvas');
 	}
 	let iconic = document.getElementById('lib-screen-iconic');
 	if (!iconic) {
@@ -278,7 +280,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				back.style.height = '100%';
 				back.style.outline = 'unset';
 			}
-			_resize();
+			_screenResize();
 		}, false);
 	}
 	let close = document.getElementById('lib-screen-close');
@@ -319,21 +321,24 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			const w = width.v.num;
 			screen.style.width = `${w}px`;
 			screen.setAttribute('width', `${w}px`);
+			ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
 		}
 		const height = _getArrayValue(param[0].v.array, 'height');
 		if (height) {
 			const h = height.v.num;
 			screen.style.height = `${h}px`;
 			screen.setAttribute('height', `${h}px`);
+			ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
 		}
 		const color = _getArrayValue(param[0].v.array, 'color');
 		if (color) {
 			screen.style.backgroundColor = color.v.str;
+			ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
 		}
 	}
-	window.addEventListener('resize', _resize, false);
-	window.addEventListener('orientationchange', _resize, false);
-	_resize();
+	window.addEventListener('resize', _screenResize, false);
+	window.addEventListener('orientationchange', _screenResize, false);
+	_screenResize();
 
 	if (ScriptExec.lib['$i']) {
 		clearInterval(ScriptExec.lib['$i']);
@@ -342,10 +347,11 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		if (!run) {
 			clearInterval(ScriptExec.lib['$i']);
 			ScriptExec.lib['$i'] = null;
+			ScriptExec.lib['$offscreen'] = null;
 			document.getElementById('lib-screen-back').remove();
 
-			window.removeEventListener('resize', _resize, false);
-			window.removeEventListener('orientationchange', _resize, false);
+			window.removeEventListener('resize', _screenResize, false);
+			window.removeEventListener('orientationchange', _screenResize, false);
 			document.removeEventListener('keydown', _keyDown, false);
 			document.removeEventListener('keyup', _keyUp, false);
 		}
@@ -424,11 +430,36 @@ ScriptExec.lib['timestring'] = function(ei, param, ret) {
 	return 0;
 };
 
+function getCanvas() {
+	if (ScriptExec.lib['$offscreen_flag']) {
+		return ScriptExec.lib['$offscreen'];
+	}
+	return document.getElementById('lib-screen');
+}
+
+ScriptExec.lib['startoffscreen'] = async function(ei, param, ret) {
+	ScriptExec.lib['$offscreen_flag'] = 1;
+
+	const offScreen = ScriptExec.lib['$offscreen'];
+	const osCtx = offScreen.getContext('2d');
+	osCtx.drawImage(document.getElementById('lib-screen'), 0, 0);
+	return 0;
+};
+
+ScriptExec.lib['endoffscreen'] = async function(ei, param, ret) {
+	ScriptExec.lib['$offscreen_flag'] = 0;
+
+	const screen = document.getElementById('lib-screen');
+	const ctx = screen.getContext('2d');
+	ctx.drawImage(ScriptExec.lib['$offscreen'], 0, 0);
+	return 0;
+};
+
 ScriptExec.lib['drawline'] = async function(ei, param, ret) {
 	if (param.length < 4) {
 		return -2;
 	}
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	ctx.moveTo(param[0].v.num, param[1].v.num);
@@ -452,7 +483,7 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 	if (param.length < 4) {
 		return -2;
 	}
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	const x = param[0].v.num;
@@ -492,7 +523,7 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	const x = param[0].v.num;
@@ -569,7 +600,7 @@ ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
 	}
 	const fillColor = {r: parseInt(rr, 16), g: parseInt(gg, 16), b: parseInt(bb, 16), a: 255};
 
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const width = parseInt(screen.getAttribute('width'));
 	const height = parseInt(screen.getAttribute('height'));
@@ -651,7 +682,7 @@ ScriptExec.lib['drawscroll'] = async function(ei, param, ret) {
 	let dx = parseInt(param[0].v.num);
 	let dy = parseInt(param[1].v.num);
 
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const width = parseInt(screen.getAttribute('width'));
 	const height = parseInt(screen.getAttribute('height'));
@@ -680,7 +711,7 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const text = param[0].v.str;
 	const x = param[1].v.num;
@@ -732,7 +763,7 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 	if (param.length < 1) {
 		return -2;
 	}
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const text = param[0].v.str;
 	let fontStyle = '';
@@ -775,7 +806,7 @@ ScriptExec.lib['rgbtopoint'] = async function(ei, param, ret) {
 	const x = param[0].v.num;
 	const y = param[1].v.num;
 
-	const screen = document.getElementById('lib-screen');
+	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const imgData = ctx.getImageData(x, y, 1, 1);
 	
@@ -986,7 +1017,7 @@ ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
 	return 0;
 }
 
-function _resize() {
+function _screenResize() {
 	const screen = document.getElementById('lib-screen');
 	if (!screen) {
 		return;
