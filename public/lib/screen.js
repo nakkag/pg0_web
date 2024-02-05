@@ -68,11 +68,19 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 
 	// Key events
 	ScriptExec.lib['$key'] = [];
+	ScriptExec.lib['$keyTimer'] = null;
 	const _keyDown = function(e) {
 		e.preventDefault();
 		if (!ScriptExec.lib['$key'].includes(e.key)) {
 			ScriptExec.lib['$key'].push(e.key);
 		}
+		if (ScriptExec.lib['$keyTimer']) {
+			clearTimeout(ScriptExec.lib['$keyTimer']);
+		}
+		ScriptExec.lib['$keyTimer'] = setTimeout(function() {
+			ScriptExec.lib['$keyTimer'] = null;
+			ScriptExec.lib['$key'] = [];
+		}, 500);
 	};
 	const _keyUp = function(e) {
 		e.preventDefault();
