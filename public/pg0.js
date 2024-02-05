@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		if (param.run) {
 			exec(false);
 		}
-	}, 100);
+	}, 10);
 
 }, false);
 
