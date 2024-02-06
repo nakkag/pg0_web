@@ -960,14 +960,35 @@ ScriptExec.lib['intouch'] = async function(ei, param, ret) {
 
 // Key events
 ScriptExec.lib['inkey'] = async function(ei, param, ret) {
-	ret.v.array = [];
-	ret.v.type = TYPE_ARRAY;
-	ScriptExec.lib['$key'].forEach(function(key) {
-		const vi = ScriptExec.initValueInfo();
-		vi.v.type = TYPE_STRING;
-		vi.v.str = key;
-		ret.v.array.push(vi);
-	});
+	if (param.length === 0) {
+		ret.v.array = [];
+		ret.v.type = TYPE_ARRAY;
+		ScriptExec.lib['$key'].forEach(function(key) {
+			const vi = ScriptExec.initValueInfo();
+			vi.v.type = TYPE_STRING;
+			vi.v.str = key;
+			ret.v.array.push(vi);
+		});
+		return 0;
+	}
+	if (param[0].v.type === TYPE_ARRAY) {
+		const m = param[0].v.array.some(function(a) {
+			const text = ScriptExec.getValueString(a.v);
+			const r = ScriptExec.lib['$key'].find(function(key) {
+				return (key.toLowerCase() === text);
+			});
+			return r ? false : true;
+		});
+		ret.v.type = TYPE_INTEGER;
+		ret.v.num = m ? 0 : 1;
+	} else {
+		const text = ScriptExec.getValueString(param[0].v).toLowerCase();
+		const r = ScriptExec.lib['$key'].find(function(key) {
+			return (key.toLowerCase() === text);
+		});
+		ret.v.type = TYPE_INTEGER;
+		ret.v.num = r ? 1 : 0;
+	}
 	return 0;
 };
 
