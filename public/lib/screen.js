@@ -866,14 +866,21 @@ ScriptExec.lib['rgbtopoint'] = async function(ei, param, ret) {
 };
 
 ScriptExec.lib['rgbtohex'] = async function(ei, param, ret) {
-	if (param.length === 0 || param[0].v.type !== TYPE_ARRAY) {
+	if (param.length === 0 || param[0].v.type !== TYPE_ARRAY || param[0].v.array.length < 3) {
 		return -2;
 	}
-	const r = _getArrayValue(param[0].v.array, 'r');
-	const g = _getArrayValue(param[0].v.array, 'g');
-	const b = _getArrayValue(param[0].v.array, 'b');
+	let r = 0, g = 0, b = 0;
+	if (param[0].v.array[0].v.type !== TYPE_ARRAY) {
+		r = param[0].v.array[0].v.num;
+		g = param[0].v.array[1].v.num;
+		b = param[0].v.array[2].v.num;
+	} else {
+		r = _getArrayValue(param[0].v.array, 'r').v.num;
+		g = _getArrayValue(param[0].v.array, 'g').v.num;
+		b = _getArrayValue(param[0].v.array, 'b').v.num;
+	}
 	ret.v.type = TYPE_STRING;
-	ret.v.str = '#' + [r.v.num, g.v.num, b.v.num].map(function(value) {
+	ret.v.str = '#' + [r, g, b].map(function(value) {
 		return ('0' + value.toString(16)).slice(-2);
 	}).join('');
 	return 0;
