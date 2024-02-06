@@ -604,15 +604,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	setTimeout(async function() {
 		const param = pg0_string.searchParams(location.search);
-		if (param.cid && ev.currentContent.cid !== param.cid &&
+		if (param.cid && param.run && param.run !== '0') {
+			if (!ev.currentContent.modify || window.confirm(resource.MSG_NEW)) {
+				await onlineOpenView.getScript(param.cid);
+				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
+				exec(false);
+			}
+		} else if (param.cid && ev.currentContent.cid !== param.cid &&
 			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid);
-			if (param.run && param.run !== '0') {
-				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
-			}
-		}
-		if (param.run && param.run !== '0') {
-			exec(false);
 		}
 	}, 10);
 
