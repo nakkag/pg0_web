@@ -1,6 +1,9 @@
 "use strict";
 
 ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
+	if (param.length === 0 || (param.length === 1 && param[0].v.type !== TYPE_ARRAY)) {
+		return -2;
+	}
 	ScriptExec.lib['$oscillators'] = [];
 
 	let _touchstart = 'mousedown';
@@ -339,7 +342,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
 			}
 		}
-	} else if (param.length !== 0 && param[0].v.type === TYPE_ARRAY) {
+	} else if (param[0].v.type === TYPE_ARRAY) {
 		const width = _getArrayValue(param[0].v.array, 'width');
 		if (width) {
 			const w = width.v.num;
