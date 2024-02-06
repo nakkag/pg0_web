@@ -80,7 +80,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		ScriptExec.lib['$keyTimer'] = setTimeout(function() {
 			ScriptExec.lib['$keyTimer'] = null;
 			ScriptExec.lib['$key'] = [];
-		}, 500);
+		}, 1000);
 	};
 	const _keyUp = function(e) {
 		e.preventDefault();
