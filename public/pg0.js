@@ -607,11 +607,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 		if (param.cid && ev.currentContent.cid !== param.cid &&
 			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid);
-			if (param.run) {
+			if (param.run && param.run !== '0') {
 				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
 			}
 		}
-		if (param.run) {
+		if (param.run && param.run !== '0') {
 			exec(false);
 		}
 	}, 10);
