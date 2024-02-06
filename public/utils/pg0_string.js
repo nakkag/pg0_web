@@ -7,6 +7,16 @@ const pg0_string = (function () {
 		return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 	};
 
+	me.searchParams = function(search) {
+		var arg = new Object;
+		var pair = search.substring(1).split('&');
+		for(var i = 0; pair[i]; i++) {
+			var kv = pair[i].split('=');
+			arg[kv[0]] = decodeURIComponent(kv[1]);
+		}
+		return arg;
+	}
+
 	me.arrayToString = function(array) {
 		let ret = '';
 		array.forEach(function(a) {

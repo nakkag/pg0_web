@@ -602,20 +602,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 		}
 	}
 
-	function getUrlParam() {
-		var arg = new Object;
-		var pair = location.search.substring(1).split('&');
-		for(var i = 0; pair[i]; i++) {
-			var kv = pair[i].split('=');
-			arg[kv[0]] = decodeURIComponent(kv[1]);
-		}
-		return arg;
-	}
 	setTimeout(async function() {
-		const param = getUrlParam();
+		const param = pg0_string.searchParams(location.search);
 		if (param.cid && ev.currentContent.cid !== param.cid &&
 			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid);
+			if (param.run) {
+				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
+			}
 		}
 		if (param.run) {
 			exec(false);
