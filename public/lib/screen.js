@@ -201,8 +201,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		screen.style.zIndex = 501;
 		screen.style.backgroundColor = '#fff';
 		screen.style.position = 'absolute';
-		screen.style.width = '80%';
-		screen.style.height = '80%';
+		screen.style.width = '100%';
+		screen.style.height = '100%';
 		screen.style.setProperty('--top', 'env(safe-area-inset-top)');
 		screen.style.setProperty('--bottom', 'env(safe-area-inset-bottom)');
 		screen.addEventListener(_touchstart, _mouseDown, false);
@@ -323,7 +323,23 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		}, false);
 	}
 
-	if (param.length !== 0 && param[0].v.type === TYPE_ARRAY) {
+	if (param.length >= 2) {
+		const w = param[0].v.num;
+		const h = param[1].v.num;
+		screen.style.width = `${w}px`;
+		screen.style.height = `${h}px`;
+		screen.setAttribute('width', `${w}px`);
+		screen.setAttribute('height', `${h}px`);
+		ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
+		ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
+		if (param.length >= 3 && param[2].v.type === TYPE_ARRAY) {
+			const color = _getArrayValue(param[2].v.array, 'color');
+			if (color) {
+				screen.style.backgroundColor = color.v.str;
+				ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
+			}
+		}
+	} else if (param.length !== 0 && param[0].v.type === TYPE_ARRAY) {
 		const width = _getArrayValue(param[0].v.array, 'width');
 		if (width) {
 			const w = width.v.num;
