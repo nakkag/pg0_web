@@ -870,14 +870,23 @@ ScriptExec.lib['rgbtohex'] = async function(ei, param, ret) {
 		return -2;
 	}
 	let r = 0, g = 0, b = 0;
-	if (param[0].v.array[0].v.type !== TYPE_ARRAY) {
+	if (!param[0].v.array[0].name) {
 		r = param[0].v.array[0].v.num;
 		g = param[0].v.array[1].v.num;
 		b = param[0].v.array[2].v.num;
 	} else {
-		r = _getArrayValue(param[0].v.array, 'r').v.num;
-		g = _getArrayValue(param[0].v.array, 'g').v.num;
-		b = _getArrayValue(param[0].v.array, 'b').v.num;
+		let vi = _getArrayValue(param[0].v.array, 'r')
+		if (vi) {
+			r = vi.v.num;
+		}
+		vi = _getArrayValue(param[0].v.array, 'g')
+		if (vi) {
+			g = vi.v.num;
+		}
+		vi = _getArrayValue(param[0].v.array, 'b')
+		if (vi) {
+			b = vi.v.num;
+		}
 	}
 	ret.v.type = TYPE_STRING;
 	ret.v.str = '#' + [r, g, b].map(function(value) {
