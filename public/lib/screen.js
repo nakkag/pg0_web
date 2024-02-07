@@ -5,6 +5,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		return -2;
 	}
 	ScriptExec.lib['$oscillators'] = [];
+	ScriptExec.lib['$offscreen_flag'] = 0;
 
 	let _touchstart = 'mousedown';
 	let _touchmove = 'mousemove';
