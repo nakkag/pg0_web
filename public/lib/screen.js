@@ -337,28 +337,28 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
 		if (param.length >= 3 && param[2].v.type === TYPE_ARRAY) {
 			const color = _getArrayValue(param[2].v.array, 'color');
-			if (color) {
+			if (color && color.v.type === TYPE_STRING) {
 				screen.style.backgroundColor = color.v.str;
 				ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
 			}
 		}
 	} else if (param[0].v.type === TYPE_ARRAY) {
 		const width = _getArrayValue(param[0].v.array, 'width');
-		if (width) {
+		if (width && (width.v.type === TYPE_INTEGER || width.v.type === TYPE_FLOAT)) {
 			const w = width.v.num;
 			screen.style.width = `${w}px`;
 			screen.setAttribute('width', `${w}px`);
 			ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
 		}
 		const height = _getArrayValue(param[0].v.array, 'height');
-		if (height) {
+		if (height && (height.v.type === TYPE_INTEGER || height.v.type === TYPE_FLOAT)) {
 			const h = height.v.num;
 			screen.style.height = `${h}px`;
 			screen.setAttribute('height', `${h}px`);
 			ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
 		}
 		const color = _getArrayValue(param[0].v.array, 'color');
-		if (color) {
+		if (color && color.v.type === TYPE_STRING) {
 			screen.style.backgroundColor = color.v.str;
 			ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
 		}
@@ -495,11 +495,11 @@ ScriptExec.lib['drawline'] = async function(ei, param, ret) {
 	ctx.strokeStyle = '#000';
 	if (param.length >= 5 && param[4].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[4].v.array, 'width');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			ctx.lineWidth = vi.v.num;
 		}
 		vi = _getArrayValue(param[4].v.array, 'color');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			ctx.strokeStyle = vi.v.str;
 		}
 	}
@@ -522,15 +522,15 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 	let fill = 0;
 	if (param.length >= 5 && param[4].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[4].v.array, 'color');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
 		vi = _getArrayValue(param[4].v.array, 'width');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
 		vi = _getArrayValue(param[4].v.array, 'fill');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
 	}
@@ -565,31 +565,31 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 	let fill = 0;
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[3].v.array, 'radius_y');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			radiusY = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'rotation');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			rotation = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'start');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			startAngle = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'end');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			endAngle = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'color');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
 		vi = _getArrayValue(param[3].v.array, 'width');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'fill');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
 	}
@@ -756,27 +756,27 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	let fontFace = 'sans-serif';
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[3].v.array, 'color');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
 		vi = _getArrayValue(param[3].v.array, 'width');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'fill');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'fontstyle');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			fontStyle = vi.v.str;
 		}
 		vi = _getArrayValue(param[3].v.array, 'fontsize');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fontSize = vi.v.num;
 		}
 		vi = _getArrayValue(param[3].v.array, 'fontface');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			fontFace = vi.v.str;
 		}
 	}
@@ -808,15 +808,15 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 	let fontFace = 'sans-serif';
 	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[1].v.array, 'fontstyle');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			fontStyle = vi.v.str;
 		}
 		vi = _getArrayValue(param[1].v.array, 'fontsize');
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fontSize = vi.v.num;
 		}
 		vi = _getArrayValue(param[1].v.array, 'fontface');
-		if (vi) {
+		if (vi && vi.v.type === TYPE_STRING) {
 			fontFace = vi.v.str;
 		}
 	}
@@ -876,21 +876,21 @@ ScriptExec.lib['rgbtohex'] = async function(ei, param, ret) {
 		b = param[0].v.array[2].v.num;
 	} else {
 		let vi = _getArrayValue(param[0].v.array, 'r')
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			r = vi.v.num;
 		}
 		vi = _getArrayValue(param[0].v.array, 'g')
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			g = vi.v.num;
 		}
 		vi = _getArrayValue(param[0].v.array, 'b')
-		if (vi) {
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			b = vi.v.num;
 		}
 	}
 	ret.v.type = TYPE_STRING;
 	ret.v.str = '#' + [r, g, b].map(function(value) {
-		return ('0' + value.toString(16)).slice(-2);
+		return ('0' + parseInt(value).toString(16)).slice(-2);
 	}).join('');
 	return 0;
 };
@@ -917,15 +917,23 @@ ScriptExec.lib['hextorgb'] = async function(ei, param, ret) {
 	r.name = 'r';
 	r.v.type = TYPE_INTEGER;
 	r.v.num = parseInt(rr, 16);
+	if (isNaN(r.v.num)) {
+		r.v.num = 0;
+	}
 	const g = ScriptExec.initValueInfo();
 	g.name = 'g';
 	g.v.type = TYPE_INTEGER;
 	g.v.num = parseInt(gg, 16);
+	if (isNaN(g.v.num)) {
+		g.v.num = 0;
+	}
 	const b = ScriptExec.initValueInfo();
 	b.name = 'b';
 	b.v.type = TYPE_INTEGER;
 	b.v.num = parseInt(bb, 16);
-
+	if (isNaN(b.v.num)) {
+		b.v.num = 0;
+	}
 	ret.v.array = [r, g, b];
 	ret.v.type = TYPE_ARRAY;
 	return 0;
