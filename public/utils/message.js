@@ -10,6 +10,7 @@ let resource = {
 	SETTING_LINENUM_TITLE: 'Show line number',
 
 	ONLINE_OPEN_COPY: 'Copy URL',
+	ONLINE_OPEN_COPY_AUTORUN: 'Copy autorun URL',
 	ONLINE_OPEN_REMOVE: 'Remove',
 	ONLINE_OPEN_REMOVE_PASSWORD: 'Enter the edit password.',
 	ONLINE_OPEN_READ_TITLE: 'Read more...',
@@ -69,6 +70,7 @@ if (_lang === 'ja') {
 		SETTING_LINENUM_TITLE: '行番号を表示',
 
 		ONLINE_OPEN_COPY: 'URLをコピー',
+		ONLINE_OPEN_COPY_AUTORUN: '自動実行URLをコピー',
 		ONLINE_OPEN_REMOVE: '削除',
 		ONLINE_OPEN_REMOVE_PASSWORD: '編集パスワードを入力してください。',
 		ONLINE_OPEN_READ_TITLE: 'さらに読み込む...',

@@ -163,6 +163,14 @@ const onlineOpenView = (function () {
 			}
 			return;
 		}
+		if (e.target.id === 'online-open-copy-autorun') {
+			me.closeMenu();
+			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}&run=1`);
+			}
+			return;
+		}
 		if (e.target.id === 'online-open-remove') {
 			me.closeMenu();
 			const password = window.prompt(resource.ONLINE_OPEN_REMOVE_PASSWORD);
@@ -334,6 +342,7 @@ const onlineOpenView = (function () {
 
 	document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('online-open-copy').textContent = resource.ONLINE_OPEN_COPY;
+		document.getElementById('online-open-copy-autorun').textContent = resource.ONLINE_OPEN_COPY_AUTORUN;
 		document.getElementById('online-open-remove').textContent = resource.ONLINE_OPEN_REMOVE;
 
 		document.querySelector('#online-open .close').addEventListener('click', function(e) {
