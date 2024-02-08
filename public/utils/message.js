@@ -23,6 +23,7 @@ let resource = {
 	ONLINE_ERROR_UNAUTHORIZED: 'Incorrect password.',
 	ONLINE_ERROR_NOT_FOUND: 'File not found.',
 	ONLINE_ERROR_CONNECTION: 'Connection failed.',
+	ONLINE_ERROR_CONFLICT: 'File name already exists.\nPlease change it to another name.',
 
 	CTRL_EXEC: 'Execution',
 	CTRL_STEP_EXEC: 'Step execution',
@@ -81,6 +82,7 @@ if (_lang === 'ja') {
 		ONLINE_ERROR_UNAUTHORIZED: 'パスワードが間違っています。',
 		ONLINE_ERROR_NOT_FOUND: 'ファイルが見つかりません。',
 		ONLINE_ERROR_CONNECTION: '接続に失敗しました。',
+		ONLINE_ERROR_CONFLICT: '既に存在するファイル名です。\n別の名前で保存してください。',
 
 		CTRL_EXEC: '実行',
 		CTRL_STEP_EXEC: 'ステップ実行',

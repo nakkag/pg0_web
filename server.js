@@ -174,6 +174,10 @@ app.post('/api/script', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
+		const checkDoc = await db.collection('script').findOne({name: req.body.name});
+		if (checkDoc) {
+			return res.status(409).send('Conflict.');
+		}
 		while(true) {
 			const doc = await db.collection('script').findOne({cid: newCid});
 			if (!doc) {
@@ -181,7 +185,7 @@ app.post('/api/script', async (req, res) => {
 			}
 			newCid = crypto.randomUUID();
 		}
-		const docs = await db.collection('script').insertOne({
+		await db.collection('script').insertOne({
 			cid: newCid,
 			name: req.body.name,
 			type: req.body.type,
@@ -207,6 +211,10 @@ app.put('/api/script/:cid', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
+		const checkDoc = await db.collection('script').findOne({cid: {$ne: req.params.cid}, name: req.body.name});
+		if (checkDoc) {
+			return res.status(409).send('Conflict.');
+		}
 		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');

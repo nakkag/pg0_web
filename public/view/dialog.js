@@ -465,6 +465,9 @@ const onlineSaveView = (function () {
 				case 404:
 					alert(resource.ONLINE_ERROR_NOT_FOUND);
 					break;
+				case 409:
+					alert(resource.ONLINE_ERROR_CONFLICT);
+					break;
 				}
 			} catch(e) {
 				console.error(e);
