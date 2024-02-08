@@ -138,7 +138,11 @@ const onlineOpenView = (function () {
 			return;
 		}
 		if (e.key === 'Escape') {
-			me.close();
+			if (document.getElementById('menu-overlay')) {
+				me.closeMenu();
+			} else {
+				me.close();
+			}
 		}
 		if (e.key === 'Enter') {
 			if (document.activeElement.id === 'online-open-search-text') {
