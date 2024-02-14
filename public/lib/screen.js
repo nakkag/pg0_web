@@ -410,6 +410,7 @@ ScriptExec.lib['sleep'] = async function(ei, param, ret) {
 		await new Promise(resolve => setTimeout(resolve, 1));
 		en = new Date().getTime();
 	}
+	return 0;
 };
 
 ScriptExec.lib['time'] = function(ei, param, ret) {
@@ -505,6 +506,7 @@ ScriptExec.lib['drawline'] = async function(ei, param, ret) {
 		}
 	}
 	ctx.stroke();
+	return 0;
 };
 
 ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
@@ -545,6 +547,7 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 		ctx.strokeStyle = color;
 		ctx.stroke();
 	}
+	return 0;
 };
 
 ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
@@ -604,6 +607,7 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 		ctx.strokeStyle = color;
 		ctx.stroke();
 	}
+	return 0;
 };
 
 ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
@@ -646,7 +650,7 @@ ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
 		startColor.g === fillColor.g &&
 		startColor.b === fillColor.b &&
 		startColor.a === fillColor.a) {
-		return;
+		return 0;
 	}
 
 	function matchStartColor(pixelPos) {
@@ -701,6 +705,7 @@ ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
 		}
 	}
 	ctx.putImageData(imageData, 0, 0);
+	return 0;
 };
 
 ScriptExec.lib['drawscroll'] = async function(ei, param, ret) {
@@ -733,7 +738,62 @@ ScriptExec.lib['drawscroll'] = async function(ei, param, ret) {
 	if (dx !== 0 && dy !== 0) {
 		ctx.putImageData(imageData, dx + (dx > 0 ? -width : width), dy + (dy > 0 ? -height : height));
 	}
+	return 0;
 };
+
+ScriptExec.lib['createimage'] = async function(ei, param, ret) {
+	if (param.length < 4) {
+		return -2;
+	}
+	const x = param[0].v.num;
+	const y = param[1].v.num;
+	const w = param[2].v.num;
+	const h = param[3].v.num;
+
+	const screen = getCanvas();
+	const tmpScreen = document.createElement('canvas');
+	tmpScreen.setAttribute('width', `${w}px`);
+	tmpScreen.setAttribute('height', `${h}px`);
+	const tmpCtx = tmpScreen.getContext('2d');
+	tmpCtx.drawImage(screen, x, y, w, h, 0, 0, w, h);
+	ret.v.type = TYPE_STRING;
+	ret.v.str = tmpScreen.toDataURL();
+	return 0;
+};
+
+ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
+	if (param.length < 3) {
+		return -2;
+	}
+	let url = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		return -2;
+	} else {
+		url = ScriptExec.getValueString(param[0].v);
+	}
+	const x = param[1].v.num;
+	const y = param[2].v.num;
+
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	const image = await loadImage(url);
+	if (param.length >= 5) {
+		const w = param[3].v.num;
+		const h = param[4].v.num;
+		ctx.drawImage(image, x, y, w, h);
+	} else {
+		ctx.drawImage(image, x, y);
+	}
+	function loadImage(src) {
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			img.onload = () => resolve(img);
+			img.onerror = (e) => reject(e);
+			img.src = src;
+		})
+	}
+	return 0;
+}
 
 ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	if (param.length < 3) {
@@ -790,6 +850,7 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 		ctx.strokeStyle = color;
 		ctx.strokeText(text, x, y + fontSize);
 	}
+	return 0;
 };
 
 ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
