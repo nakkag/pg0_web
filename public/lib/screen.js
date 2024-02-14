@@ -773,14 +773,24 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 	}
 	const x = param[1].v.num;
 	const y = param[2].v.num;
+	let width = -1;
+	let height = -1;
+	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
+		let vi = _getArrayValue(param[3].v.array, 'width');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			width = vi.v.num;
+		}
+		vi = _getArrayValue(param[3].v.array, 'height');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			height = vi.v.num;
+		}
+	}
 
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const image = await loadImage(url);
-	if (param.length >= 5) {
-		const w = param[3].v.num;
-		const h = param[4].v.num;
-		ctx.drawImage(image, x, y, w, h);
+	if (width >= 0 && height >= 0) {
+		ctx.drawImage(image, x, y, width, height);
 	} else {
 		ctx.drawImage(image, x, y);
 	}
