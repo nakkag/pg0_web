@@ -6,6 +6,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	}
 	ScriptExec.lib['$oscillators'] = [];
 	ScriptExec.lib['$offscreen_flag'] = 0;
+	ScriptExec.lib['$image'] = [];
 
 	let _touchstart = 'mousedown';
 	let _touchmove = 'mousemove';
@@ -756,8 +757,19 @@ ScriptExec.lib['createimage'] = async function(ei, param, ret) {
 	tmpScreen.setAttribute('height', `${h}px`);
 	const tmpCtx = tmpScreen.getContext('2d');
 	tmpCtx.drawImage(screen, x, y, w, h, 0, 0, w, h);
-	ret.v.type = TYPE_STRING;
-	ret.v.str = tmpScreen.toDataURL();
+	const image = await loadImage(tmpScreen.toDataURL());
+	const count = ScriptExec.lib['$image'].push(image);
+	ret.v.type = TYPE_INTEGER;
+	ret.v.num = count - 1;
+	
+	function loadImage(src) {
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			img.onload = () => resolve(img);
+			img.onerror = (e) => reject(e);
+			img.src = src;
+		})
+	}	
 	return 0;
 };
 
@@ -765,11 +777,9 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	let url = '';
-	if (param[0].v.type === TYPE_ARRAY) {
-		return -2;
-	} else {
-		url = ScriptExec.getValueString(param[0].v);
+	const index = parseInt(param[0].v.num);
+	if (index < 0 || index >= ScriptExec.lib['$image'].length) {
+		return 0;
 	}
 	const x = param[1].v.num;
 	const y = param[2].v.num;
@@ -788,19 +798,10 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
-	const image = await loadImage(url);
 	if (width >= 0 && height >= 0) {
-		ctx.drawImage(image, x, y, width, height);
+		ctx.drawImage(ScriptExec.lib['$image'][index], x, y, width, height);
 	} else {
-		ctx.drawImage(image, x, y);
-	}
-	function loadImage(src) {
-		return new Promise((resolve, reject) => {
-			const img = new Image();
-			img.onload = () => resolve(img);
-			img.onerror = (e) => reject(e);
-			img.src = src;
-		})
+		ctx.drawImage(ScriptExec.lib['$image'][index], x, y);
 	}
 	return 0;
 }
