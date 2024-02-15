@@ -554,7 +554,6 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	ctx.rect(x, y, w, h);
-	ctx.closePath();
 	if (fill) {
 		ctx.fillStyle = color;
 		ctx.fill();
@@ -580,6 +579,7 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 	let color = '#000';
 	let width = 1;
 	let fill = 0;
+	let close = 0;
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[3].v.array, 'radius_y');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
@@ -609,16 +609,78 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
+		vi = _getArrayValue(param[3].v.array, 'close');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			close = vi.v.num;
+		}
 	}
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	ctx.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle);
-	ctx.closePath();
 	if (fill) {
 		ctx.fillStyle = color;
 		ctx.fill();
 	} else {
+		if (close) {
+			ctx.closePath();
+		}
+		ctx.lineWidth = width;
+		ctx.strokeStyle = color;
+		ctx.stroke();
+	}
+	return 0;
+};
+
+ScriptExec.lib['drawpolyline'] = async function(ei, param, ret) {
+	if (param.length < 1 || param[0].v.type !== TYPE_ARRAY) {
+		return -2;
+	}
+
+	let color = '#000';
+	let width = 1;
+	let fill = 0;
+	let close = 0;
+	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
+		let vi = _getArrayValue(param[1].v.array, 'color');
+		if (vi && vi.v.type === TYPE_STRING) {
+			color = vi.v.str;
+		}
+		vi = _getArrayValue(param[1].v.array, 'width');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			width = vi.v.num;
+		}
+		vi = _getArrayValue(param[1].v.array, 'fill');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			fill = vi.v.num;
+		}
+		vi = _getArrayValue(param[1].v.array, 'close');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			close = vi.v.num;
+		}
+	}
+
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.beginPath();
+	let first = true;
+	param[0].v.array.forEach(function(d, i) {
+		if (d.v.type === TYPE_ARRAY && d.v.array.length >= 2) {
+			if (first) {
+				first = false;
+				ctx.moveTo(d.v.array[0].v.num, d.v.array[1].v.num);
+			} else {
+				ctx.lineTo(d.v.array[0].v.num, d.v.array[1].v.num);
+			}
+		}
+	});
+	if (fill) {
+		ctx.fillStyle = color;
+		ctx.fill();
+	} else {
+		if (close) {
+			ctx.closePath();
+		}
 		ctx.lineWidth = width;
 		ctx.strokeStyle = color;
 		ctx.stroke();
@@ -836,7 +898,7 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 	} else {
 		ctx.save();
 		ctx.translate(x + width / 2, y + height / 2);
-		ctx.rotate(angle * (Math.PI / 180));
+		ctx.rotate(angle);
 		ctx.drawImage(ScriptExec.lib['$image'][index], -width / 2, -height / 2, width, height);
 		ctx.restore();
 	}
