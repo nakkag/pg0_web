@@ -1040,7 +1040,9 @@ function ScriptExec(scis, sci) {
 					ret = RET_ERROR;
 					break;
 				}
-				stack.push(vi);
+				v1 = ScriptExec.initValueInfo();
+				v1.v = vi.v;
+				stack.push(v1);
 				break;
 			case SYM_CONST_INT:
 				vi = ScriptExec.initValueInfo();
