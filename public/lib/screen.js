@@ -765,6 +765,13 @@ ScriptExec.lib['createimage'] = async function(ei, param, ret) {
 	const y = param[1].v.num;
 	const w = param[2].v.num;
 	const h = param[3].v.num;
+	let imageId = -1;
+	if (param.length >= 5 && param[4].v.type === TYPE_ARRAY) {
+		let vi = _getArrayValue(param[4].v.array, 'id');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			imageId = parseInt(vi.v.num);
+		}
+	}
 
 	const screen = getCanvas();
 	const tmpScreen = document.createElement('canvas');
@@ -773,9 +780,15 @@ ScriptExec.lib['createimage'] = async function(ei, param, ret) {
 	const tmpCtx = tmpScreen.getContext('2d');
 	tmpCtx.drawImage(screen, x, y, w, h, 0, 0, w, h);
 	const image = await loadImage(tmpScreen.toDataURL());
-	const count = ScriptExec.lib['$image'].push(image);
-	ret.v.type = TYPE_INTEGER;
-	ret.v.num = count - 1;
+	if (imageId >= 0 && imageId < ScriptExec.lib['$image'].length) {
+		ScriptExec.lib['$image'][imageId] = image;
+		ret.v.type = TYPE_INTEGER;
+		ret.v.num = imageId;
+	} else {
+		const count = ScriptExec.lib['$image'].push(image);
+		ret.v.type = TYPE_INTEGER;
+		ret.v.num = count - 1;
+	}
 	
 	function loadImage(src) {
 		return new Promise((resolve, reject) => {
