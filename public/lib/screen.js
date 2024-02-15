@@ -798,8 +798,9 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 	}
 	const x = param[1].v.num;
 	const y = param[2].v.num;
-	let width = -1;
-	let height = -1;
+	let width = ScriptExec.lib['$image'][index].width;
+	let height = ScriptExec.lib['$image'][index].height;
+	let angle = null;
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[3].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
@@ -809,14 +810,22 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			height = vi.v.num;
 		}
+		vi = _getArrayValue(param[3].v.array, 'angle');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			angle = vi.v.num;
+		}
 	}
 
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
-	if (width >= 0 && height >= 0) {
+	if (!angle) {
 		ctx.drawImage(ScriptExec.lib['$image'][index], x, y, width, height);
 	} else {
-		ctx.drawImage(ScriptExec.lib['$image'][index], x, y);
+		ctx.save();
+		ctx.translate(x + width / 2, y + height / 2);
+		ctx.rotate(angle * (Math.PI / 180));
+		ctx.drawImage(ScriptExec.lib['$image'][index], -width / 2, -height / 2, width, height);
+		ctx.restore();
 	}
 	return 0;
 }
