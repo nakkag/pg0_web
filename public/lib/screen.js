@@ -485,6 +485,21 @@ ScriptExec.lib['endoffscreen'] = async function(ei, param, ret) {
 	return 0;
 };
 
+ScriptExec.lib['clearrect'] = async function(ei, param, ret) {
+	if (param.length < 4) {
+		return -2;
+	}
+	const x = param[0].v.num;
+	const y = param[1].v.num;
+	const w = param[2].v.num;
+	const h = param[3].v.num;
+
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.clearRect(x, y, w, h);
+	return 0;
+};
+
 ScriptExec.lib['drawline'] = async function(ei, param, ret) {
 	if (param.length < 4) {
 		return -2;
@@ -514,9 +529,6 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 	if (param.length < 4) {
 		return -2;
 	}
-	const screen = getCanvas();
-	const ctx = screen.getContext('2d', {willReadFrequently: true});
-	ctx.beginPath();
 	const x = param[0].v.num;
 	const y = param[1].v.num;
 	const w = param[2].v.num;
@@ -538,6 +550,9 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 			fill = vi.v.num;
 		}
 	}
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.beginPath();
 	ctx.rect(x, y, w, h);
 	ctx.closePath();
 	if (fill) {
@@ -555,9 +570,6 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	const screen = getCanvas();
-	const ctx = screen.getContext('2d', {willReadFrequently: true});
-	ctx.beginPath();
 	const x = param[0].v.num;
 	const y = param[1].v.num;
 	const radiusX = param[2].v.num;
@@ -598,6 +610,9 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 			fill = vi.v.num;
 		}
 	}
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.beginPath();
 	ctx.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle);
 	ctx.closePath();
 	if (fill) {
@@ -810,8 +825,6 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	const screen = getCanvas();
-	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	let text = '';
 	if (param[0].v.type === TYPE_ARRAY) {
 		text = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
@@ -852,6 +865,8 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 			fontFace = vi.v.str;
 		}
 	}
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.font = `${fontStyle} ${fontSize}px ${fontFace}`;
 	if (fill) {
 		ctx.fillStyle = color;
@@ -868,8 +883,6 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 	if (param.length < 1) {
 		return -2;
 	}
-	const screen = getCanvas();
-	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	let text = '';
 	if (param[0].v.type === TYPE_ARRAY) {
 		text = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
@@ -893,6 +906,8 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 			fontFace = vi.v.str;
 		}
 	}
+	const screen = getCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.font = `${fontStyle} ${fontSize}px ${fontFace}`;
 	const mesure = ctx.measureText(text);
 
