@@ -779,7 +779,7 @@ ScriptExec.lib['createimage'] = async function(ei, param, ret) {
 	tmpScreen.setAttribute('height', `${h}px`);
 	const tmpCtx = tmpScreen.getContext('2d');
 	tmpCtx.drawImage(screen, x, y, w, h, 0, 0, w, h);
-	const image = await loadImage(tmpScreen.toDataURL());
+	const image = await loadImage(tmpScreen.toDataURL('image/png'));
 	if (imageId >= 0 && imageId < ScriptExec.lib['$image'].length) {
 		ScriptExec.lib['$image'][imageId] = image;
 		ret.v.type = TYPE_INTEGER;
@@ -789,7 +789,7 @@ ScriptExec.lib['createimage'] = async function(ei, param, ret) {
 		ret.v.type = TYPE_INTEGER;
 		ret.v.num = count - 1;
 	}
-	
+
 	function loadImage(src) {
 		return new Promise((resolve, reject) => {
 			const img = new Image();
