@@ -166,7 +166,7 @@ app.get('/api/script/item/:cid', async (req, res) => {
 	}
 });
 
-app.post('/api/script/history/:cid', async (req, res) => {
+app.get('/api/script/history/:cid', async (req, res) => {
 	const skip = parseInt(req.query.skip || 0);
 	let count = parseInt(req.query.count || settings.listCount);
 	if (count < 0) {
@@ -179,13 +179,6 @@ app.post('/api/script/history/:cid', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const checkDoc = await db.collection('script').findOne({cid: req.params.cid});
-		if (!checkDoc) {
-			return res.status(404).send('Not found.');
-		}
-		if (checkDoc.password !== req.body.password) {
-			return res.status(401).send('Unauthorized.');
-		}
 		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
@@ -200,18 +193,11 @@ app.post('/api/script/history/:cid', async (req, res) => {
 	}
 });
 
-app.post('/api/script/item/:cid/:time', async (req, res) => {
+app.get('/api/script/item/:cid/:time', async (req, res) => {
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const checkDoc = await db.collection('script').findOne({cid: req.params.cid});
-		if (!checkDoc) {
-			return res.status(404).send('Not found.');
-		}
-		if (checkDoc.password !== req.body.password) {
-			return res.status(401).send('Unauthorized.');
-		}
 		const doc = await db.collection('script_history').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
 		if (!doc) {
 			return res.status(404).send('Not found.');

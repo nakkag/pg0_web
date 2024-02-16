@@ -1,5 +1,7 @@
 "use strict";
 
+const listCount = 30;
+
 const settingView = (function () {
 	const me = {};
 
@@ -177,12 +179,8 @@ const onlineOpenView = (function () {
 		}
 		if (e.target.id === 'online-open-history') {
 			me.closeMenu();
-			const password = window.prompt(resource.ONLINE_OPEN_REMOVE_PASSWORD);
-			if (password === null) {
-				return;
-			}
 			me.close();
-			await onlineHistoryView.show(e.target.closest('#online-open-menu').getAttribute('cid'), password);
+			await onlineHistoryView.show(e.target.closest('#online-open-menu').getAttribute('cid'));
 			return;
 		}
 		if (e.target.id === 'online-open-remove') {
@@ -212,6 +210,9 @@ const onlineOpenView = (function () {
 				case 404:
 					alert(resource.ONLINE_ERROR_NOT_FOUND);
 					break;
+				default:
+					alert(res.statusText + '(' + res.status + ')');
+					break;
 				}
 			} catch(e) {
 				console.error(e);
@@ -234,8 +235,7 @@ const onlineOpenView = (function () {
 	me.getList = async function() {
 		try {
 			const keyword = document.getElementById('online-open-search-text').value;
-			const count = 30;
-			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${count}&skip=${me.skip}`)).json();
+			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${listCount}&skip=${me.skip}`)).json();
 			if (scripts) {
 				if (document.getElementById('loading')) {
 					document.getElementById('loading').remove();
@@ -257,7 +257,7 @@ const onlineOpenView = (function () {
 						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
-				if (scripts.length >= count) {
+				if (scripts.length >= listCount) {
 					me.skip += scripts.length;
 					const readNode = document.createElement('div');
 					readNode.classList.add('read-item');
@@ -294,6 +294,10 @@ const onlineOpenView = (function () {
 				break;
 			case 404:
 				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				ret = false;
+				break;
+			default:
+				alert(res.statusText + '(' + res.status + ')');
 				ret = false;
 				break;
 			}
@@ -420,14 +424,7 @@ const onlineHistoryView = (function () {
 	};
 	me.getList = async function() {
 		try {
-			const count = 30;
-			const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=${count}&skip=${me.skip}`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({password: pg0_string.crc32(me.password)}),
-			});
+			const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=${listCount}&skip=${me.skip}`);
 			switch (res.status) {
 			case 200:
 				const scripts = await res.json();
@@ -453,7 +450,7 @@ const onlineHistoryView = (function () {
 							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
 						document.getElementById('online-history-list').appendChild(nameNode);
 					});
-					if (scripts.length >= count) {
+					if (scripts.length >= listCount) {
 						me.skip += scripts.length;
 						const readNode = document.createElement('div');
 						readNode.classList.add('read-item');
@@ -463,12 +460,12 @@ const onlineHistoryView = (function () {
 					}
 				}
 				break;
-			case 401:
-				alert(resource.ONLINE_ERROR_UNAUTHORIZED);
-				me.close();
-				break;
 			case 404:
 				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				me.close();
+				break;
+			default:
+				alert(res.statusText + '(' + res.status + ')');
 				me.close();
 				break;
 			}
@@ -482,13 +479,7 @@ const onlineHistoryView = (function () {
 	me.getHistory = async function(time) {
 		let ret = true;
 		try {
-			const res = await fetch(`${apiServer}/api/script/item/${me.cid}/${time}`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({password: pg0_string.crc32(me.password)}),
-			});
+			const res = await fetch(`${apiServer}/api/script/item/${me.cid}/${time}`);
 			switch (res.status) {
 			case 200:
 				const script = await res.json();
@@ -505,12 +496,12 @@ const onlineHistoryView = (function () {
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				history.replaceState('', '', `${location.pathname}?cid=${me.cid}`);
 				break;
-			case 401:
-				alert(resource.ONLINE_ERROR_UNAUTHORIZED);
-				ret = false;
-				break;
 			case 404:
 				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				ret = false;
+				break;
+			default:
+				alert(res.statusText + '(' + res.status + ')');
 				ret = false;
 				break;
 			}
@@ -522,9 +513,8 @@ const onlineHistoryView = (function () {
 		return ret;
 	};
 
-	me.show = async function(cid, password) {
+	me.show = async function(cid) {
 		me.cid = cid;
-		me.password = password;
 		if (document.getElementById('modal-overlay')) {
 			return;
 		}
@@ -672,6 +662,9 @@ const onlineSaveView = (function () {
 					break;
 				case 409:
 					alert(resource.ONLINE_ERROR_CONFLICT);
+					break;
+				default:
+					alert(res.statusText + '(' + res.status + ')');
 					break;
 				}
 			} catch(e) {
