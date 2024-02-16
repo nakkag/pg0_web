@@ -1,7 +1,7 @@
 "use strict";
 
 ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
-	if (param.length === 0 || (param.length === 1 && param[0].v.type !== TYPE_ARRAY)) {
+	if (param.length < 2) {
 		return -2;
 	}
 	ScriptExec.lib['$oscillators'] = [];
@@ -328,41 +328,24 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		}, false);
 	}
 
-	if (param.length >= 2) {
-		const w = param[0].v.num;
-		const h = param[1].v.num;
-		screen.style.width = `${w}px`;
-		screen.style.height = `${h}px`;
-		screen.setAttribute('width', `${w}px`);
-		screen.setAttribute('height', `${h}px`);
-		ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
-		ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
-		if (param.length >= 3 && param[2].v.type === TYPE_ARRAY) {
-			const color = _getArrayValue(param[2].v.array, 'color');
-			if (color && color.v.type === TYPE_STRING) {
-				screen.style.backgroundColor = color.v.str;
-				ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
-			}
-		}
-	} else if (param[0].v.type === TYPE_ARRAY) {
-		const width = _getArrayValue(param[0].v.array, 'width');
-		if (width && (width.v.type === TYPE_INTEGER || width.v.type === TYPE_FLOAT)) {
-			const w = width.v.num;
-			screen.style.width = `${w}px`;
-			screen.setAttribute('width', `${w}px`);
-			ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
-		}
-		const height = _getArrayValue(param[0].v.array, 'height');
-		if (height && (height.v.type === TYPE_INTEGER || height.v.type === TYPE_FLOAT)) {
-			const h = height.v.num;
-			screen.style.height = `${h}px`;
-			screen.setAttribute('height', `${h}px`);
-			ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
-		}
-		const color = _getArrayValue(param[0].v.array, 'color');
+	const w = param[0].v.num;
+	const h = param[1].v.num;
+	screen.style.width = `${w}px`;
+	screen.style.height = `${h}px`;
+	screen.setAttribute('width', `${w}px`);
+	screen.setAttribute('height', `${h}px`);
+	ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
+	ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
+	screen.setAttribute('fit', 1);
+	if (param.length >= 3 && param[2].v.type === TYPE_ARRAY) {
+		const color = _getArrayValue(param[2].v.array, 'color');
 		if (color && color.v.type === TYPE_STRING) {
 			screen.style.backgroundColor = color.v.str;
 			ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
+		}
+		const fit = _getArrayValue(param[2].v.array, 'fit');
+		if (fit) {
+			screen.setAttribute('fit', fit.v.num);
 		}
 	}
 	window.addEventListener('resize', _screenResize, false);
@@ -1293,7 +1276,8 @@ function _screenResize() {
 		screen.style.top = `calc(50% - ${height}px / 2 + env(safe-area-inset-top) - ${(top + bottom) / 2}px)`;
 		windowHeight = rect.height - top - bottom;
 	}
-	if (width < rect.width && height < windowHeight) {
+	const iconic = document.getElementById('lib-screen-iconic');
+	if (screen.getAttribute('fit') !== '1' && iconic.textContent === '-') {
 		screen.style.transform = 'unset';
 		ScriptExec.lib['$scale'] = 1;
 		return;
