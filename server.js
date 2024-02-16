@@ -166,6 +166,67 @@ app.get('/api/script/item/:cid', async (req, res) => {
 	}
 });
 
+app.post('/api/script/history/:cid', async (req, res) => {
+	const skip = parseInt(req.query.skip || 0);
+	let count = parseInt(req.query.count || settings.listCount);
+	if (count < 0) {
+		count = settings.listCount;
+	}
+	if (count > settings.maxCount) {
+		count = settings.maxCount;
+	}
+	let client;
+	try {
+		client = await mongodb.MongoClient.connect(settings.dbOption);
+		const db = client.db('pg0');
+		const checkDoc = await db.collection('script').findOne({cid: req.params.cid});
+		if (!checkDoc) {
+			return res.status(404).send('Not found.');
+		}
+		if (checkDoc.password !== req.body.password) {
+			return res.status(401).send('Unauthorized.');
+		}
+		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
+		const ret = [];
+		for await (const doc of cursor) {
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
+		}
+		res.json(ret);
+	} catch (error) {
+		logger.error(error);
+		return res.status(500).send('Internal Server Error.');
+	} finally {
+		client.close();
+	}
+});
+
+app.post('/api/script/item/:cid/:time', async (req, res) => {
+	let client;
+	try {
+		client = await mongodb.MongoClient.connect(settings.dbOption);
+		const db = client.db('pg0');
+		const checkDoc = await db.collection('script').findOne({cid: req.params.cid});
+		if (!checkDoc) {
+			return res.status(404).send('Not found.');
+		}
+		if (checkDoc.password !== req.body.password) {
+			return res.status(401).send('Unauthorized.');
+		}
+		const doc = await db.collection('script_history').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
+		if (!doc) {
+			return res.status(404).send('Not found.');
+		}
+		delete doc._id;
+		delete doc.password;
+		res.json(doc);
+	} catch (error) {
+		logger.error(error);
+		return res.status(500).send('Internal Server Error.');
+	} finally {
+		client.close();
+	}
+});
+
 app.post('/api/script', async (req, res) => {
 	let newCid = crypto.randomUUID();
 	const time = new Date().getTime();
@@ -211,16 +272,16 @@ app.put('/api/script/:cid', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const checkDoc = await db.collection('script').findOne({cid: {$ne: req.params.cid}, name: req.body.name});
-		if (checkDoc) {
-			return res.status(409).send('Conflict.');
-		}
-		const doc = await db.collection('script').findOne({cid: req.params.cid});
-		if (!doc) {
+		let checkDoc = await db.collection('script').findOne({cid: req.params.cid});
+		if (!checkDoc) {
 			return res.status(404).send('Not found.');
 		}
-		if (doc.password !== req.body.password) {
+		if (checkDoc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
+		}
+		checkDoc = await db.collection('script').findOne({cid: {$ne: req.params.cid}, name: req.body.name});
+		if (checkDoc) {
+			return res.status(409).send('Conflict.');
 		}
 		await addHistory(req.params.cid);
 		await db.collection('script').updateOne({cid: req.params.cid}, {$set: {
@@ -246,11 +307,11 @@ app.delete('/api/script/:cid', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('script').findOne({cid: req.params.cid});
-		if (!doc) {
+		const checkDoc = await db.collection('script').findOne({cid: req.params.cid});
+		if (!checkDoc) {
 			return res.status(404).send('Not found.');
 		}
-		if (doc.password !== req.body.password) {
+		if (checkDoc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
 		}
 		await addHistory(req.params.cid);

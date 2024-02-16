@@ -24,7 +24,7 @@ const settingView = (function () {
 		localStorage.setItem(me.storageKey, JSON.stringify(options));
 	};
 
-	const keyEvent = function(e) {
+	me.keyEvent = function(e) {
 		if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
 			me.close();
 		}
@@ -44,12 +44,12 @@ const settingView = (function () {
 		document.getElementById('setting-mode').value = options.execMode;
 		document.getElementById('setting-font').value = options.fontSize;
 		document.getElementById('setting-linenum').checked = options.showLineNum;
-		document.addEventListener('keydown', keyEvent, false);
+		document.addEventListener('keydown', me.keyEvent, false);
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('setting').style.display = 'none';
-		document.removeEventListener('keydown', keyEvent, false);
+		document.removeEventListener('keydown', me.keyEvent, false);
 	};
 
 	document.addEventListener('DOMContentLoaded', function() {
@@ -91,7 +91,7 @@ const messageView = (function () {
 
 	me.callback = null;
 
-	const keyEvent = function(e) {
+	me.keyEvent = function(e) {
 		if (e.key === 'Escape' && document.getElementById('modal-overlay')) {
 			me.close();
 		}
@@ -107,12 +107,12 @@ const messageView = (function () {
 		document.querySelector('#message #yes').value = resource.DIALOG_YES;
 		document.querySelector('#message #no').value = resource.DIALOG_NO;
 		document.getElementById('message').style.display = 'block';
-		document.addEventListener('keydown', keyEvent, false);
+		document.addEventListener('keydown', me.keyEvent, false);
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('message').style.display = 'none';
-		document.removeEventListener('keydown', keyEvent, false);
+		document.removeEventListener('keydown', me.keyEvent, false);
 	};
 
 	document.addEventListener('DOMContentLoaded', function() {
@@ -133,7 +133,7 @@ const messageView = (function () {
 const onlineOpenView = (function () {
 	const me = {};
 
-	const keyEvent = function(e) {
+	me.keyEvent = function(e) {
 		if (!document.getElementById('modal-overlay')) {
 			return;
 		}
@@ -154,7 +154,7 @@ const onlineOpenView = (function () {
 			}
 		}
 	};
-	const openEvent = async function(e) {
+	me.openEvent = async function(e) {
 		if (e.target.closest('.file-menu')) {
 			me.showMenu(e.target);
 			return;
@@ -173,6 +173,16 @@ const onlineOpenView = (function () {
 			if (navigator.clipboard) {
 				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}&run=1`);
 			}
+			return;
+		}
+		if (e.target.id === 'online-open-history') {
+			me.closeMenu();
+			const password = window.prompt(resource.ONLINE_OPEN_REMOVE_PASSWORD);
+			if (password === null) {
+				return;
+			}
+			me.close();
+			await onlineHistoryView.show(e.target.closest('#online-open-menu').getAttribute('cid'), password);
 			return;
 		}
 		if (e.target.id === 'online-open-remove') {
@@ -210,7 +220,7 @@ const onlineOpenView = (function () {
 			return;
 		}
 		if (e.target.closest('.read-item')) {
-			getList();
+			me.getList();
 			return;
 		}
 		const item = e.target.closest('.file-item');
@@ -221,7 +231,7 @@ const onlineOpenView = (function () {
 			}
 		}
 	};
-	const getList = async function() {
+	me.getList = async function() {
 		try {
 			const keyword = document.getElementById('online-open-search-text').value;
 			const count = 30;
@@ -265,19 +275,28 @@ const onlineOpenView = (function () {
 	me.getScript = async function(cid) {
 		let ret = true;
 		try {
-			const script = await (await fetch(`${apiServer}/api/script/item/${cid}`)).json();
-			ev.setText(script.code, script.name);
-			ev.currentContent.cid = cid;
-			ev.currentContent.author = script.author;
-			ev.saveState();
+			const res = await fetch(`${apiServer}/api/script/item/${cid}`);
+			switch (res.status) {
+			case 200:
+				const script = await res.json();
+				ev.setText(script.code, script.name);
+				ev.currentContent.cid = cid;
+				ev.currentContent.author = script.author;
+				ev.saveState();
 
-			options.execMode = script.type;
-			options.execSpeed = script.speed;
-			settingView.save();
+				options.execMode = script.type;
+				options.execSpeed = script.speed;
+				settingView.save();
 
-			// Notify main event
-			document.dispatchEvent(new CustomEvent('setting_change'));
-			history.replaceState('', '', `${location.pathname}?cid=${cid}`);
+				// Notify main event
+				document.dispatchEvent(new CustomEvent('setting_change'));
+				history.replaceState('', '', `${location.pathname}?cid=${cid}`);
+				break;
+			case 404:
+				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				ret = false;
+				break;
+			}
 		} catch(e) {
 			console.error(e);
 			alert(resource.ONLINE_ERROR_CONNECTION);
@@ -299,18 +318,18 @@ const onlineOpenView = (function () {
 		document.getElementById('online-open').style.display = 'block';
 		document.getElementById('online-open').focus();
 		document.getElementById('online-open-search-text').value = options.keyword || '';
-		document.addEventListener('keydown', keyEvent, false);
-		document.addEventListener('click', openEvent, false);
+		document.addEventListener('keydown', me.keyEvent, false);
+		document.addEventListener('click', me.openEvent, false);
 
 		document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
 		me.skip = 0;
-		getList();
+		me.getList();
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('online-open').style.display = 'none';
-		document.removeEventListener('keydown', keyEvent, false);
-		document.removeEventListener('click', openEvent, false);
+		document.removeEventListener('keydown', me.keyEvent, false);
+		document.removeEventListener('click', me.openEvent, false);
 	};
 
 	me.showMenu = async function(elm) {
@@ -347,6 +366,7 @@ const onlineOpenView = (function () {
 	document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('online-open-copy').textContent = resource.ONLINE_OPEN_COPY;
 		document.getElementById('online-open-copy-autorun').textContent = resource.ONLINE_OPEN_COPY_AUTORUN;
+		document.getElementById('online-open-history').textContent = resource.ONLINE_OPEN_HISTORY;
 		document.getElementById('online-open-remove').textContent = resource.ONLINE_OPEN_REMOVE;
 
 		document.querySelector('#online-open .close').addEventListener('click', function(e) {
@@ -359,7 +379,7 @@ const onlineOpenView = (function () {
 				options.keyword = keyword;
 				settingView.save();
 				me.skip = 0;
-				getList();
+				me.getList();
 			} catch(e) {
 				console.error(e);
 			}
@@ -369,10 +389,182 @@ const onlineOpenView = (function () {
 	return me;
 })();
 
+const onlineHistoryView = (function () {
+	const me = {};
+
+	me.keyEvent = function(e) {
+		if (!document.getElementById('modal-overlay')) {
+			return;
+		}
+		if (e.key === 'Escape') {
+			me.close();
+		}
+		if (e.key === 'Enter') {
+			if (document.activeElement.classList.contains('file-item')) {
+				document.activeElement.click();
+			}
+		}
+	};
+	me.openEvent = async function(e) {
+		if (e.target.closest('.read-item')) {
+			me.getList();
+			return;
+		}
+		const item = e.target.closest('.file-item');
+		if (item) {
+			if (await me.getHistory(item.getAttribute('time'))) {
+				me.close();
+				document.getElementById('editor').blur();
+			}
+		}
+	};
+	me.getList = async function() {
+		try {
+			const count = 30;
+			const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=${count}&skip=${me.skip}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({password: pg0_string.crc32(me.password)}),
+			});
+			switch (res.status) {
+			case 200:
+				const scripts = await res.json();
+				if (scripts) {
+					if (document.getElementById('loading')) {
+						document.getElementById('loading').remove();
+					}
+					if (document.querySelector('.read-item')) {
+						document.querySelector('.read-item').remove();
+					}
+					scripts.forEach((script) => {
+						const nameNode = document.createElement('div');
+						nameNode.id = script.cid;
+						nameNode.classList.add('file-item');
+						nameNode.tabIndex = 0;
+						nameNode.setAttribute('time', script.updateTime);
+						let time = '';
+						if (script.updateTime) {
+							const date = new Date(script.updateTime);
+							time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
+						}
+						nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
+							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
+						document.getElementById('online-history-list').appendChild(nameNode);
+					});
+					if (scripts.length >= count) {
+						me.skip += scripts.length;
+						const readNode = document.createElement('div');
+						readNode.classList.add('read-item');
+						readNode.tabIndex = 0;
+						readNode.innerHTML = resource.ONLINE_OPEN_READ_TITLE;
+						document.getElementById('online-history-list').appendChild(readNode);
+					}
+				}
+				break;
+			case 401:
+				alert(resource.ONLINE_ERROR_UNAUTHORIZED);
+				me.close();
+				break;
+			case 404:
+				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				me.close();
+				break;
+			}
+		} catch(e) {
+			console.error(e);
+			alert(resource.ONLINE_ERROR_CONNECTION);
+			me.close();
+		}
+	};
+	
+	me.getHistory = async function(time) {
+		let ret = true;
+		try {
+			const res = await fetch(`${apiServer}/api/script/item/${me.cid}/${time}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({password: pg0_string.crc32(me.password)}),
+			});
+			switch (res.status) {
+			case 200:
+				const script = await res.json();
+				ev.setText(script.code, script.name);
+				ev.currentContent.cid = me.cid;
+				ev.currentContent.author = script.author;
+				ev.saveState();
+
+				options.execMode = script.type;
+				options.execSpeed = script.speed;
+				settingView.save();
+
+				// Notify main event
+				document.dispatchEvent(new CustomEvent('setting_change'));
+				history.replaceState('', '', `${location.pathname}?cid=${me.cid}`);
+				break;
+			case 401:
+				alert(resource.ONLINE_ERROR_UNAUTHORIZED);
+				ret = false;
+				break;
+			case 404:
+				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				ret = false;
+				break;
+			}
+		} catch(e) {
+			console.error(e);
+			alert(resource.ONLINE_ERROR_CONNECTION);
+			ret = false;
+		}
+		return ret;
+	};
+
+	me.show = async function(cid, password) {
+		me.cid = cid;
+		me.password = password;
+		if (document.getElementById('modal-overlay')) {
+			return;
+		}
+		const modal = document.createElement('div');
+		modal.setAttribute('id', 'modal-overlay');
+		modal.addEventListener('click', function(e) {
+			me.close();
+		}, false);
+		document.body.append(modal);
+		document.getElementById('online-history').style.display = 'block';
+		document.getElementById('online-history').focus();
+		document.addEventListener('keydown', me.keyEvent, false);
+		document.addEventListener('click', me.openEvent, false);
+
+		document.getElementById('online-history-list').innerHTML = '<img src="image/load.svg" id="loading" />';
+		me.skip = 0;
+		me.getList();
+	};
+	me.close = function() {
+		document.getElementById('modal-overlay').remove();
+		document.getElementById('online-history').style.display = 'none';
+		document.removeEventListener('keydown', me.keyEvent, false);
+		document.removeEventListener('click', me.openEvent, false);
+	};
+
+	document.addEventListener('DOMContentLoaded', function() {
+		document.getElementById('online-history-title').textContent = resource.ONLINE_OPEN_HISTORY;
+
+		document.querySelector('#online-history .close').addEventListener('click', function(e) {
+			me.close();
+		}, false);
+	}, false);
+
+	return me;
+})();
+
 const onlineSaveView = (function () {
 	const me = {};
 
-	const keyEvent = function(e) {
+	me.keyEvent = function(e) {
 		if (!document.getElementById('modal-overlay')) {
 			return;
 		}
@@ -404,12 +596,12 @@ const onlineSaveView = (function () {
 		} else {
 			document.getElementById('online-save-new').parentElement.style.display = 'none';
 		}
-		document.addEventListener('keydown', keyEvent, false);
+		document.addEventListener('keydown', me.keyEvent, false);
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('online-save').style.display = 'none';
-		document.removeEventListener('keydown', keyEvent, false);
+		document.removeEventListener('keydown', me.keyEvent, false);
 	};
 
 	document.addEventListener('DOMContentLoaded', function() {

@@ -213,6 +213,20 @@
 	border: 1px solid #999;
 	margin-top: 15px;
 }
+
+#online-history {
+	display: none;
+	width: calc(var(--font-size) * 30);
+}
+#online-history-list {
+	position: relative;
+	width: 100%;
+	height: calc(100dvh - 200px);
+	overflow-y: scroll;
+	border: 1px solid #999;
+	margin-top: 15px;
+}
+
 #loading {
 	position: absolute;
 	left: 50%;
