@@ -619,7 +619,6 @@ ScriptExec.lib['drawpolyline'] = async function(ei, param, ret) {
 	if (param.length < 1 || param[0].v.type !== TYPE_ARRAY) {
 		return -2;
 	}
-
 	let color = '#000';
 	let width = 1;
 	let fill = 0;
@@ -1185,41 +1184,28 @@ function _getArrayValue(array, key) {
 	});
 }
 
-function convHertz(str) {
-	let hertz = 0;
-	switch (str.toLowerCase()) {
-	case 'c':
-		hertz = 262
-		break
-	case 'd':
-		hertz = 294
-		break
-	case 'e':
-		hertz = 330
-		break
-	case 'f':
-		hertz = 350
-		break
-	case 'g':
-		hertz = 392
-		break
-	case 'a':
-		hertz = 440
-		break
-	case 'b':
-		hertz = 494
-		break
+function noteFrequency(note) {
+	const notePattern = /^([A-Ga-g][#b]?)(\d+)?$/;
+	const match = note.match(notePattern);
+	if (!match) {
+		return 0;
 	}
-	return hertz;
+	const noteName = match[1];
+	const octave = match[2] ? parseInt(match[2]) : 4;
+	const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+	const noteIndex = notes.indexOf(noteName.toUpperCase());
+	const a4Index = notes.indexOf('A');
+	const semitonesFromA4 = noteIndex - a4Index + (octave - 4) * 12;
+	return 440 * Math.pow(2, semitonesFromA4 / 12);
 }
 
 ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	let hertz = param[0].v.num;
+	let frequency = param[0].v.num;
 	if (param[0].v.type === TYPE_STRING) {
-		hertz = convHertz(param[0].v.str);
+		frequency = noteFrequency(param[0].v.str);
 	}
 	const start = param[1].v.num;
 	const end = param[2].v.num;
@@ -1227,38 +1213,94 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length >= 4) {
 		volume = param[3].v.num;
 	}
-	const ctx = new (window.AudioContext || window.webkitAudioContext)();
+	playSound(frequency, start, end, volume, null);
+	return 0;
+};
+
+ScriptExec.lib['playmusic'] = async function(ei, param, ret) {
+	if (param.length < 1 || param[0].v.type !== TYPE_ARRAY) {
+		return -2;
+	}
+	let repeat = 0;
+	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
+		let vi = _getArrayValue(param[1].v.array, 'repeat');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			repeat = vi.v.num;
+		}
+	}
+	if (repeat) {
+		repeatSounds(param[0].v.array);
+	} else {
+		playSounds(param[0].v.array, null);
+	}
+	return 0;
+};
+
+ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
+	stopSound();
+	return 0;
+}
+
+function playSound(frequency, start, end, volume, callback) {
+	if (!ScriptExec.lib['$ctx']) {
+		ScriptExec.lib['$ctx'] = new (window.AudioContext || window.webkitAudioContext)();
+	}
+	const ctx = ScriptExec.lib['$ctx'];
 	const gainNode = ctx.createGain();
 	gainNode.gain.value = volume;
 	const oscillator = ctx.createOscillator();
 	oscillator.type = 'square';
-	oscillator.frequency.setValueAtTime(hertz, ctx.currentTime);
+	oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
 	oscillator.connect(gainNode).connect(ctx.destination);
 	oscillator.start(ctx.currentTime + (start / 1000));
 	oscillator.stop(ctx.currentTime + (start / 1000) + (end / 1000));
-	
-	if (!ScriptExec.lib['$oscillators']) {
-		ScriptExec.lib['$oscillators'] = [];
-	}
-	ScriptExec.lib['$oscillators'].push(oscillator);
-	setTimeout(function() {
+	oscillator.onended = () => {
 		const index = ScriptExec.lib['$oscillators'].indexOf(oscillator);
 		if (index > -1) {
 			ScriptExec.lib['$oscillators'].splice(index, 1);
 		}
-	}, end);
-	return 0;
-};
-
+		if (callback && !oscillator.stopSound) {
+			callback();
+		}
+	};
+	if (!ScriptExec.lib['$oscillators']) {
+		ScriptExec.lib['$oscillators'] = [];
+	}
+	ScriptExec.lib['$oscillators'].push(oscillator);
+}
+function playSounds(array, callback) {
+	let start = 0;
+	array.forEach(function(d, i) {
+		if (d.v.type === TYPE_ARRAY && d.v.array.length >= 2) {
+			let frequency = d.v.array[0].v.num;
+			if (d.v.array[0].v.type === TYPE_STRING) {
+				frequency = noteFrequency(d.v.array[0].v.str);
+			}
+			const len = d.v.array[1].v.num;
+			let volume = 1.0;
+			if (d.v.array.length >= 3) {
+				volume = d.v.array[2].v.num;
+			}
+			if (i === array.length - 1) {
+				playSound(frequency, start, len, volume, callback);
+			} else {
+				playSound(frequency, start, len, volume, null);
+			}
+			start += len;
+		}
+	});
+}
+function repeatSounds(array) {
+	playSounds(array, function() {
+		repeatSounds(array);
+	});
+}
 function stopSound() {
 	ScriptExec.lib['$oscillators'].forEach(function(oscillator) {
+		oscillator.stopSound = 1;
 		oscillator.stop();
 	});
 	ScriptExec.lib['$oscillators'] = [];
-}
-ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
-	stopSound();
-	return 0;
 }
 
 function _screenResize() {
