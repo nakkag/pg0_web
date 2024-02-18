@@ -466,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
 					break;
 				}
+				stop();
 				ev.setText('', '');
 				document.title = baseTitle;
 				history.replaceState('', '', location.pathname);
@@ -474,6 +475,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
 					break;
 				}
+				stop();
 				await onlineOpenView.show();
 				break;
 			case 'menu-online-save':
@@ -510,6 +512,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
 			return;
 		}
+		stop();
 		if (window.showSaveFilePicker) {
 			let handle;
 			try {
