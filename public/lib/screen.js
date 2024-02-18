@@ -859,6 +859,7 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 	let width = ScriptExec.lib['$image'][index].width;
 	let height = ScriptExec.lib['$image'][index].height;
 	let angle = null;
+	let alpha = 1.0;
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
 		let vi = _getArrayValue(param[3].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
@@ -872,10 +873,15 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			angle = vi.v.num;
 		}
+		vi = _getArrayValue(param[3].v.array, 'alpha');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			alpha = vi.v.num;
+		}
 	}
 
 	const screen = getCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.globalAlpha = alpha;
 	if (!angle) {
 		ctx.drawImage(ScriptExec.lib['$image'][index], x, y, width, height);
 	} else {
@@ -885,6 +891,7 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 		ctx.drawImage(ScriptExec.lib['$image'][index], -width / 2, -height / 2, width, height);
 		ctx.restore();
 	}
+	ctx.globalAlpha = 1.0;
 	return 0;
 }
 
@@ -1224,7 +1231,7 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	const gainNode = ctx.createGain();
 	gainNode.gain.value = volume;
 	const oscillator = ctx.createOscillator();
-	oscillator.type = 'sine';
+	oscillator.type = 'square';
 	oscillator.frequency.setValueAtTime(hertz, ctx.currentTime);
 	oscillator.connect(gainNode).connect(ctx.destination);
 	oscillator.start(ctx.currentTime + (start / 1000));
