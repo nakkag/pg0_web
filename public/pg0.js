@@ -617,6 +617,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid);
 		}
+		setTimeout(function() {
+			document.getElementById('main').style.display = 'block';
+		}, 100);
 	}, 10);
 
 }, false);

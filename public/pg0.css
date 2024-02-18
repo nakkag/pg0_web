@@ -101,6 +101,10 @@ body::before {
 	display: block;
 }
 
+#main {
+	display: none;
+}
+
 #container {
 	position: fixed;
 	top: 0;
