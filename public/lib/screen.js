@@ -7,9 +7,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	ScriptExec.lib['$oscillators'] = [];
 	ScriptExec.lib['$offscreen_flag'] = 0;
 	ScriptExec.lib['$image'] = [];
-	if (ScriptExec.lib['$audioCtx']) {
-		ScriptExec.lib['$audioCtx'].close();
-		ScriptExec.lib['$audioCtx'] = null;
+	if (ScriptExec.lib['$audio_ctx']) {
+		ScriptExec.lib['$audio_ctx'].close();
+		ScriptExec.lib['$audio_ctx'] = null;
 	}
 
 	let _touchstart = 'mousedown';
@@ -1246,10 +1246,10 @@ ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
 }
 
 function playSound(frequency, start, end, volume, callback) {
-	if (!ScriptExec.lib['$audioCtx']) {
-		ScriptExec.lib['$audioCtx'] = new (window.AudioContext || window.webkitAudioContext)();
+	if (!ScriptExec.lib['$audio_ctx']) {
+		ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 	}
-	const ctx = ScriptExec.lib['$audioCtx'];
+	const ctx = ScriptExec.lib['$audio_ctx'];
 	const gainNode = ctx.createGain();
 	gainNode.gain.value = volume;
 	const oscillator = ctx.createOscillator();
