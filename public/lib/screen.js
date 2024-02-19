@@ -1305,6 +1305,11 @@ function stopSound() {
 		oscillator.stop();
 	});
 	ScriptExec.lib['$oscillators'] = [];
+
+	if (ScriptExec.lib['$audio_ctx']) {
+		ScriptExec.lib['$audio_ctx'].close();
+		ScriptExec.lib['$audio_ctx'] = null;
+	}
 }
 
 function _screenResize() {
