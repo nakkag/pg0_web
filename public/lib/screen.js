@@ -337,8 +337,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		}, false);
 	}
 
-	const w = param[0].v.num;
-	const h = param[1].v.num;
+	const w = param[0].v.num > 0 ? param[0].v.num : 1;
+	const h = param[1].v.num > 0 ? param[1].v.num : 1;
 	screen.style.width = `${w}px`;
 	screen.style.height = `${h}px`;
 	screen.setAttribute('width', `${w}px`);

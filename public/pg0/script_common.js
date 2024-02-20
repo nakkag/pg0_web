@@ -51,15 +51,15 @@ if (_lang.length > 2) {
 }
 if (_lang === 'ja') {
 	errMsg = {
-		ERR_SENTENCE: '構文エラー',
-		ERR_SENTENCE_PREV: '演算子が必要です',
-		ERR_NOTDECLARE: ' :変数が定義されていませんe',
+		ERR_SENTENCE: '間違った書き方です',
+		ERR_SENTENCE_PREV: '演算子(+や-など)が必要です',
+		ERR_NOTDECLARE: ' :変数が定義されていません',
 		ERR_DECLARE: ' :変数の宣言が重複しています',
 		ERR_INDEX: '配列のインデックスが負の値になっています',
 		ERR_PARENTHESES: '対応する括弧がありません',
 		ERR_BLOCK: 'ブロック「{～}」がありません',
 		ERR_DIVZERO: '0 で除算をしました',
-		ERR_OPERATOR: '不正な演算子です',
+		ERR_OPERATOR: '間違ったな演算子です',
 		ERR_ARRAYOPERATOR: '配列に使えない演算子です',
 		ERR_ALLOC: 'メモリの確保に失敗しました',
 		ERR_ARGUMENTCNT: '引数が少なすぎます',
