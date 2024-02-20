@@ -11,6 +11,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		ScriptExec.lib['$audio_ctx'].close();
 		ScriptExec.lib['$audio_ctx'] = null;
 	}
+	ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 
 	let _touchstart = 'mousedown';
 	let _touchmove = 'mousemove';
@@ -324,6 +325,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				e.preventDefault();
 				stop();
 				stopSound();
+				if (ScriptExec.lib['$audio_ctx']) {
+					ScriptExec.lib['$audio_ctx'].close();
+					ScriptExec.lib['$audio_ctx'] = null;
+				}
 			}
 			touchClose = false;
 		}, false);
@@ -365,6 +370,11 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			ScriptExec.lib['$i'] = null;
 			ScriptExec.lib['$offscreen'] = null;
 			document.getElementById('lib-screen-back').remove();
+			stopSound();
+			if (ScriptExec.lib['$audio_ctx']) {
+				ScriptExec.lib['$audio_ctx'].close();
+				ScriptExec.lib['$audio_ctx'] = null;
+			}
 
 			window.removeEventListener('resize', _screenResize, false);
 			window.removeEventListener('orientationchange', _screenResize, false);
@@ -1251,7 +1261,7 @@ function playSound(frequency, start, end, volume, callback) {
 	}
 	const ctx = ScriptExec.lib['$audio_ctx'];
 	const gainNode = ctx.createGain();
-	gainNode.gain.value = volume;
+	gainNode.gain.value = volume * 0.5;
 	const oscillator = ctx.createOscillator();
 	oscillator.type = 'square';
 	oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
@@ -1315,11 +1325,6 @@ function stopSound() {
 		oscillator.stop();
 	});
 	ScriptExec.lib['$oscillators'] = [];
-
-	if (ScriptExec.lib['$audio_ctx']) {
-		ScriptExec.lib['$audio_ctx'].close();
-		ScriptExec.lib['$audio_ctx'] = null;
-	}
 }
 
 function _screenResize() {
