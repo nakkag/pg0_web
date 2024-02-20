@@ -55,7 +55,7 @@ if (_lang === 'ja') {
 		ERR_SENTENCE_PREV: '演算子(+や-など)が必要です',
 		ERR_NOTDECLARE: ' :変数が定義されていません',
 		ERR_DECLARE: ' :変数の宣言が重複しています',
-		ERR_INDEX: '配列のインデックスが負の値になっています',
+		ERR_INDEX: '配列のインデックスがマイナスの値になっています',
 		ERR_PARENTHESES: '対応する括弧がありません',
 		ERR_BLOCK: 'ブロック「{～}」がありません',
 		ERR_DIVZERO: '0 で除算をしました',

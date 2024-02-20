@@ -324,11 +324,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			if (touchClose) {
 				e.preventDefault();
 				stop();
-				stopSound();
-				if (ScriptExec.lib['$audio_ctx']) {
-					ScriptExec.lib['$audio_ctx'].close();
-					ScriptExec.lib['$audio_ctx'] = null;
-				}
 			}
 			touchClose = false;
 		}, false);
