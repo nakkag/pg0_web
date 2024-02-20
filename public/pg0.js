@@ -338,11 +338,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}
 	
 	window.addEventListener('scroll', function(e) {
-		if (document.getElementById('modal-overlay')) {
-			return;
+		if (editFocus) {
+			e.preventDefault();
+			window.scrollTo(0, 0);
 		}
-		e.preventDefault();
-		window.scrollTo(0, 0);
 	}, false);
 
 	// Control events
