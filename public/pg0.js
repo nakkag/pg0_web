@@ -338,6 +338,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}
 	
 	window.addEventListener('scroll', function(e) {
+		if (document.getElementById('modal-overlay')) {
+			return;
+		}
 		e.preventDefault();
 		window.scrollTo(0, 0);
 	}, false);
