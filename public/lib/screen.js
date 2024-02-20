@@ -1235,7 +1235,7 @@ ScriptExec.lib['playmusic'] = async function(ei, param, ret) {
 	if (repeat) {
 		repeatSounds(param[0].v.array);
 	} else {
-		playSounds(param[0].v.array, null);
+		playMusic(param[0].v.array, null);
 	}
 	return 0;
 };
@@ -1272,16 +1272,26 @@ function playSound(frequency, start, end, volume, callback) {
 	}
 	ScriptExec.lib['$oscillators'].push(oscillator);
 }
-function playSounds(array, callback) {
+function playMusic(array, callback) {
 	let start = 0;
+	let baseVolume = 1.0;
 	array.forEach(function(d, i) {
+		if (d.v.type === TYPE_ARRAY) {
+			if (d.v.array[0].name === 'start') {
+				start = d.v.array[0].v.num;
+				return;
+			} else if (d.v.array[0].name === 'volume') {
+				baseVolume = d.v.array[0].v.num;
+				return;
+			}
+		}
 		if (d.v.type === TYPE_ARRAY && d.v.array.length >= 2) {
 			let frequency = d.v.array[0].v.num;
 			if (d.v.array[0].v.type === TYPE_STRING) {
 				frequency = noteFrequency(d.v.array[0].v.str);
 			}
 			const len = d.v.array[1].v.num;
-			let volume = 1.0;
+			let volume = baseVolume;
 			if (d.v.array.length >= 3) {
 				volume = d.v.array[2].v.num;
 			}
@@ -1295,7 +1305,7 @@ function playSounds(array, callback) {
 	});
 }
 function repeatSounds(array) {
-	playSounds(array, function() {
+	playMusic(array, function() {
 		repeatSounds(array);
 	});
 }
