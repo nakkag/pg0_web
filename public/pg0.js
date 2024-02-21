@@ -852,6 +852,7 @@ async function _exec(scis, sci, imp) {
 						}
 					});
 				} catch(e) {
+					console.error(e);
 					cv.error(`Error: ${e.message}`);
 					cv.info(resource.CONSOLE_END);
 				}
@@ -863,6 +864,7 @@ async function _exec(scis, sci, imp) {
 			}
 		});
 	} catch(e) {
+		console.error(e);
 		cv.error(`Error: ${e.message}`);
 		cv.info(resource.CONSOLE_END);
 	}

@@ -288,6 +288,9 @@ ScriptExec.stringToNumber = function(str) {
 };
 
 ScriptExec.getValueInt = function(v) {
+	if (v.num === null || isNaN(v.num)) {
+		return 0;
+	}
 	if (v.type === TYPE_FLOAT) {
 		return parseInt(v.num) | 0;
 	}
@@ -304,10 +307,12 @@ ScriptExec.getValueString = function(v) {
 		buf = '';
 		break;
 	case TYPE_STRING:
-		buf = v.str;
+		buf = v.str || '';
 		break;
 	case TYPE_FLOAT:
-		if (Number.isInteger(v.num)) {
+		if (v.num === null || isNaN(v.num)) {
+			buf = '0';
+		} else if (Number.isInteger(v.num)) {
 			buf = v.num + '.0000000000000000';
 		} else {
 			const len = ('' +  parseInt(v.num)).length + 1 + 16;
@@ -315,7 +320,11 @@ ScriptExec.getValueString = function(v) {
 		}
 		break;
 	default:
-		buf = '' + v.num;
+		if (v.num === null || isNaN(v.num)) {
+			buf = '0';
+		} else {
+			buf = '' + v.num;
+		}
 		break;
 	}
 	return buf;
@@ -326,6 +335,9 @@ ScriptExec.getValueFloat = function(v) {
 		return parseFloat(v.num);
 	}
 	if (v.type !== TYPE_FLOAT) {
+		return 0.0;
+	}
+	if (v.num === null || isNaN(v.num)) {
 		return 0.0;
 	}
 	return v.num;
@@ -339,12 +351,12 @@ ScriptExec.getValueBoolean = function(v) {
 		}
 		break;
 	case TYPE_FLOAT:
-		if (v.num === 0.0) {
+		if (v.num === 0.0 || v.num === null || isNaN(v.num)) {
 			return 0;
 		}
 		break;
 	default:
-		if (v.num === 0) {
+		if (v.num === 0 || v.num === null || isNaN(v.num)) {
 			return 0;
 		}
 		break;
@@ -369,12 +381,16 @@ function ScriptExec(scis, sci) {
 			delete to_v.str;
 			break;
 		case TYPE_STRING:
-			to_v.str = from_v.str;
+			to_v.str = from_v.str || '';
 			delete to_v.num;
 			delete to_v.array;
 			break;
 		case TYPE_FLOAT:
-			to_v.num = from_v.num;
+			if (to_v.num === null || isNaN(to_v.num)) {
+				to_v.num = 0;
+			} else {
+				to_v.num = from_v.num;
+			}
 			if (ScriptExec.checkInt(to_v.num)) {
 				type = TYPE_INTEGER;
 			}
@@ -382,7 +398,9 @@ function ScriptExec(scis, sci) {
 			delete to_v.array;
 			break;
 		default:
-			if (from_v.num > 0x7FFFFFFF) {
+			if (to_v.num === null || isNaN(to_v.num)) {
+				to_v.num = 0;
+			} else if (from_v.num > 0x7FFFFFFF) {
 				to_v.num = 0x7FFFFFFF | 0;
 			} else if (from_v.num < (0x80000000 | 0)) {
 				to_v.num = 0x80000000 | 0;
