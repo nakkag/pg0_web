@@ -770,11 +770,13 @@ async function _exec(scis, sci, imp) {
 			},
 			success: async function(token) {
 				const se = new ScriptExec(scis, sci);
+				let line = -1;
 				try {
 					let syncCnt = 0;
 					let sameCnt = 0;
 					await se.exec(token, {}, {
 						callback: async function(ei) {
+							line = ei.token[ei.index].line;
 							let wk = ei;
 							for (; wk.parent; wk = wk.parent);
 							if (imp || wk.imp) {
@@ -785,9 +787,9 @@ async function _exec(scis, sci, imp) {
 								}
 								return 0;
 							}
-							if (ei.token[ei.index].line >= 0 && execLine !== ei.token[ei.index].line) {
+							if (line >= 0 && execLine !== line) {
 								sameCnt = 0;
-								execLine = ei.token[ei.index].line;
+								execLine = line;
 								if (step && (stopStep === -1 || stopStep === execLine)) {
 									stopStep = -1;
 									ev.setHighlight(execLine, '#00ffff');
@@ -810,7 +812,7 @@ async function _exec(scis, sci, imp) {
 										await new Promise(resolve => setTimeout(resolve, speed));
 									}
 								}
-							} else if (execLine === ei.token[ei.index].line) {
+							} else if (execLine === line) {
 								sameCnt++;
 								if (sameCnt > 100) {
 									await new Promise(resolve => setTimeout(resolve, 0));
@@ -853,6 +855,9 @@ async function _exec(scis, sci, imp) {
 					});
 				} catch(e) {
 					console.error(e);
+					if (line > 0) {
+						ev.setHighlight(line, '#ffb6c1');
+					}
 					cv.error(`Error: ${e.message}`);
 					cv.info(resource.CONSOLE_END);
 				}

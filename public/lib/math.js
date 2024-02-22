@@ -53,6 +53,12 @@ ScriptExec.lib['log'] = function(ei, param, ret) {
 		return -2;
 	}
 	ret.v.num = Math.log(param[0].v.num);
+	if (ret.v.num === -Infinity) {
+		throw new Error('-Infinity');
+	}
+	if (isNaN(ret.v.num)) {
+		throw new Error('Not a Number');
+	}
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -92,6 +98,9 @@ ScriptExec.lib['sqrt'] = function(ei, param, ret) {
 		return -2;
 	}
 	ret.v.num = Math.sqrt(param[0].v.num);
+	if (isNaN(ret.v.num)) {
+		throw new Error('Not a Number');
+	}
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -104,6 +113,21 @@ ScriptExec.lib['tan'] = function(ei, param, ret) {
 		return -2;
 	}
 	ret.v.num = Math.tan(param[0].v.num);
+	ret.v.type = TYPE_FLOAT;
+	if (ScriptExec.checkInt(ret.v.num)) {
+		ret.v.type = TYPE_INTEGER;
+	}
+	return 0;
+};
+
+ScriptExec.lib['pow'] = function(ei, param, ret) {
+	if (param.length < 2) {
+		return -2;
+	}
+	ret.v.num = Math.pow(param[0].v.num, param[1].v.num);
+	if (isNaN(ret.v.num)) {
+		throw new Error('Not a Number');
+	}
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
