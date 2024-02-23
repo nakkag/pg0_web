@@ -375,6 +375,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			window.removeEventListener('orientationchange', _screenResize, false);
 			document.removeEventListener('keydown', _keyDown, false);
 			document.removeEventListener('keyup', _keyUp, false);
+			document.removeEventListener(_touchmove, _mouseMove, false);
+			_touchend.forEach(function(event) {
+				document.removeEventListener(event, _mouseUp, false);
+			});
 		}
 	}, 100);
 	return 0;
