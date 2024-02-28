@@ -42,6 +42,7 @@ ScriptExec.lib['array'] = function(ei, param, ret) {
 		break;
 	}
 	ret.v.type = TYPE_ARRAY;
+	delete ret.v.num;
 	return 0;
 };
 
@@ -55,6 +56,7 @@ ScriptExec.lib['string'] = function(ei, param, ret) {
 		ret.v.str = ScriptExec.getValueString(param[0].v);
 	}
 	ret.v.type = TYPE_STRING;
+	delete ret.v.num;
 	return 0;
 };
 
@@ -169,6 +171,7 @@ ScriptExec.lib['char'] = function(ei, param, ret) {
 	}
 	ret.v.str = String.fromCharCode(code);
 	ret.v.type = TYPE_STRING;
+	delete ret.v.num;
 	return 0;
 };
 
@@ -199,6 +202,7 @@ ScriptExec.lib['getkey'] = function(ei, param, ret) {
 		}
 	}
 	ret.v.type = TYPE_STRING;
+	delete ret.v.num;
 	return 0;
 };
 
@@ -256,6 +260,7 @@ ScriptExec.stringToArray = function(str) {
 		const vi = ScriptExec.initValueInfo();
 		vi.v.type = TYPE_STRING;
 		vi.v.str = s;
+		delete vi.v.num;
 		ret[i++] = vi;
 	});
 	return ret;
@@ -386,7 +391,7 @@ function ScriptExec(scis, sci) {
 			delete to_v.array;
 			break;
 		case TYPE_FLOAT:
-			if (to_v.num === null || isNaN(to_v.num)) {
+			if (from_v.num === null || isNaN(from_v.num)) {
 				to_v.num = 0;
 			} else {
 				to_v.num = from_v.num;
@@ -398,7 +403,7 @@ function ScriptExec(scis, sci) {
 			delete to_v.array;
 			break;
 		default:
-			if (to_v.num === null || isNaN(to_v.num)) {
+			if (from_v.num === null || isNaN(from_v.num)) {
 				to_v.num = 0;
 			} else if (from_v.num > 0x7FFFFFFF) {
 				to_v.num = 0x7FFFFFFF | 0;
@@ -738,6 +743,7 @@ function ScriptExec(scis, sci) {
 		case SYM_ADD:
 			ret.v.type = TYPE_STRING;
 			ret.v.str = p1 + p2;
+			delete ret.v.num;
 			return ret;
 		case SYM_EQEQ:
 			i = (p1 === p2) ? 1 : 0;
@@ -768,6 +774,7 @@ function ScriptExec(scis, sci) {
 			} else {
 				vret.v.array = JSON.parse(JSON.stringify(v2.v.array));
 			}
+			delete vret.v.num;
 			return vret;
 		case SYM_EQEQ:
 		case SYM_NTEQ:
@@ -847,6 +854,8 @@ function ScriptExec(scis, sci) {
 				vi = ScriptExec.initValueInfo();
 				vi.v.type = TYPE_ARRAY;
 				vi.v.array = cei.stack;
+				delete vi.v.num;
+				delete vi.v.str;
 				stack.push(vi);
 				break;
 			case SYM_BCLOSE:
@@ -1077,6 +1086,7 @@ function ScriptExec(scis, sci) {
 				vi = ScriptExec.initValueInfo();
 				vi.v.type = TYPE_STRING;
 				vi.v.str = token.buf;
+				delete vi.v.num;
 				stack.push(vi);
 				break;
 			case SYM_NOT:

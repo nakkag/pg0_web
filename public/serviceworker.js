@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v236';
+const CACHE_VERSION = 'pg0-v238';
 
 const resources = [
 	'./',
@@ -43,6 +43,7 @@ const resources = [
 
 	'lib/math.js',
 	'lib/screen.js',
+	'lib/io.js',
 ];
 
 self.addEventListener('install', function (event) {

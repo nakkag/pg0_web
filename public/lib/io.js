@@ -1,15 +1,15 @@
 "use strict";
 
-function getId() {
+function _getIoId() {
 	if (ev.currentContent.cid) {
 		return 'cid_' + ev.currentContent.cid;
 	} else if (ev.currentContent.name) {
 		return 'name_' + ev.currentContent.cid;
 	}
-	return 'global';
+	return 'common';
 }
 
-ScriptExec.lib['save'] = function(ei, param, ret) {
+ScriptExec.lib['savevalue'] = function(ei, param, ret) {
 	if (param.length < 2) {
 		return -2;
 	}
@@ -19,17 +19,11 @@ ScriptExec.lib['save'] = function(ei, param, ret) {
 	} else {
 		key = ScriptExec.getValueString(param[0].v);
 	}
-	let value = '';
-	if (param[1].v.type === TYPE_ARRAY) {
-		value = '{' + pg0_string.arrayToString(param[1].v.array) + '}'
-	} else {
-		value = ScriptExec.getValueString(param[1].v);
-	}
-	localStorage.setItem('pg0_' + getId() +  '_' + key, value);
+	localStorage.setItem('pg0_' + _getIoId() +  '_' + key, JSON.stringify(param[1].v));
 	return 0;
 };
 
-ScriptExec.lib['load'] = function(ei, param, ret) {
+ScriptExec.lib['loadvalue'] = function(ei, param, ret) {
 	if (param.length < 1) {
 		return -2;
 	}
@@ -39,24 +33,23 @@ ScriptExec.lib['load'] = function(ei, param, ret) {
 	} else {
 		key = ScriptExec.getValueString(param[0].v);
 	}
-	ret.v.str = localStorage.getItem('pg0_' + getId() +  '_' + key);
-	ret.v.type = TYPE_STRING;
+	const str = localStorage.getItem('pg0_' + _getIoId() +  '_' + key);
+	if (str) {
+		ret.v = JSON.parse(str);
+	}
 	return 0;
 };
 
-ScriptExec.lib['valuetostring'] = function(ei, param, ret) {
+ScriptExec.lib['removevalue'] = function(ei, param, ret) {
 	if (param.length < 1) {
 		return -2;
 	}
-	ret.v.str = JSON.stringify(param[0].v);
-	ret.v.type = TYPE_STRING;
-	return 0;
-};
-
-ScriptExec.lib['stringtovalue'] = function(ei, param, ret) {
-	if (param.length < 1 || param[0].v.type !== TYPE_STRING) {
-		return -2;
+	let key = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		key = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
+	} else {
+		key = ScriptExec.getValueString(param[0].v);
 	}
-	ret.v = JSON.parse(param[0].v.str);
+	localStorage.removeItem('pg0_' + _getIoId() +  '_' + key);
 	return 0;
 };
