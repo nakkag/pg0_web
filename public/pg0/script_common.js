@@ -52,7 +52,7 @@ if (_lang.length > 2) {
 if (_lang === 'ja') {
 	errMsg = {
 		ERR_SENTENCE: '間違った書き方です',
-		ERR_SENTENCE_PREV: '演算子(+や-など)が必要です',
+		ERR_SENTENCE_PREV: '演算子が必要です',
 		ERR_NOTDECLARE: ' :変数が定義されていません',
 		ERR_DECLARE: ' :変数の宣言が重複しています',
 		ERR_INDEX: '配列のインデックスがマイナスの値になっています',
