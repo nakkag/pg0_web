@@ -424,7 +424,7 @@ function editorView(editor, lineNumber) {
 	}, false);
 
 	editor.addEventListener('keydown', function(e) {
-		if (e.key === 'Tab' || (e.key === 'Backspace' && e.shiftKey)) {
+		if (e.key === 'Tab') {
 			e.preventDefault();
 			that.inputTab(e.shiftKey);
 		} else if (e.key === 'Enter') {

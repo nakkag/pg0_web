@@ -430,9 +430,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 		});
 	}, false);
 
+	let tabTime = 0;
 	document.getElementById('key-tab').addEventListener(touchstart, function(e) {
 		e.preventDefault();
-		ev.inputTab(e.shiftKey);
+		if (tabTime === 0) {
+			tabTime = new Date().getTime();
+		}
+	}, false);
+	document.getElementById('key-tab').addEventListener(touchend[0], function(e) {
+		e.preventDefault();
+		if (new Date().getTime() > tabTime + 500) {
+			ev.inputTab(true);
+		} else {
+			ev.inputTab(false);
+		}
+		tabTime = 0;
 	}, false);
 
 	document.getElementById('key-close').addEventListener(touchstart, function(e) {
