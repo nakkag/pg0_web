@@ -622,13 +622,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 	setTimeout(async function() {
 		const param = pg0_string.searchParams(location.search);
 		if (param.cid && param.run && param.run !== '0') {
-			if (!ev.currentContent.modify || window.confirm(resource.MSG_NEW)) {
+			if ((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW)) {
 				await onlineOpenView.getScript(param.cid);
 				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
 				exec(false);
 			}
 		} else if (param.cid && ev.currentContent.cid !== param.cid &&
-			(!ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
+			((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid);
 		}
 		setTimeout(function() {
