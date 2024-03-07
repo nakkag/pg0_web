@@ -16,10 +16,14 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	let _touchstart = 'mousedown';
 	let _touchmove = 'mousemove';
 	let _touchend = ['mouseup', 'mouseleave'];
-	if ('ontouchstart' in window) {
+	if (window.navigator.pointerEnabled) {
+		_touchstart = 'pointerdown';
+		_touchmove = 'pointermove';
+		_touchend = ['pointerup', 'pointercancel', 'pointerleave'];
+	} else if ('ontouchstart' in document || 'ontouchstart' in window) {
 		_touchstart = 'touchstart';
 		_touchmove = 'touchmove';
-		_touchend = ['touchend'];
+		_touchend = ['touchend', 'touchcancel'];
 	}
 
 	// Touch events

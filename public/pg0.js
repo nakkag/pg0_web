@@ -157,10 +157,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 	let touchstart = 'mousedown';
 	let touchmove = 'mousemove';
 	let touchend = ['mouseup', 'mouseleave'];
-	if ('ontouchstart' in window) {
+	if (window.navigator.pointerEnabled) {
+		touchstart = 'pointerdown';
+		touchmove = 'pointermove';
+		touchend = ['pointerup', 'pointercancel', 'pointerleave'];
+	} else if ('ontouchstart' in document || 'ontouchstart' in window) {
 		touchstart = 'touchstart';
 		touchmove = 'touchmove';
-		touchend = ['touchend'];
+		touchend = ['touchend', 'touchcancel'];
 	}
 	let resizeFunc = null;
 
