@@ -35,17 +35,8 @@ function variableView(variable, resizeCallback) {
 		variable.style.gridTemplateColumns = `${verX}px ${rw}px max-content`;
 	};
 
-	let touchstart = 'mousedown';
-	let touchmove = 'mousemove';
-	let touchend = ['mouseup', 'mouseleave'];
-	if ('ontouchstart' in window) {
-		touchstart = 'touchstart';
-		touchmove = 'touchmove';
-		touchend = ['touchend'];
-	}
 	let resizeFunc = null;
-
-	document.querySelector('#' + variable.id + ' #var-resizer').addEventListener(touchstart, function(e) {
+	function varResizer(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -60,12 +51,29 @@ function variableView(variable, resizeCallback) {
 			}
 			variable.style.gridTemplateColumns = `${verX}px ${rw}px max-content`;
 		};
-		document.addEventListener(touchmove, resizeFunc, false);
-	}, false);
-	touchend.forEach(function(e) {
+		if (e.type === 'mousedown') {
+			document.addEventListener('mousemove', resizeFunc, false);
+		} else {
+			document.addEventListener('touchmove', resizeFunc, false);
+		}
+	}
+	document.querySelector('#' + variable.id + ' #var-resizer').addEventListener('mousedown', varResizer, false);
+	document.querySelector('#' + variable.id + ' #var-resizer').addEventListener('touchstart', varResizer, false);
+	['mouseup', 'mouseleave'].forEach(function(e) {
 		document.addEventListener(e, function() {
 			if (resizeFunc) {
-				document.removeEventListener(touchmove, resizeFunc, false);
+				document.removeEventListener('mousemove', resizeFunc, false);
+				resizeFunc = null;
+				if (resizeCallback) {
+					resizeCallback(verX);
+				}
+			}
+		}, false);
+	});
+	['touchend', 'touchcancel'].forEach(function(e) {
+		document.addEventListener(e, function() {
+			if (resizeFunc) {
+				document.removeEventListener('touchmove', resizeFunc, false);
 				resizeFunc = null;
 				if (resizeCallback) {
 					resizeCallback(verX);

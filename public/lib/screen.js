@@ -13,19 +13,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	}
 	ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 
-	let _touchstart = 'mousedown';
-	let _touchmove = 'mousemove';
-	let _touchend = ['mouseup', 'mouseleave'];
-	if (window.navigator.pointerEnabled) {
-		_touchstart = 'pointerdown';
-		_touchmove = 'pointermove';
-		_touchend = ['pointerup', 'pointercancel', 'pointerleave'];
-	} else if ('ontouchstart' in document || 'ontouchstart' in window) {
-		_touchstart = 'touchstart';
-		_touchmove = 'touchmove';
-		_touchend = ['touchend', 'touchcancel'];
-	}
-
 	// Touch events
 	ScriptExec.lib['$touch'] = {x: 0, y: 0, touch: 0, button: 0, pos: []};
 	const _mouseDown = function(e) {
@@ -33,13 +20,17 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		ScriptExec.lib['$touch'].touch = 1;
 		ScriptExec.lib['$touch'].button = e.button ? e.button : 0;
 
-		const screen = document.getElementById('lib-screen');
-		screen.removeEventListener(_touchmove, _mouseMove, false);
-		document.addEventListener(_touchmove, _mouseMove, false);
-		_touchend.forEach(function(event) {
-			screen.removeEventListener(event, _mouseUp, false);
-			document.addEventListener(event, _mouseUp, false);
-		});
+		if (e.type === 'mousedown') {
+			document.addEventListener('mousemove', _mouseMove, false);
+			['mouseup', 'mouseleave'].forEach(function(event) {
+				document.addEventListener(event, _mouseUp, false);
+			});
+		} else {
+			document.addEventListener('touchmove', _mouseMove, false);
+			['touchend', 'touchcancel'].forEach(function(event) {
+				document.addEventListener(event, _mouseUp, false);
+			});
+		}
 	};
 	const _mouseMove = function(e) {
 		e.preventDefault();
@@ -71,13 +62,17 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		ScriptExec.lib['$touch'].touch = 0;
 		ScriptExec.lib['$touch'].button = 0;
 
-		const screen = document.getElementById('lib-screen');
-		document.removeEventListener(_touchmove, _mouseMove, false);
-		screen.addEventListener(_touchmove, _mouseMove, false);
-		_touchend.forEach(function(event) {
-			document.removeEventListener(event, _mouseUp, false);
-			screen.addEventListener(event, _mouseUp, false);
-		});
+		if (e.type === 'mouseup' || e.type === 'mouseleave') {
+			document.removeEventListener('mousemove', _mouseMove, false);
+			['mouseup', 'mouseleave'].forEach(function(event) {
+				document.removeEventListener(event, _mouseUp, false);
+			});
+		} else {
+			document.removeEventListener('touchmove', _mouseMove, false);
+			['touchend', 'touchcancel'].forEach(function(event) {
+				document.removeEventListener(event, _mouseUp, false);
+			});
+		}
 	};
 
 	// Key events
@@ -102,6 +97,15 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			return d !== e.key;
 		});
 	};
+
+	let _touchstart = 'mousedown';
+	let _touchmove = 'mousemove';
+	let _touchend = ['mouseup', 'mouseleave'];
+	if ('ontouchstart' in document || 'ontouchstart' in window) {
+		_touchstart = 'touchstart';
+		_touchmove = 'touchmove';
+		_touchend = ['touchend', 'touchcancel'];
+	}
 
 	let back = document.getElementById('lib-screen-back');
 	if (!back) {
@@ -219,11 +223,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		screen.style.height = '100%';
 		screen.style.setProperty('--top', 'env(safe-area-inset-top)');
 		screen.style.setProperty('--bottom', 'env(safe-area-inset-bottom)');
-		screen.addEventListener(_touchstart, _mouseDown, false);
+		screen.addEventListener('mousedown', _mouseDown, false);
+		screen.addEventListener('touchstart', _mouseDown, false);
 		screen.addEventListener(_touchmove, _mouseMove, false);
-		_touchend.forEach(function(event) {
-			screen.addEventListener(event, _mouseUp, false);
-		});
 		back.append(screen);
 		document.addEventListener('keydown', _keyDown, false);
 		document.addEventListener('keyup', _keyUp, false);

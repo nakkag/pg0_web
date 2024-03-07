@@ -154,22 +154,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 		}
 	}, false);
 
-	let touchstart = 'mousedown';
-	let touchmove = 'mousemove';
-	let touchend = ['mouseup', 'mouseleave'];
-	if (window.navigator.pointerEnabled) {
-		touchstart = 'pointerdown';
-		touchmove = 'pointermove';
-		touchend = ['pointerup', 'pointercancel', 'pointerleave'];
-	} else if ('ontouchstart' in document || 'ontouchstart' in window) {
-		touchstart = 'touchstart';
-		touchmove = 'touchmove';
-		touchend = ['touchend', 'touchcancel'];
-	}
-	let resizeFunc = null;
-
 	// Resize of the container
-	document.getElementById('var-resizer-x').addEventListener(touchstart, function(e) {
+	let resizeFunc = null;
+	function varResizerX(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -190,10 +177,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 			setGridTemplate();
 			settingView.save();
 		};
-		document.addEventListener(touchmove, resizeFunc, false);
-	}, false);
-
-	document.getElementById('var-resizer-y').addEventListener(touchstart, function(e) {
+		if (e.type === 'mousedown') {
+			document.addEventListener('mousemove', resizeFunc, false);
+		} else {
+			document.addEventListener('touchmove', resizeFunc, false);
+		}
+	}
+	function varResizerY(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -214,10 +204,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 			setGridTemplate();
 			settingView.save();
 		}
-		document.addEventListener(touchmove, resizeFunc, false);
-	}, false);
-
-	document.getElementById('console-resizer').addEventListener(touchstart, function(e) {
+		if (e.type === 'mousedown') {
+			document.addEventListener('mousemove', resizeFunc, false);
+		} else {
+			document.addEventListener('touchmove', resizeFunc, false);
+		}
+	}
+	function consoleResizer(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -248,13 +241,30 @@ document.addEventListener('DOMContentLoaded', async function() {
 			});
 			settingView.save();
 		}
-		document.addEventListener(touchmove, resizeFunc, false);
-	}, false);
-
-	touchend.forEach(function(event) {
+		if (e.type === 'mousedown') {
+			document.addEventListener('mousemove', resizeFunc, false);
+		} else {
+			document.addEventListener('touchmove', resizeFunc, false);
+		}
+	}
+	document.getElementById('var-resizer-x').addEventListener('mousedown', varResizerX, false);
+	document.getElementById('var-resizer-x').addEventListener('touchstart', varResizerX, false);
+	document.getElementById('var-resizer-y').addEventListener('mousedown', varResizerY, false);
+	document.getElementById('var-resizer-y').addEventListener('touchstart', varResizerY, false);
+	document.getElementById('console-resizer').addEventListener('mousedown', consoleResizer, false);
+	document.getElementById('console-resizer').addEventListener('touchstart', consoleResizer, false);
+	['mouseup', 'mouseleave'].forEach(function(event) {
 		document.addEventListener(event, function() {
 			if (resizeFunc) {
-				document.removeEventListener(touchmove, resizeFunc, false);
+				document.removeEventListener('mousemove', resizeFunc, false);
+				resizeFunc = null;
+			}
+		}, false);
+	});
+	['touchend', 'touchcancel'].forEach(function(event) {
+		document.addEventListener(event, function() {
+			if (resizeFunc) {
+				document.removeEventListener('touchmove', resizeFunc, false);
 				resizeFunc = null;
 			}
 		}, false);
@@ -349,6 +359,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}, false);
 
 	// Control events
+	let touchstart = 'mousedown';
+	let touchmove = 'mousemove';
+	let touchend = ['mouseup', 'mouseleave'];
+	if ('ontouchstart' in document || 'ontouchstart' in window) {
+		touchstart = 'touchstart';
+		touchmove = 'touchmove';
+		touchend = ['touchend', 'touchcancel'];
+	}
+
 	document.getElementById('exec-speed').addEventListener('change', function(e) {
 		options.execSpeed = parseInt(this.value)
 		settingView.save();
