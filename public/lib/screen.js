@@ -98,15 +98,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		});
 	};
 
-	let _touchstart = 'mousedown';
-	let _touchmove = 'mousemove';
-	let _touchend = ['mouseup', 'mouseleave'];
-	if ('ontouchstart' in document || 'ontouchstart' in window) {
-		_touchstart = 'touchstart';
-		_touchmove = 'touchmove';
-		_touchend = ['touchend', 'touchcancel'];
-	}
-
 	let back = document.getElementById('lib-screen-back');
 	if (!back) {
 		back = document.createElement('div');
@@ -120,7 +111,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		back.style.width = '100%';
 		back.style.height = '100%';
 		const pt = {x: 0, y: 0, resize_nw: false, resize_se: false, resize_sw: false};
-		back.addEventListener(_touchstart, function(e) {
+		const backTouchstart = function(e) {
 			if (e.target === back) {
 				e.preventDefault();
 			}
@@ -132,13 +123,22 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				pt.resize_se = (pt.x >= rect.width - 10 && pt.y >= rect.height - 10);
 				pt.resize_sw = (pt.x <= 10 && pt.y >= rect.height - 10);
 				if (e.target === back || pt.resize_nw || pt.resize_se || pt.resize_sw) {
-					document.addEventListener(_touchmove, backTouchMove, false);
-					_touchend.forEach(function(event) {
-						document.addEventListener(event, backTouchEnd, false);
-					});
+					if (e.type === 'mousedown') {
+						document.addEventListener('mousemove', backTouchMove, false);
+						['mouseup', 'mouseleave'].forEach(function(event) {
+							document.addEventListener(event, backMouseEnd, false);
+						});
+					} else {
+						document.addEventListener('touchmove', backTouchMove, false);
+						['touchend', 'touchcancel'].forEach(function(event) {
+							document.addEventListener(event, backTouchEnd, false);
+						});
+					}
 				}
 			}
-		}, false);
+		};
+		back.addEventListener('mousedown', backTouchstart, false);
+		back.addEventListener('touchstart', backTouchstart, false);
 		const backTouchMove = function(e) {
 			e.preventDefault();
 			if (pt.resize_nw) {
@@ -202,10 +202,17 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			}
 			_screenResize();
 		};
+		const backMouseEnd = function(e) {
+			e.preventDefault();
+			document.removeEventListener('mousemove', backTouchMove, false);
+			['mouseup', 'mouseleave'].forEach(function(event) {
+				document.removeEventListener(event, backMouseEnd, false);
+			});
+		};
 		const backTouchEnd = function(e) {
 			e.preventDefault();
-			document.removeEventListener(_touchmove, backTouchMove, false);
-			_touchend.forEach(function(event) {
+			document.removeEventListener('touchmove', backTouchMove, false);
+			['touchend', 'touchcancel'].forEach(function(event) {
 				document.removeEventListener(event, backTouchEnd, false);
 			});
 		};
@@ -224,8 +231,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		screen.style.setProperty('--top', 'env(safe-area-inset-top)');
 		screen.style.setProperty('--bottom', 'env(safe-area-inset-bottom)');
 		screen.addEventListener('mousedown', _mouseDown, false);
+		screen.addEventListener('mousemove', _mouseMove, false);
 		screen.addEventListener('touchstart', _mouseDown, false);
-		screen.addEventListener(_touchmove, _mouseMove, false);
+		screen.addEventListener('touchmove', _mouseMove, false);
 		back.append(screen);
 		document.addEventListener('keydown', _keyDown, false);
 		document.addEventListener('keyup', _keyUp, false);
@@ -247,18 +255,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		iconic.style.cursor = 'pointer';
 		iconic.style.userSelect = 'none';
 		back.append(iconic);
-		let touchIconic = false;
-		iconic.addEventListener(_touchstart, function(e) {
-			touchIconic = true;
-		}, false);
-		iconic.addEventListener('mouseleave', function(e) {
-			touchIconic = false;
-		}, false);
-		iconic.addEventListener(_touchend[0], function(e) {
-			if (!touchIconic) {
-				return;
-			}
-			touchIconic = false;
+		iconic.addEventListener('click', function(e) {
 			e.preventDefault();
 			if (iconic.textContent === '-') {
 				const rect = document.getElementById('ctrl-container').getBoundingClientRect();
@@ -322,19 +319,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		close.style.cursor = 'pointer';
 		close.style.userSelect = 'none';
 		back.append(close);
-		let touchClose = false;
-		close.addEventListener(_touchstart, function(e) {
-			touchClose = true;
-		}, false);
-		close.addEventListener(_touchend[0], function(e) {
-			if (touchClose) {
-				e.preventDefault();
-				stop();
-			}
-			touchClose = false;
-		}, false);
-		close.addEventListener('mouseleave', function(e) {
-			touchClose = false;
+		close.addEventListener('click', function(e) {
+			e.preventDefault();
+			stop();
 		}, false);
 	}
 
@@ -381,10 +368,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			window.removeEventListener('orientationchange', _screenResize, false);
 			document.removeEventListener('keydown', _keyDown, false);
 			document.removeEventListener('keyup', _keyUp, false);
-			document.removeEventListener(_touchmove, _mouseMove, false);
-			_touchend.forEach(function(event) {
-				document.removeEventListener(event, _mouseUp, false);
-			});
 		}
 	}, 100);
 	return 0;

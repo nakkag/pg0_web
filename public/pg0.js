@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	// Resize of the container
 	let resizeFunc = null;
-	function varResizerX(e) {
+	const varResizerX = function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -182,8 +182,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 		} else {
 			document.addEventListener('touchmove', resizeFunc, false);
 		}
-	}
-	function varResizerY(e) {
+	};
+	const varResizerY = function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -209,8 +209,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 		} else {
 			document.addEventListener('touchmove', resizeFunc, false);
 		}
-	}
-	function consoleResizer(e) {
+	};
+	const consoleResizer = function(e) {
 		if (e.cancelable) {
 			e.preventDefault();
 		}
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		} else {
 			document.addEventListener('touchmove', resizeFunc, false);
 		}
-	}
+	};
 	document.getElementById('var-resizer-x').addEventListener('mousedown', varResizerX, false);
 	document.getElementById('var-resizer-x').addEventListener('touchstart', varResizerX, false);
 	document.getElementById('var-resizer-y').addEventListener('mousedown', varResizerY, false);
@@ -360,12 +360,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	// Control events
 	let touchstart = 'mousedown';
-	let touchmove = 'mousemove';
-	let touchend = ['mouseup', 'mouseleave'];
+	let touchend = 'mouseup';
 	if ('ontouchstart' in document || 'ontouchstart' in window) {
 		touchstart = 'touchstart';
-		touchmove = 'touchmove';
-		touchend = ['touchend', 'touchcancel'];
+		touchend = 'touchend';
 	}
 
 	document.getElementById('exec-speed').addEventListener('change', function(e) {
@@ -374,8 +372,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}, false);
 
 	document.getElementById('ctrl-container').addEventListener(touchstart, function(e) {
-		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
-		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+		const x = (e.x !== undefined) ? e.x : e.touches[0].clientX;
+		const y = (e.y !== undefined) ? e.y : e.touches[0].clientY;
 		const element = document.elementFromPoint(x, y);
 		if (element === this) {
 			e.preventDefault();
@@ -384,8 +382,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	// Key events for mobile
 	document.getElementById('key-container').addEventListener(touchstart, function(e) {
-		const x = (touchstart === 'mousedown') ? e.x : e.touches[0].clientX;
-		const y = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+		const x = (e.x !== undefined) ? e.x : e.touches[0].clientX;
+		const y = (e.y !== undefined) ? e.y : e.touches[0].clientY;
 		const element = document.elementFromPoint(x, y);
 		if (element === this) {
 			e.preventDefault();
@@ -416,7 +414,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		ev.moveCaret(-1);
 		keyRepeat(-1, 500);
 	}, false);
-	document.getElementById('key-left').addEventListener(touchend[0], function(e) {
+	document.getElementById('key-left').addEventListener(touchend, function(e) {
 		if (repeat) {
 			clearTimeout(repeat);
 			repeat = null;
@@ -430,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		ev.moveCaret(1);
 		keyRepeat(1, 500);
 	}, false);
-	document.getElementById('key-right').addEventListener(touchend[0], function(e) {
+	document.getElementById('key-right').addEventListener(touchend, function(e) {
 		if (repeat) {
 			clearTimeout(repeat);
 			repeat = null;
@@ -460,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 			tabTime = new Date().getTime();
 		}
 	}, false);
-	document.getElementById('key-tab').addEventListener(touchend[0], function(e) {
+	document.getElementById('key-tab').addEventListener(touchend, function(e) {
 		e.preventDefault();
 		if (new Date().getTime() > tabTime + 500) {
 			ev.inputTab(true);
