@@ -111,7 +111,7 @@ body::before {
 	overflow: hidden;
 	width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
 	margin: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
-	height: calc(100dvh - env(safe-area-inset-top));
+	height: calc(100vh - env(safe-area-inset-top));
 	background-color: #f1f3f4;
 	display: grid;
 	grid-template-rows: max-content 1fr var(--resize-with) 0 0;
@@ -125,6 +125,12 @@ body::before {
 #container.full {
 	grid-template-rows: max-content 1fr 0px 0px !important;
 	grid-template-columns: max-content 1fr 0px 0px max-content !important;
+}
+
+@supports(height: 100dvh) {
+	#container {
+		height: calc(100dvh - env(safe-area-inset-top));
+	}
 }
 
 #ctrl-container {

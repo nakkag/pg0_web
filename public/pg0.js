@@ -302,7 +302,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 		if (editFocus) {
 			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
 		} else {
-			container.style.height = 'calc(100dvh - env(safe-area-inset-top))';
+			if (CSS.supports('height: 100dvh')) {
+				container.style.height = 'calc(100dvh - env(safe-area-inset-top))';
+			} else {
+				container.style.height = 'calc(100vh - env(safe-area-inset-top))';
+			}
 			if (checkOrientation() === 0) {
 				if (container.classList.contains('mobile')) {
 					container.style.gridTemplateRows = `1fr ${rw}px ${options.boundary.verY}px ${rw}px ${options.boundary.consoleY}px max-content 0`;
