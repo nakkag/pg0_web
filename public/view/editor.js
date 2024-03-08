@@ -461,13 +461,9 @@ function editorView(editor, lineNumber) {
 		setTimeout(that.saveSelect, 0);
 	}, false);
 
-	let touchstart = 'mousedown';
-	if ('ontouchstart' in window) {
-		touchstart = 'touchstart';
-	}
-	editor.addEventListener(touchstart, function(e) {
+	const touchEditor = function(e) {
 		const touchend = function(e) {
-			if (touchstart === 'mousedown') {
+			if (e.type === 'mousedown') {
 				document.removeEventListener('mouseup', touchend);
 				setTimeout(that.saveSelect, 0);
 			} else {
@@ -475,12 +471,14 @@ function editorView(editor, lineNumber) {
 				setTimeout(that.saveSelect, 100);
 			}
 		};
-		if (touchstart === 'mousedown') {
+		if (e.type === 'mousedown') {
 			document.addEventListener('mouseup', touchend);
 		} else {
 			document.addEventListener('touchend', touchend);
 		}
-	}, false);
+	};
+	editor.addEventListener('mousedown', touchEditor, false);
+	editor.addEventListener('touchstart', touchEditor, false);
 
 	editor.addEventListener('click', function(e) {
 		if (that.currentContent.caret[0] === that.currentContent.caret[1]) {
@@ -514,13 +512,13 @@ function editorView(editor, lineNumber) {
 	if (lineNumber) {
 		let startNode = null;
 		let startY = 0;
-		lineNumber.addEventListener(touchstart, function(e) {
+		const touchLineNumber = function(e) {
 			e.preventDefault();
 			editor.focus();
 			startNode = null;
-			startY = (touchstart === 'mousedown') ? e.y : e.touches[0].clientY;
+			startY = (e.y !== undefined) ? e.y : e.touches[0].clientY;
 			selectLine(startY, function() {
-				if (touchstart === 'mousedown') {
+				if (e.type === 'mousedown') {
 					document.addEventListener('mousemove', mousemove);
 					document.addEventListener('mouseup', mouseup);
 				} else {
@@ -528,13 +526,15 @@ function editorView(editor, lineNumber) {
 					document.addEventListener('touchend', mouseup);
 				}
 			});
-		}, false);
+		};
+		lineNumber.addEventListener('mousedown', touchLineNumber, false);
+		lineNumber.addEventListener('touchstart', touchLineNumber, false);
 		const mousemove = function(e) {
 			e.preventDefault();
-			selectLine(((touchstart === 'mousedown') ? e.y : e.touches[0].clientY), null);
+			selectLine(((e.y !== undefined) ? e.y : e.touches[0].clientY), null);
 		};
 		const mouseup = function(e) {
-			if (touchstart === 'mousedown') {
+			if (e.type === 'mouseup') {
 				document.removeEventListener('mousemove', mousemove);
 				document.removeEventListener('mouseup', mouseup);
 			} else {

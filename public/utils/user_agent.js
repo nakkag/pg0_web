@@ -14,6 +14,7 @@ const user_agent = (function () {
 		ua.isiPad = ua.name.indexOf('ipad') >= 0 || ua.name.indexOf('macintosh') > -1 && 'ontouchend' in document;
 		ua.isiOS = (ua.isiPhone || ua.isiPod || ua.isiPad);
 		ua.isAndroid = ua.name.indexOf('android') >= 0;
+		ua.isChromeOS = ua.name.indexOf('cros') >= 0;
 		ua.isTablet = (ua.isiPad || (ua.isAndroid && ua.name.indexOf('mobile') < 0));
 		return ua;
 	};

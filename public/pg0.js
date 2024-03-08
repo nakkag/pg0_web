@@ -322,39 +322,43 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}
 	setGridTemplate();
 
+	let fullEditor = false;
 	if (ua.isiOS || ua.isAndroid) {
-		let scrollTop = 0;
-		document.getElementById('editor').addEventListener('focus', function(e) {
-			if (document.getElementById('editor').getAttribute('contenteditable') === 'false') {
-				return;
-			}
-			editFocus = true;
-			scrollTop = editorContainer.scrollTop;
-			container.classList.add('full');
-			setGridTemplate();
-		}, false);
-		document.getElementById('editor').addEventListener('blur', function(e) {
-			if (editFocus) {
-				editFocus = false;
-				container.classList.remove('full');
-				setGridTemplate();
-				const node = ev.getLineNode(ev.getCaretLineIndex());
-				if (node) {
-					node.scrollIntoView({behavior: 'instant', block: 'nearest'});
-				}
-			}
-		}, false);
-		window.visualViewport.addEventListener('resize', function() {
-			if (editFocus) {
-				container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
-				editorContainer.scrollTop = scrollTop;
-				ev.showCaret();
-			}
-		});
+		fullEditor = true;
 	} else {
 		editorContainer.focus();
 	}
-	
+	let scrollTop = 0;
+	document.getElementById('editor').addEventListener('focus', function(e) {
+		if (!fullEditor || document.getElementById('editor').getAttribute('contenteditable') === 'false') {
+			return;
+		}
+		editFocus = true;
+		scrollTop = editorContainer.scrollTop;
+		container.classList.add('full');
+		setGridTemplate();
+	}, false);
+	document.getElementById('editor').addEventListener('blur', function(e) {
+		if (editFocus) {
+			editFocus = false;
+			container.classList.remove('full');
+			setGridTemplate();
+			const node = ev.getLineNode(ev.getCaretLineIndex());
+			if (node) {
+				node.scrollIntoView({behavior: 'instant', block: 'nearest'});
+			}
+		}
+	}, false);
+	window.visualViewport.addEventListener('resize', function() {
+		if (ua.isChromeOS) {
+			fullEditor = true;
+		}
+		if (editFocus) {
+			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
+			editorContainer.scrollTop = scrollTop;
+			ev.showCaret();
+		}
+	});
 	window.addEventListener('scroll', function(e) {
 		if (editFocus) {
 			e.preventDefault();
