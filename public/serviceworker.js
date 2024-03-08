@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v255';
+const CACHE_VERSION = 'pg0-v257';
 
 const resources = [
 	'./',
@@ -82,7 +82,7 @@ self.addEventListener('activate', function (event) {
 				}
 			}));
 		}).then(function() {
-			clients.claim();
+			self.clients.claim();
 		})
 	);
 });

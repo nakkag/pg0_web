@@ -104,7 +104,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		back.setAttribute('id', 'lib-screen-back');
 		back.setAttribute('oncontextmenu', 'return false;');
 		back.style.zIndex = 500;
-		back.style.backgroundColor = '#eee';
+		back.style.backgroundColor = '#f1f3f4';
 		back.style.position = 'fixed';
 		back.style.left = '0';
 		back.style.top = '0';

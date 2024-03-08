@@ -17,7 +17,7 @@ let ev, vv, cv;
 let baseTitle = document.title;
 
 document.addEventListener('DOMContentLoaded', async function() {
-	if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator) {
+	if ('serviceWorker' in navigator) {
 		navigator.serviceWorker.register('/pg0/serviceworker.js', {scope: '/pg0/'}).then(function (registration) {
 			registration.onupdatefound = function() {
 				registration.update();
