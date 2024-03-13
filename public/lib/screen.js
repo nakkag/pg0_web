@@ -273,6 +273,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			} else {
 				ScriptExec.lib['$op'].mute = true;
 				sound.innerHTML = '<img src="lib/image/sc_mute.svg">';
+				stopSound();
 			}
 			localStorage.setItem('pg0_screen', JSON.stringify(ScriptExec.lib['$op']));
 		}, false);
