@@ -471,7 +471,7 @@ function editorView(editor, lineNumber) {
 				setTimeout(that.saveSelect, 100);
 			}
 		};
-		if (e.type === 'mouseup') {
+		if (e.type === 'mousedown') {
 			document.addEventListener('mouseup', touchend);
 		} else {
 			document.addEventListener('touchend', touchend);
