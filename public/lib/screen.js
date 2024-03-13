@@ -245,16 +245,15 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		sound = document.createElement('div');
 		sound.setAttribute('id', 'lib-screen-sound');
 		if (ScriptExec.lib['$mute']) {
-			sound.innerHTML = '🔇';
+			sound.innerHTML = '<img src="lib/image/sc_mute.svg" />';
 		} else {
-			sound.innerHTML = '🔈';
+			sound.innerHTML = '<img src="lib/image/sc_speaker.svg" />';
 		}
 		sound.style.zIndex = 502;
 		sound.style.position = 'absolute';
 		sound.style.right = 'calc(env(safe-area-inset-right) + 85px)';
 		sound.style.top = 'env(safe-area-inset-top)';
-		sound.style.fontSize = '40px';
-		sound.style.color = '#808080';
+		sound.style.width = '30px';
 		sound.style.opacity = '75%';
 		sound.style.cursor = 'pointer';
 		sound.style.userSelect = 'none';
@@ -263,10 +262,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			e.preventDefault();
 			if (ScriptExec.lib['$mute']) {
 				ScriptExec.lib['$mute'] = false;
-				sound.innerHTML = '🔈';
+				sound.innerHTML = '<img src="lib/image/sc_speaker.svg" />';
 			} else {
 				ScriptExec.lib['$mute'] = true;
-				sound.innerHTML = '🔇';
+				sound.innerHTML = '<img src="lib/image/sc_mute.svg" />';
 			}
 		}, false);
 	}
@@ -275,25 +274,21 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		iconic = document.createElement('div');
 		iconic.setAttribute('id', 'lib-screen-iconic');
 		iconic.innerHTML = '-';
+		iconic.innerHTML = '<img src="lib/image/sc_icon.svg" />';
 		iconic.style.zIndex = 502;
 		iconic.style.position = 'absolute';
-		iconic.style.right = 'calc(env(safe-area-inset-right) + 55px)';
+		iconic.style.right = 'calc(env(safe-area-inset-right) + 45px)';
 		iconic.style.top = 'env(safe-area-inset-top)';
-		iconic.style.fontSize = '40px';
-		iconic.style.color = '#808080';
+		iconic.style.width = '30px';
 		iconic.style.opacity = '75%';
 		iconic.style.cursor = 'pointer';
 		iconic.style.userSelect = 'none';
 		back.append(iconic);
 		iconic.addEventListener('click', function(e) {
 			e.preventDefault();
-			if (iconic.textContent === '-') {
+			if (!back.classList.contains('icon')) {
 				const rect = document.getElementById('ctrl-container').getBoundingClientRect();
-				iconic.innerHTML = '□';
-				iconic.style.fontSize = '30px';
-				iconic.style.top = 'calc(env(safe-area-inset-top) + 5px)';
-				iconic.style.right = '55px';
-				close.style.right = '5px';
+				iconic.innerHTML = '<img src="lib/image/sc_restore.svg" />';
 				back.classList.add('icon');
 				back.style.right = 'env(safe-area-inset-right)';
 				if (rect.top > 100) {
@@ -317,11 +312,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				}
 				back.style.outline = '1px solid #aaa';
 			} else {
-				iconic.innerHTML = '-';
-				iconic.style.fontSize = '40px';
-				iconic.style.top = 'env(safe-area-inset-top)';
-				iconic.style.right = 'calc(env(safe-area-inset-right) + 55px)';
-				close.style.right = 'calc(env(safe-area-inset-right) + 5px)';
+				iconic.innerHTML = '<img src="lib/image/sc_icon.svg" />';
 				back.classList.remove('icon');
 				back.style.left = '0';
 				back.style.right = 'unset';
@@ -338,13 +329,12 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	if (!close) {
 		close = document.createElement('div');
 		close.setAttribute('id', 'lib-screen-close');
-		close.innerHTML = '×';
+		close.innerHTML = '<img src="lib/image/sc_close.svg" />';
 		close.style.zIndex = 502;
 		close.style.position = 'absolute';
 		close.style.right = 'calc(env(safe-area-inset-right) + 5px)';
 		close.style.top = 'env(safe-area-inset-top)';
-		close.style.fontSize = '40px';
-		close.style.color = '#808080';
+		close.style.width = '30px';
 		close.style.opacity = '75%';
 		close.style.cursor = 'pointer';
 		close.style.userSelect = 'none';
