@@ -13,6 +13,13 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	}
 	ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 
+	const str = localStorage.getItem('pg0_screen');
+	if (str) {
+		ScriptExec.lib['$op'] = JSON.parse(str);
+	} else {
+		ScriptExec.lib['$op'] = {};
+	}
+
 	// Touch events
 	ScriptExec.lib['$touch'] = {x: 0, y: 0, touch: 0, button: 0, pos: []};
 	const _mouseDown = function(e) {
@@ -244,14 +251,14 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	if (!sound) {
 		sound = document.createElement('div');
 		sound.setAttribute('id', 'lib-screen-sound');
-		if (ScriptExec.lib['$mute']) {
+		if (ScriptExec.lib['$op'].mute) {
 			sound.innerHTML = '<img src="lib/image/sc_mute.svg" />';
 		} else {
 			sound.innerHTML = '<img src="lib/image/sc_speaker.svg" />';
 		}
 		sound.style.zIndex = 502;
 		sound.style.position = 'absolute';
-		sound.style.right = 'calc(env(safe-area-inset-right) + 85px)';
+		sound.style.right = 'calc(env(safe-area-inset-right) + 80px)';
 		sound.style.top = 'env(safe-area-inset-top)';
 		sound.style.width = '30px';
 		sound.style.opacity = '75%';
@@ -260,13 +267,14 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		back.append(sound);
 		sound.addEventListener('click', function(e) {
 			e.preventDefault();
-			if (ScriptExec.lib['$mute']) {
-				ScriptExec.lib['$mute'] = false;
+			if (ScriptExec.lib['$op'].mute) {
+				ScriptExec.lib['$op'].mute = false;
 				sound.innerHTML = '<img src="lib/image/sc_speaker.svg" />';
 			} else {
-				ScriptExec.lib['$mute'] = true;
+				ScriptExec.lib['$op'].mute = true;
 				sound.innerHTML = '<img src="lib/image/sc_mute.svg" />';
 			}
+			localStorage.setItem('pg0_screen', JSON.stringify(ScriptExec.lib['$op']));
 		}, false);
 	}
 	let iconic = document.getElementById('lib-screen-iconic');
@@ -277,7 +285,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		iconic.innerHTML = '<img src="lib/image/sc_icon.svg" />';
 		iconic.style.zIndex = 502;
 		iconic.style.position = 'absolute';
-		iconic.style.right = 'calc(env(safe-area-inset-right) + 45px)';
+		iconic.style.right = 'calc(env(safe-area-inset-right) + 40px)';
 		iconic.style.top = 'env(safe-area-inset-top)';
 		iconic.style.width = '30px';
 		iconic.style.opacity = '75%';
@@ -332,7 +340,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		close.innerHTML = '<img src="lib/image/sc_close.svg" />';
 		close.style.zIndex = 502;
 		close.style.position = 'absolute';
-		close.style.right = 'calc(env(safe-area-inset-right) + 5px)';
+		close.style.right = 'env(safe-area-inset-right)';
 		close.style.top = 'env(safe-area-inset-top)';
 		close.style.width = '30px';
 		close.style.opacity = '75%';
@@ -1225,7 +1233,7 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	if (ScriptExec.lib['$mute']) {
+	if (ScriptExec.lib['$op'].mute) {
 		return 0;
 	}
 	let frequency = param[0].v.num;
@@ -1246,7 +1254,7 @@ ScriptExec.lib['playmusic'] = async function(ei, param, ret) {
 	if (param.length < 1 || param[0].v.type !== TYPE_ARRAY) {
 		return -2;
 	}
-	if (ScriptExec.lib['$mute']) {
+	if (ScriptExec.lib['$op'].mute) {
 		return 0;
 	}
 	let repeat = 0;
