@@ -240,6 +240,36 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 
 		ScriptExec.lib['$offscreen'] = document.createElement('canvas');
 	}
+	let sound = document.getElementById('lib-screen-sound');
+	if (!sound) {
+		sound = document.createElement('div');
+		sound.setAttribute('id', 'lib-screen-sound');
+		if (ScriptExec.lib['$mute']) {
+			sound.innerHTML = '🔇';
+		} else {
+			sound.innerHTML = '🔈';
+		}
+		sound.style.zIndex = 502;
+		sound.style.position = 'absolute';
+		sound.style.right = 'calc(env(safe-area-inset-right) + 85px)';
+		sound.style.top = 'env(safe-area-inset-top)';
+		sound.style.fontSize = '40px';
+		sound.style.color = '#808080';
+		sound.style.opacity = '75%';
+		sound.style.cursor = 'pointer';
+		sound.style.userSelect = 'none';
+		back.append(sound);
+		sound.addEventListener('click', function(e) {
+			e.preventDefault();
+			if (ScriptExec.lib['$mute']) {
+				ScriptExec.lib['$mute'] = false;
+				sound.innerHTML = '🔈';
+			} else {
+				ScriptExec.lib['$mute'] = true;
+				sound.innerHTML = '🔇';
+			}
+		}, false);
+	}
 	let iconic = document.getElementById('lib-screen-iconic');
 	if (!iconic) {
 		iconic = document.createElement('div');
@@ -1205,6 +1235,9 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
+	if (ScriptExec.lib['$mute']) {
+		return 0;
+	}
 	let frequency = param[0].v.num;
 	if (param[0].v.type === TYPE_STRING) {
 		frequency = noteFrequency(param[0].v.str);
@@ -1222,6 +1255,9 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 ScriptExec.lib['playmusic'] = async function(ei, param, ret) {
 	if (param.length < 1 || param[0].v.type !== TYPE_ARRAY) {
 		return -2;
+	}
+	if (ScriptExec.lib['$mute']) {
+		return 0;
 	}
 	let repeat = 0;
 	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
