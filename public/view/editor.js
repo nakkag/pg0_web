@@ -463,7 +463,7 @@ function editorView(editor, lineNumber) {
 
 	const touchEditor = function(e) {
 		const touchend = function(e) {
-			if (e.type === 'mousedown') {
+			if (e.type === 'mouseup') {
 				document.removeEventListener('mouseup', touchend);
 				setTimeout(that.saveSelect, 0);
 			} else {
@@ -471,14 +471,17 @@ function editorView(editor, lineNumber) {
 				setTimeout(that.saveSelect, 100);
 			}
 		};
-		if (e.type === 'mousedown') {
+		if (e.type === 'mouseup') {
 			document.addEventListener('mouseup', touchend);
 		} else {
 			document.addEventListener('touchend', touchend);
 		}
 	};
-	editor.addEventListener('mousedown', touchEditor, false);
-	editor.addEventListener('touchstart', touchEditor, false);
+	if ('ontouchstart' in document || 'ontouchstart' in window) {
+		editor.addEventListener('touchstart', touchEditor, false);
+	} else {
+		editor.addEventListener('mousedown', touchEditor, false);
+	}
 
 	editor.addEventListener('click', function(e) {
 		if (that.currentContent.caret[0] === that.currentContent.caret[1]) {
