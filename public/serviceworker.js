@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v264';
+const CACHE_VERSION = 'pg0-v265';
 
 const resources = [
 	'./',
@@ -44,6 +44,11 @@ const resources = [
 	'lib/math.js',
 	'lib/screen.js',
 	'lib/io.js',
+	'lib/image/sc_close.svg',
+	'lib/image/sc_icon.svg',
+	'lib/image/sc_restore.svg',
+	'lib/image/sc_mute.svg',
+	'lib/image/sc_speaker.svg',
 ];
 
 self.addEventListener('install', function (event) {
