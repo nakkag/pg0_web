@@ -1117,6 +1117,9 @@ function ScriptParse(sci) {
 			}
 			if (sci.extension && pi.type === SYM_IF) {
 				ifStatement(pi);
+				if (pi.err) {
+					return;
+				}
 			} else {
 				if (pi.type !== SYM_BOPEN) {
 					pi.err = Script.error(sci, errMsg.ERR_BLOCK, pi.line);

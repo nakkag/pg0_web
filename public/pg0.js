@@ -151,6 +151,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 				document.getElementById('menu-toggle').checked = false;
 			}
 			break;
+		case 'Delete':
+			if (e.ctrlKey) {
+				e.preventDefault();
+				vv.clear();
+				cv.clear();
+			}
+			break;
 		}
 	}, false);
 
