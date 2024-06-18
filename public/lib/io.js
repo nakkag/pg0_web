@@ -72,9 +72,9 @@ ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
 
 	let str = '';
 	if (param[0].v.type === TYPE_ARRAY) {
-		str = ScriptExec.arrayToString(param[0].v.array).toUpperCase();
+		str = ScriptExec.arrayToString(param[0].v.array);
 	} else {
-		str = ScriptExec.getValueString(param[0].v).toUpperCase();
+		str = ScriptExec.getValueString(param[0].v);
 	}
 	if (navigator.clipboard) {
 		navigator.clipboard.writeText(str);

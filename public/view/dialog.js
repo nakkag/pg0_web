@@ -234,8 +234,12 @@ const onlineOpenView = (function () {
 	};
 	me.getList = async function() {
 		try {
+			const id = me.id = Math.random().toString(36).slice(-8);
 			const keyword = document.getElementById('online-open-search-text').value;
 			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${listCount}&skip=${me.skip}`)).json();
+			if (id !== me.id) {
+				return;
+			}
 			if (scripts) {
 				if (document.getElementById('loading')) {
 					document.getElementById('loading').remove();
@@ -424,7 +428,11 @@ const onlineHistoryView = (function () {
 	};
 	me.getList = async function() {
 		try {
+			const id = me.id = Math.random().toString(36).slice(-8);
 			const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=${listCount}&skip=${me.skip}`);
+			if (id !== me.id) {
+				return;
+			}
 			switch (res.status) {
 			case 200:
 				const scripts = await res.json();
