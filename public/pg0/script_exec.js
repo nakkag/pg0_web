@@ -374,35 +374,68 @@ ScriptExec.getValueBoolean = function(v) {
 };
 
 ScriptExec.convCtrl = function(buf) {
-	buf = buf.replaceAll('\\r', '\r').replaceAll('\\n', '\n').replaceAll('\\t', '\t').replaceAll('\\b', '\b').replaceAll('\\"', '"').replaceAll("\\'", "'").replaceAll('\\\\', '\\');
 	const a = buf.split('');
 	let ret = '';
 	let i = 0;
 	while (i < a.length) {
-		if (i + 1 < a.length && a[i] === '\\' && a[i + 1] === 'x') {
-			i += 2;
-			let hex = '';
-			let len = 4;
-			while (i < a.length && len > 0) {
-				if (!/[0-9A-Fa-f]/.test(a[i])) {
-					break;
-				}
-				hex += a[i++];
-				len--;
-			}
-			ret += String.fromCharCode(parseInt(hex, 16));
-		} else if (i + 1 < a.length && a[i] === '\\' && /[0-7]/.test(a[i + 1])) {
+		if (a[i] === '\\' && i + 1 < a.length) {
 			i++;
-			let hex = '';
-			let len = 6;
-			while (i < a.length && len > 0) {
-				if (!/[0-7]/.test(a[i])) {
-					break;
+			let len;
+			switch (a[i]) {
+			case 'r':
+				ret += '\r';
+				i++;
+				break;
+			case 'n':
+				ret += '\n';
+				i++;
+				break;
+			case 't':
+				ret += '\t';
+				i++;
+				break;
+			case 'b':
+				ret += '\b';
+				i++;
+				break;
+			case '"':
+				ret += '"';
+				i++;
+				break;
+			case "'":
+				ret += "'";
+				i++;
+				break;
+			case '\\':
+				ret += '\\';
+				i++;
+				break;
+			case 'x':
+				i++;
+				let hex = '';
+				len = 4;
+				while (i < a.length && len > 0) {
+					if (!/[0-9A-Fa-f]/.test(a[i])) {
+						break;
+					}
+					hex += a[i++];
+					len--;
 				}
-				hex += a[i++];
-				len--;
+				ret += String.fromCharCode(parseInt(hex, 16));
+				break;
+			default:
+				let oct = '';
+				len = 6;
+				while (i < a.length && len > 0) {
+					if (!/[0-7]/.test(a[i])) {
+						break;
+					}
+					oct += a[i++];
+					len--;
+				}
+				ret += String.fromCharCode(parseInt(oct, 8));
+				break;
 			}
-			ret += String.fromCharCode(parseInt(hex, 8));
 		} else {
 			ret += a[i++];
 		}
