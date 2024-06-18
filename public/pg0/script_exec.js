@@ -269,7 +269,11 @@ ScriptExec.stringToArray = function(str) {
 ScriptExec.arrayToString = function(from) {
 	let ret = '';
 	from.forEach(function(a) {
-		ret += ScriptExec.getValueString(a.v);
+		if (a.v.type === TYPE_STRING) {
+			ret += ScriptExec.reConvCtrl(a.v.str);
+		} else {
+			ret += ScriptExec.getValueString(a.v);
+		}
 	});
 	return ret;
 };
@@ -367,6 +371,47 @@ ScriptExec.getValueBoolean = function(v) {
 		break;
 	}
 	return 1;
+};
+
+ScriptExec.convCtrl = function(buf) {
+	buf = buf.replaceAll('\\r', '\r').replaceAll('\\n', '\n').replaceAll('\\t', '\t').replaceAll('\\b', '\b').replaceAll('\\"', '"').replaceAll("\\'", "'").replaceAll('\\\\', '\\');
+	const a = buf.split('');
+	let ret = '';
+	let i = 0;
+	while (i < a.length) {
+		if (i + 1 < a.length && a[i] === '\\' && a[i + 1] === 'x') {
+			i += 2;
+			let hex = '';
+			let len = 4;
+			while (i < a.length && len > 0) {
+				if (!/[0-9A-Fa-f]/.test(a[i])) {
+					break;
+				}
+				hex += a[i++];
+				len--;
+			}
+			ret += String.fromCharCode(parseInt(hex, 16));
+		} else if (i + 1 < a.length && a[i] === '\\' && /[0-7]/.test(a[i + 1])) {
+			i++;
+			let hex = '';
+			let len = 6;
+			while (i < a.length && len > 0) {
+				if (!/[0-7]/.test(a[i])) {
+					break;
+				}
+				hex += a[i++];
+				len--;
+			}
+			ret += String.fromCharCode(parseInt(hex, 8));
+		} else {
+			ret += a[i++];
+		}
+	}
+	return ret;
+};
+
+ScriptExec.reConvCtrl = function(buf) {
+	return buf.replaceAll('\\', '\\\\').replaceAll('\r', '\\r').replaceAll('\n', '\\n').replaceAll('\t', '\\t').replaceAll('\b', '\\b').replaceAll('"', '\\"').replaceAll("'", "\\'");
 };
 
 function ScriptExec(scis, sci) {
@@ -1085,7 +1130,7 @@ function ScriptExec(scis, sci) {
 			case SYM_CONST_STRING:
 				vi = ScriptExec.initValueInfo();
 				vi.v.type = TYPE_STRING;
-				vi.v.str = token.buf;
+				vi.v.str = ScriptExec.convCtrl(token.buf);
 				delete vi.v.num;
 				stack.push(vi);
 				break;

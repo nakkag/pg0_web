@@ -209,7 +209,7 @@ function variableView(variable, resizeCallback) {
 		if (v.type === TYPE_ARRAY) {
 			buf = '{' + pg0_string.arrayToString(v.array) + '}';
 		} else if (v.type === TYPE_STRING) {
-			buf = '"' + ScriptExec.getValueString(v) + '"';
+			buf = '"' + ScriptExec.reConvCtrl(v.str) + '"';
 		} else {
 			buf = ScriptExec.getValueString(v);
 		}

@@ -4,7 +4,7 @@ const pg0_string = (function () {
 	const me = {};
 
 	me.escapeHTML = function(str) {
-		return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\\/g, '&#92;');
 	};
 
 	me.searchParams = function(search) {
@@ -29,7 +29,7 @@ const pg0_string = (function () {
 			if (a.v.type === TYPE_ARRAY) {
 				ret += '{' + me.arrayToString(a.v.array) + '}';
 			} else if (a.v.type === TYPE_STRING) {
-				ret += '"' + ScriptExec.getValueString(a.v) + '"';
+				ret += '"' + ScriptExec.reConvCtrl(a.v.str) + '"';
 			} else {
 				ret += ScriptExec.getValueString(a.v);
 			}
