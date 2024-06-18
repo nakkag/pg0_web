@@ -53,3 +53,32 @@ ScriptExec.lib['removevalue'] = function(ei, param, ret) {
 	localStorage.removeItem('pg0_' + _getIoId() +  '_' + key);
 	return 0;
 };
+
+ScriptExec.lib['get_clipboard'] = async function(ei, param, ret) {
+	if (navigator.clipboard) {
+		ret.v.str = await navigator.clipboard.readText();
+		ret.v.type = TYPE_STRING;
+		delete ret.v.num;
+	}
+	return 0;
+};
+
+ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	ret.v.num = 0;
+	ret.v.type = TYPE_INTEGER;
+
+	let str = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		str = ScriptExec.arrayToString(param[0].v.array).toUpperCase();
+	} else {
+		str = ScriptExec.getValueString(param[0].v).toUpperCase();
+	}
+	if (navigator.clipboard) {
+		navigator.clipboard.writeText(str);
+		ret.v.num = 1;
+	}
+	return 0;
+};
