@@ -77,12 +77,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 	if (!settingView.load()) {
 		settingView.save();
 		setTimeout(function() {
-			messageView.callback = function() {
-				if (!window.open(resource.TUTORIAL_URL, '_blank')) {
-					location.href = resource.TUTORIAL_URL;
-				}
-			};
-			messageView.show(resource.MSG_TUTORIAL);
+			if (!pg0_string.searchParams(location.search).cid) {
+				messageView.callback = function() {
+					if (!window.open(resource.TUTORIAL_URL, '_blank')) {
+						location.href = resource.TUTORIAL_URL;
+					}
+				};
+				messageView.show(resource.MSG_TUTORIAL);
+			}
 		}, 100);
 	}
 	document.getElementById('exec-speed').value = options.execSpeed;
