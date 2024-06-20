@@ -287,6 +287,8 @@ const onlineOpenView = (function () {
 				ev.currentContent.cid = cid;
 				ev.currentContent.author = script.author;
 				ev.saveState();
+				vv.clear();
+				cv.clear();
 
 				options.execMode = script.type;
 				options.execSpeed = script.speed;
@@ -495,6 +497,8 @@ const onlineHistoryView = (function () {
 				ev.currentContent.cid = me.cid;
 				ev.currentContent.author = script.author;
 				ev.saveState();
+				vv.clear();
+				cv.clear();
 
 				options.execMode = script.type;
 				options.execSpeed = script.speed;

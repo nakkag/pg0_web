@@ -522,6 +522,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 				ev.setText('', '');
 				document.title = baseTitle;
 				history.replaceState('', '', location.pathname);
+				vv.clear();
+				cv.clear();
 				break;
 			case 'menu-online-open':
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
@@ -583,6 +585,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 				editorContainer.scrollTop = 0;
 				editorContainer.scrollLeft = 0;
 				history.replaceState('', '', location.pathname);
+				vv.clear();
+				cv.clear();
 			} catch(err) {
 				console.error(err);
 				alert(err);
@@ -602,6 +606,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 		reader.onload = function(le) {
 			ev.setText(le.target.result, file.name);
 			document.title = baseTitle + ' - ' + file.name;
+			vv.clear();
+			cv.clear();
 		};
 		reader.onerror = function(err) {
 			console.error(err);
