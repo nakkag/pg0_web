@@ -1,5 +1,19 @@
 "use strict";
 
+ScriptExec.lib['println'] = async function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	let str = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		str = '{' + pg0_string.arrayToString(param[0].v.array) + '}'
+	} else {
+		str = ScriptExec.getValueString(param[0].v);
+	}
+	cv.put(pg0_string.escapeHTML(str) + '<br>');
+	return 0;
+};
+
 function _getIoId() {
 	if (ev.currentContent.cid) {
 		return 'cid_' + ev.currentContent.cid;
