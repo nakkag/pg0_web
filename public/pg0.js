@@ -674,6 +674,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 		} else if (param.cid && ev.currentContent.cid !== param.cid &&
 			((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid);
+		} else if (param.cid && ev.currentContent.cid === param.cid && !ev.currentContent.modify) {
+			await onlineOpenView.getScript(param.cid);
 		}
 		setTimeout(function() {
 			document.getElementById('main').style.display = 'block';
