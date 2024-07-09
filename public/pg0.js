@@ -667,15 +667,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 		const param = pg0_string.searchParams(location.search);
 		if (param.cid && param.run && param.run !== '0') {
 			if ((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW)) {
-				await onlineOpenView.getScript(param.cid);
+				await onlineOpenView.getScript(param.cid, false);
 				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
 				exec(false);
 			}
 		} else if (param.cid && ev.currentContent.cid !== param.cid &&
 			((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
-			await onlineOpenView.getScript(param.cid);
+			await onlineOpenView.getScript(param.cid, false);
 		} else if (param.cid && ev.currentContent.cid === param.cid && !ev.currentContent.modify) {
-			await onlineOpenView.getScript(param.cid);
+			await onlineOpenView.getScript(param.cid, true);
 		}
 		setTimeout(function() {
 			document.getElementById('main').style.display = 'block';

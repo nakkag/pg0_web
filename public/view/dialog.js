@@ -226,7 +226,7 @@ const onlineOpenView = (function () {
 		}
 		const item = e.target.closest('.file-item');
 		if (item) {
-			if (await me.getScript(item.id)) {
+			if (await me.getScript(item.id, false)) {
 				me.close();
 				document.getElementById('editor').blur();
 			}
@@ -276,7 +276,7 @@ const onlineOpenView = (function () {
 		}
 	};
 	
-	me.getScript = async function(cid) {
+	me.getScript = async function(cid, ignoreError) {
 		let ret = true;
 		try {
 			const res = await fetch(`${apiServer}/api/script/item/${cid}`);
@@ -299,17 +299,23 @@ const onlineOpenView = (function () {
 				history.replaceState('', '', `${location.pathname}?cid=${cid}`);
 				break;
 			case 404:
-				alert(resource.ONLINE_ERROR_NOT_FOUND);
+				if (!ignoreError) {
+					alert(resource.ONLINE_ERROR_NOT_FOUND);
+				}
 				ret = false;
 				break;
 			default:
-				alert(res.statusText + '(' + res.status + ')');
+				if (!ignoreError) {
+					alert(res.statusText + '(' + res.status + ')');
+				}
 				ret = false;
 				break;
 			}
 		} catch(e) {
 			console.error(e);
-			alert(resource.ONLINE_ERROR_CONNECTION);
+			if (!ignoreError) {
+				alert(resource.ONLINE_ERROR_CONNECTION);
+			}
 			ret = false;
 		}
 		return ret;

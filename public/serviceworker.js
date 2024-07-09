@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v274';
+const CACHE_VERSION = 'pg0-v275';
 
 const resources = [
 	'./',
@@ -36,6 +36,7 @@ const resources = [
 	'image/play.svg',
 	'image/redo.svg',
 	'image/right.svg',
+	'image/search.svg',
 	'image/step.svg',
 	'image/stop.svg',
 	'image/tab.svg',
