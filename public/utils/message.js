@@ -27,9 +27,9 @@ let resource = {
 	ONLINE_ERROR_CONNECTION: 'Connection failed.',
 	ONLINE_ERROR_CONFLICT: 'File name already exists.\nPlease change it to another name.',
 
-	CTRL_EXEC: 'Execution',
-	CTRL_STEP_EXEC: 'Step execution',
-	CTRL_STOP: 'Stop',
+	CTRL_EXEC: 'Execution (F5)',
+	CTRL_STEP_EXEC: 'Step execution (F10)',
+	CTRL_STOP: 'Stop (Shift+F5)',
 	CTRL_EXEC_SPEED: 'Execution speed',
 
 	CONSOLE_START: 'Start',
@@ -42,7 +42,7 @@ let resource = {
 	MENU_ONLINE_SAVE: 'Save to online',
 	MENU_LOCAL_OPEN: 'Open local file',
 	MENU_LOCAL_SAVE: 'Save to local file',
-	MENU_EXEC_TO_CURSOR: 'Execute to cursor',
+	MENU_EXEC_TO_CURSOR: 'Execute to cursor (Ctrl+F10)',
 	MENU_CLEAR: 'Claer console',
 	MENU_SETTING: 'Setting',
 	MENU_TUTORIAL: 'Tutorial',
@@ -88,9 +88,9 @@ if (_lang === 'ja') {
 		ONLINE_ERROR_CONNECTION: '接続に失敗しました。',
 		ONLINE_ERROR_CONFLICT: '既に存在するファイル名です。\n別の名前で保存してください。',
 
-		CTRL_EXEC: '実行',
-		CTRL_STEP_EXEC: 'ステップ実行',
-		CTRL_STOP: '停止',
+		CTRL_EXEC: '実行 (F5)',
+		CTRL_STEP_EXEC: 'ステップ実行 (F10)',
+		CTRL_STOP: '停止 (Shift+F5)',
 		CTRL_EXEC_SPEED: '実行速度',
 
 		CONSOLE_START: '開始',
@@ -103,7 +103,7 @@ if (_lang === 'ja') {
 		MENU_ONLINE_SAVE: 'オンラインに保存',
 		MENU_LOCAL_OPEN: 'ローカルファイルを開く',
 		MENU_LOCAL_SAVE: 'ローカルファイルに保存',
-		MENU_EXEC_TO_CURSOR: 'カーソル行まで実行',
+		MENU_EXEC_TO_CURSOR: 'カーソル行まで実行 (Ctrl+F10)',
 		MENU_CLEAR: '実行結果のクリア',
 		MENU_SETTING: '設定',
 		MENU_TUTORIAL: 'チュートリアル',

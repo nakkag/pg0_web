@@ -133,6 +133,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 			}
 			break;
 		case 'o':
+			if (run) {
+				e.preventDefault();
+				break;
+			}
 			if (e.ctrlKey) {
 				e.preventDefault();
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
@@ -142,6 +146,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 			}
 			break;
 		case 's':
+			if (run) {
+				e.preventDefault();
+				break;
+			}
 			if (e.ctrlKey) {
 				e.preventDefault();
 				await onlineSaveView.show();
