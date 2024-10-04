@@ -362,11 +362,12 @@ const onlineOpenView = (function () {
 		const menu = document.getElementById('online-open-menu');
 		menu.setAttribute('cid', elm.parentNode.id);
 		menu.style.display = 'block';
-		let x = elm.x;
+		const bound = elm.getBoundingClientRect();
+		let x = bound.left;
 		if (x + menu.offsetWidth > window.innerWidth) {
 			x = window.innerWidth - menu.offsetWidth;
 		}
-		let y = elm.y;
+		let y = bound.top + bound.height;
 		if (y + menu.offsetHeight > window.innerHeight) {
 			y = window.innerHeight - menu.offsetHeight;
 		}
