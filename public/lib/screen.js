@@ -224,6 +224,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			});
 		};
 		document.body.append(back);
+	} else {
+		back.style.display = 'block';
 	}
 	let screen = document.getElementById('lib-screen');
 	if (!screen) {
@@ -244,8 +246,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		back.append(screen);
 		document.addEventListener('keydown', _keyDown, false);
 		document.addEventListener('keyup', _keyUp, false);
-
-		ScriptExec.lib['$offscreen'] = document.createElement('canvas');
 	}
 	let sound = document.getElementById('lib-screen-sound');
 	if (!sound) {
@@ -360,6 +360,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	screen.style.height = `${h}px`;
 	screen.setAttribute('width', `${w}px`);
 	screen.setAttribute('height', `${h}px`);
+	if (ScriptExec.lib['$offscreen']) {
+		ScriptExec.lib['$offscreen'].remove();
+	}
+	ScriptExec.lib['$offscreen'] = document.createElement('canvas');
 	ScriptExec.lib['$offscreen'].setAttribute('width', `${w}px`);
 	ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
 	screen.setAttribute('fit', 1);
@@ -385,14 +389,16 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		if (!run) {
 			clearInterval(ScriptExec.lib['$i']);
 			ScriptExec.lib['$i'] = null;
-			ScriptExec.lib['$offscreen'] = null;
-			document.getElementById('lib-screen-back').remove();
 			stopSound();
+			if (ScriptExec.lib['$offscreen']) {
+				ScriptExec.lib['$offscreen'].remove();
+				ScriptExec.lib['$offscreen'] = null;
+			}
 			if (ScriptExec.lib['$audio_ctx']) {
 				ScriptExec.lib['$audio_ctx'].close();
 				ScriptExec.lib['$audio_ctx'] = null;
 			}
-
+			document.getElementById('lib-screen-back').style.display = 'none';
 			window.removeEventListener('resize', _screenResize, false);
 			window.removeEventListener('orientationchange', _screenResize, false);
 			document.removeEventListener('keydown', _keyDown, false);
