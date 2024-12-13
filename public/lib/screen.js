@@ -104,6 +104,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			return d !== e.key;
 		});
 	};
+	document.addEventListener('keydown', _keyDown, false);
+	document.addEventListener('keyup', _keyUp, false);
 
 	let back = document.getElementById('lib-screen-back');
 	if (!back) {
@@ -244,8 +246,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		screen.addEventListener('touchstart', _mouseDown, false);
 		screen.addEventListener('touchmove', _mouseMove, false);
 		back.append(screen);
-		document.addEventListener('keydown', _keyDown, false);
-		document.addEventListener('keyup', _keyUp, false);
 	}
 	let sound = document.getElementById('lib-screen-sound');
 	if (!sound) {
