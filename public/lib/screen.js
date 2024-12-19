@@ -733,6 +733,9 @@ ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const width = parseInt(screen.getAttribute('width'));
 	const height = parseInt(screen.getAttribute('height'));
+	if (startX < 0 || startX >= width || startY < 0 || startY >= height) {
+		return 0;
+	}
 
 	const imageData = ctx.getImageData(0, 0, width, height);
 	const data = imageData.data;
