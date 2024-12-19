@@ -146,7 +146,7 @@ drawPolyline(coordinates, option)
 drawFill(x, y, color)
 	* Description
 		Fills the specified coordinates with the specified color.
-		Traces adjacent pixels and fills them with color.
+		Traces adjacent pixels and fills them with specified color.
 	* Parameters
 		x - horizontal coordinate (number) to start filling
 		y - vertical coordinate to start filling (number)
