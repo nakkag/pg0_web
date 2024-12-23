@@ -829,6 +829,12 @@ async function _exec(scis, sci, imp) {
 					}
 				} else {
 					try {
+						if (/^(https|http):\/\//i.test(file)) {
+							const url = new URL(file);
+							if (url.hostname.toLowerCase() !== location.hostname.toLowerCase()) {
+								throw('Security error');
+							}
+						}
 						await loadScript(file);
 					} catch(e) {
 						console.error(e);
