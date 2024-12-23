@@ -8,5 +8,3 @@ exports.httpPort = 80;
 
 exports.listCount = 30;
 exports.maxCount = 100;
-
-exports.frontURL = 'public/';

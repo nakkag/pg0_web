@@ -808,8 +808,11 @@ async function _exec(scis, sci, imp) {
 					let res;
 					let buf;
 					try {
-						const url = apiServer + '/import/?url=' + file;
-						res = await fetch(url);
+						if (/^(https|http):\/\//i.test(file)) {
+							res = await fetch(apiServer + '/import/?url=' + file);
+						} else {
+							res = await fetch(file);
+						}
 						if (!res.ok) {
 							return -1;
 						}
