@@ -3,7 +3,6 @@
 function ScriptParse(sci) {
 	const that = this;
 	this.import = Script.noop;
-	this.library = Script.noop;
 
 	this.keyword = {
 		'var': SYM_VAR,
@@ -407,7 +406,7 @@ function ScriptParse(sci) {
 			break;
 		case '/':
 			if (pi.buf.length > 1 && pi.buf.substring(1, 2) === '/') {
-				pi.buf = pi.buf.replace(/^\/\/.*(\n|$)/, "\n");
+				pi.buf = pi.buf.replace(/^\/\/.*(\n|\r\n|$)/, "\n");
 				getToken(pi);
 				return;
 			}
@@ -1584,16 +1583,16 @@ function ScriptParse(sci) {
 		case SYM_EOF:
 			break;
 		case SYM_PREP:
-			const m = pi.buf.match(/^.+(\n|$)/);
+			const m = pi.buf.match(/^.+(\n|\r\n|$)/);
 			if (!m) {
 				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 				return;
 			}
-			await preprocessor(pi, m[0].replace(/\n/, ''));
+			await preprocessor(pi, m[0].replace(/[\r\n]/g, ''));
 			if (pi.err) {
 				return;
 			}
-			pi.buf = pi.buf.replace(/^.*(\n|$)/, "\n");
+			pi.buf = pi.buf.replace(/^.*(\n|\r\n|$)/, "\n");
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -1667,7 +1666,6 @@ function ScriptParse(sci) {
 	this.parse = async function(buf, callbacks) {
 		callbacks = callbacks || {};
 		that.import = (typeof callbacks.import === 'function') ? callbacks.import : Script.noop;
-		that.library = (typeof callbacks.library === 'function') ? callbacks.library : Script.noop;
 		callbacks.success = (typeof callbacks.success === 'function') ? callbacks.success : Script.noop;
 		callbacks.error = (typeof callbacks.error === 'function') ? callbacks.error : Script.noop;
 
