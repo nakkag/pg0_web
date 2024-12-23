@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v282';
+const CACHE_VERSION = 'pg0-v288';
 
 const resources = [
 	'./',
@@ -43,9 +43,13 @@ const resources = [
 	'image/undo.svg',
 
 	'lib/math.js',
+	'lib/math.pg0',
 	'lib/screen.js',
+	'lib/screen.pg0',
 	'lib/io.js',
+	'lib/io.pg0',
 	'lib/string.js',
+	'lib/string.pg0',
 	'lib/image/sc_close.svg',
 	'lib/image/sc_icon.svg',
 	'lib/image/sc_restore.svg',

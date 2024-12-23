@@ -47,7 +47,7 @@ app.options('*', function (req, res) {
 
 app.get('/import', async (req, res) => {
 	try {
-		const url = req.query.url.replace(/\r\n/, '');
+		let url = req.query.url.replace(/\r\n/, '');
 		if (/cid *= */.test(url)) {
 			let cid = '';
 			try {
@@ -75,6 +75,9 @@ app.get('/import', async (req, res) => {
 				client.close();
 			}
 		} else {
+			if (!/^(https|http):\/\//i.test(url)) {
+				url = settings.frontURL + url;
+			}
 			const r = await fetch(url);
 			if (!r.ok) {
 				return res.status(r.status).send(r.statusText);

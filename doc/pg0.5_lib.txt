@@ -21,7 +21,7 @@ PG0.5はPG0を拡張したプログラミング言語です。
 ■画面描画API (screen.js)
 
 以下のインポート文により利用することができます。
-#import("lib/screen.js?v=1")
+#import("lib/screen.pg0")
 
 startScreen(width, height, option)
 	[説明]
@@ -317,7 +317,7 @@ stopSound()
 ■数値処理API (math.js)
 
 以下のインポート文により利用することができます。
-#import("lib/math.js?v=1")
+#import("lib/math.pg0")
 
 abs(num)
 	[説明]
@@ -413,7 +413,7 @@ pow(base, exponent)
 ■文字列API (string.js)
 
 以下のインポート文により利用することができます。
-#import("lib/string.js?v=1")
+#import("lib/string.pg0")
 
 trim(str)
 	[説明]
@@ -484,7 +484,7 @@ split(str, separator)
 ■入出力API (io.js)
 
 以下のインポート文により利用することができます。
-#import("lib/io.js?v=1")
+#import("lib/io.pg0")
 
 println(line)
 	[説明]

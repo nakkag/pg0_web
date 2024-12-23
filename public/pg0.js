@@ -814,6 +814,7 @@ async function _exec(scis, sci, imp) {
 							return -1;
 						}
 						buf = await res.text();
+						buf = buf.replace(/\r/, '');
 					} catch(e) {
 						console.error(e);
 						return -1;

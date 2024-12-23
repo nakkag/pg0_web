@@ -20,7 +20,7 @@ This library has the following restrictions.
 
 # Screen API (screen.js)
 Can be used with the following import statement. 
-	#import("lib/screen.js?v=1")
+	#import("lib/screen.pg0")
 
 startScreen(width, height, option)
 	* Description
@@ -314,7 +314,7 @@ stopSound()
 
 # Mathematical API (math.js)
 Can be used with the following import statement. 
-	#import("lib/math.js?v=1")
+	#import("lib/math.pg0")
 
 abs(num)
 	* Description
@@ -409,7 +409,7 @@ pow(base, exponent)
 
 # String API (string.js)
 Can be used with the following import statement. 
-	#import("lib/string.js?v=1")
+	#import("lib/string.pg0")
 
 trim(str)
 	* Description
@@ -478,7 +478,7 @@ split(str, separator)
 
 # Input/Output API (io.js)
 Can be used with the following import statement. 
-	#import("lib/io.js?v=1")
+	#import("lib/io.pg0")
 
 println(line)
 	* Description
