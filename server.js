@@ -221,9 +221,11 @@ app.post('/api/script', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const checkDoc = await db.collection('script').findOne({name: req.body.name});
-		if (checkDoc) {
-			return res.status(409).send('Conflict.');
+		if (!req.body.private) {
+			const checkDoc = await db.collection('script').findOne({name: req.body.name, private: {$ne: 1}});
+			if (checkDoc) {
+				return res.status(409).send('Conflict.');
+			}
 		}
 		while(true) {
 			const doc = await db.collection('script').findOne({cid: newCid});
@@ -266,9 +268,11 @@ app.put('/api/script/:cid', async (req, res) => {
 		if (checkDoc.password !== req.body.password) {
 			return res.status(401).send('Unauthorized.');
 		}
-		checkDoc = await db.collection('script').findOne({cid: {$ne: req.params.cid}, name: req.body.name});
-		if (checkDoc) {
-			return res.status(409).send('Conflict.');
+		if (!req.body.private) {
+			checkDoc = await db.collection('script').findOne({cid: {$ne: req.params.cid}, name: req.body.name, private: {$ne: 1}});
+			if (checkDoc) {
+				return res.status(409).send('Conflict.');
+			}
 		}
 		await addHistory(req.params.cid);
 		await db.collection('script').updateOne({cid: req.params.cid}, {$set: {
