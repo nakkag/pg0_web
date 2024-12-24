@@ -165,7 +165,8 @@
 
 #online-open {
 	display: none;
-	width: calc(var(--font-size) * 30);
+	width: calc(var(--font-size) * 40);
+	max-width: 80%;
 }
 #online-open input[type="text"] {
 	font-size: calc(var(--font-size) - 2px);
@@ -216,7 +217,8 @@
 
 #online-history {
 	display: none;
-	width: calc(var(--font-size) * 30);
+	width: calc(var(--font-size) * 40);
+	max-width: 80%;
 }
 #online-history-list {
 	position: relative;
@@ -314,11 +316,5 @@
 @media (orientation: portrait) {
 	.dialog {
 		width: 75%;
-	}
-	#online-open {
-		width: 80%;
-	}
-	#online-history {
-		width: 80%;
 	}
 }
