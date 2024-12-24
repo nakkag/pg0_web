@@ -20,8 +20,10 @@ let resource = {
 	ONLINE_SAVE_AUTHOR_TITLE: 'Author',
 	ONLINE_SAVE_PASSWORD_TITLE: 'Edit password',
 	ONLINE_SAVE_NEW_TITLE: 'Save as new file',
+	ONLINE_SAVE_PRIVATE_TITLE: 'Private',
 	ONLINE_SAVE_BUTTON: 'Save',
 
+	ONLINE_CONFIRM_PRIVATE: 'If set to private, it will not appear in the online list.\nSave the URL, as only those who know the URL can open it.',
 	ONLINE_ERROR_UNAUTHORIZED: 'Incorrect password.',
 	ONLINE_ERROR_NOT_FOUND: 'File not found.',
 	ONLINE_ERROR_CONNECTION: 'Connection failed.',
@@ -81,8 +83,10 @@ if (_lang === 'ja') {
 		ONLINE_SAVE_AUTHOR_TITLE: '作成者',
 		ONLINE_SAVE_PASSWORD_TITLE: '編集パスワード',
 		ONLINE_SAVE_NEW_TITLE: '新しいファイルとして保存する',
+		ONLINE_SAVE_PRIVATE_TITLE: '非公開',
 		ONLINE_SAVE_BUTTON: '保存',
 
+		ONLINE_CONFIRM_PRIVATE: '非公開に設定するとオンライン一覧に表示されなくなります。\nURLを知っている人だけが開けるため、URLを保存しておいてください。',
 		ONLINE_ERROR_UNAUTHORIZED: 'パスワードが間違っています。',
 		ONLINE_ERROR_NOT_FOUND: 'ファイルが見つかりません。',
 		ONLINE_ERROR_CONNECTION: '接続に失敗しました。',

@@ -286,6 +286,7 @@ const onlineOpenView = (function () {
 				ev.setText(script.code, script.name);
 				ev.currentContent.cid = cid;
 				ev.currentContent.author = script.author;
+				ev.currentContent.private = script.private;
 				ev.saveState();
 				vv.clear();
 				cv.clear();
@@ -503,6 +504,7 @@ const onlineHistoryView = (function () {
 				ev.setText(script.code, script.name);
 				ev.currentContent.cid = me.cid;
 				ev.currentContent.author = script.author;
+				ev.currentContent.private = script.private;
 				ev.saveState();
 				vv.clear();
 				cv.clear();
@@ -605,6 +607,7 @@ const onlineSaveView = (function () {
 		} else {
 			document.getElementById('online-save-new').parentElement.style.display = 'none';
 		}
+		document.getElementById('online-save-private').checked = ev.currentContent.private;
 		document.addEventListener('keydown', me.keyEvent, false);
 	};
 	me.close = function() {
@@ -618,16 +621,24 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-author-title').textContent = resource.ONLINE_SAVE_AUTHOR_TITLE;
 		document.getElementById('online-save-password-title').textContent = resource.ONLINE_SAVE_PASSWORD_TITLE;
 		document.getElementById('online-save-new-title').textContent = resource.ONLINE_SAVE_NEW_TITLE;
+		document.getElementById('online-save-private-title').textContent = resource.ONLINE_SAVE_PRIVATE_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
+
+		document.getElementById('online-save-private').addEventListener('click', function(e) {
+			if (document.getElementById('online-save-private').checked) {
+				alert(resource.ONLINE_CONFIRM_PRIVATE);
+			}
+		}, false);
 
 		document.querySelector('#online-save .close').addEventListener('click', function(e) {
 			me.close();
 		}, false);
 
-		document.querySelector('#online-save-button').addEventListener('click', async function(e) {
+		document.getElementById('online-save-button').addEventListener('click', async function(e) {
 			const filename = document.getElementById('online-save-file').value;
 			const author = document.getElementById('online-save-author').value;
 			const password = document.getElementById('online-save-password').value;
+			const privateMode = document.getElementById('online-save-private').checked ? 1 : 0;
 			if (!filename || !author || !password) {
 				return;
 			}
@@ -637,7 +648,8 @@ const onlineSaveView = (function () {
 				author: author,
 				password: pg0_string.crc32(password),
 				code: ev.getText(),
-				speed: options.execSpeed
+				speed: options.execSpeed,
+				private: privateMode
 			};
 			let method = 'POST';
 			let url = `${apiServer}/api/script`;
@@ -659,6 +671,7 @@ const onlineSaveView = (function () {
 					ev.currentContent.name = filename;
 					ev.currentContent.author = author;
 					ev.currentContent.password = password;
+					ev.currentContent.private = privateMode;
 					if (method === 'POST') {
 						const data = await res.json();
 						ev.currentContent.cid = data.cid;
