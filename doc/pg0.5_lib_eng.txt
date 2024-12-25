@@ -6,10 +6,10 @@ PG0.5 is a programming language designed for learning programming.
 PG0.5 is extends the PG0 programming language.
 
 This is a reference for the following libraries. 
-* Screen API (screen.js)
-* Mathematical API (math.js)
-* String API (string.js)
-* Input/Output API (io.js)
+* Screen API (screen.pg0)
+* Mathematical API (math.pg0)
+* String API (string.pg0)
+* Input/Output API (io.pg0)
 
 # Restrictions
 This library has the following restrictions. 
@@ -18,7 +18,7 @@ This library has the following restrictions.
 * Sound playback may not function on iOS due to security restrictions. 
 * The specifications of each API may change in the future. 
 
-# Screen API (screen.js)
+# Screen API (screen.pg0)
 Can be used with the following import statement. 
 	#import("lib/screen.pg0")
 
@@ -312,7 +312,7 @@ stopSound()
 	* Return Value
 		0
 
-# Mathematical API (math.js)
+# Mathematical API (math.pg0)
 Can be used with the following import statement. 
 	#import("lib/math.pg0")
 
@@ -407,7 +407,7 @@ pow(base, exponent)
 	* Return Value
 		Value of a number multiplied by a power
 
-# String API (string.js)
+# String API (string.pg0)
 Can be used with the following import statement. 
 	#import("lib/string.pg0")
 
@@ -476,7 +476,7 @@ split(str, separator)
 	* Return Value
 		Array containing the divided strings.
 
-# Input/Output API (io.js)
+# Input/Output API (io.pg0)
 Can be used with the following import statement. 
 	#import("lib/io.pg0")
 

@@ -6,10 +6,10 @@ PG0はプログラミング学習を目的としたプログラミング言語�
 PG0.5はPG0を拡張したプログラミング言語です。
 
 以下のライブラリのリファレンスになります。
-・画面描画API (screen.js)
-・数値処理API (math.js)
-・文字列API (string.js)
-・入出力API (io.js)
+・画面描画API (screen.pg0)
+・数値処理API (math.pg0)
+・文字列API (string.pg0)
+・入出力API (io.pg0)
 
 ■制限事項
 本ライブラリには以下の制限があります。
@@ -18,7 +18,7 @@ PG0.5はPG0を拡張したプログラミング言語です。
 ・サウンド再生についてはiOSではセキュリティ制限のため機能しない場合があります。
 ・各APIの仕様は今後変更される可能性があります。
 
-■画面描画API (screen.js)
+■画面描画API (screen.pg0)
 
 以下のインポート文により利用することができます。
 #import("lib/screen.pg0")
@@ -314,7 +314,7 @@ stopSound()
 	[戻り値]
 		0
 
-■数値処理API (math.js)
+■数値処理API (math.pg0)
 
 以下のインポート文により利用することができます。
 #import("lib/math.pg0")
@@ -410,7 +410,7 @@ pow(base, exponent)
 	[戻り値]
 		数値を累乗した値
 
-■文字列API (string.js)
+■文字列API (string.pg0)
 
 以下のインポート文により利用することができます。
 #import("lib/string.pg0")
@@ -481,7 +481,7 @@ split(str, separator)
 	[戻り値]
 		分割した文字列が入った配列
 
-■入出力API (io.js)
+■入出力API (io.pg0)
 
 以下のインポート文により利用することができます。
 #import("lib/io.pg0")

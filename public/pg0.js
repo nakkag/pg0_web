@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-clear').textContent = resource.MENU_CLEAR;
 	document.getElementById('menu-setting').textContent = resource.MENU_SETTING;
 	document.getElementById('menu-tutorial').textContent = resource.MENU_TUTORIAL;
+	document.getElementById('menu-manual-pg0').textContent = resource.MENU_MANUAL_PG0;
+	document.getElementById('menu-manual-pg05').textContent = resource.MENU_MANUAL_PG05;
+	document.getElementById('menu-manual-lib').textContent = resource.MENU_MANUAL_LIB;
 
 	// Load settings
 	if (!settingView.load()) {
@@ -563,6 +566,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 			case 'menu-tutorial':
 				if (!window.open(resource.TUTORIAL_URL, '_blank')) {
 					location.href = resource.TUTORIAL_URL;
+				}
+				break;
+			case 'menu-manual-pg0':
+				if (!window.open(resource.MANUAL_PG0_URL, '_blank')) {
+					location.href = resource.MANUAL_PG0_URL;
+				}
+				break;
+			case 'menu-manual-pg05':
+				if (!window.open(resource.MANUAL_PG05_URL, '_blank')) {
+					location.href = resource.MANUAL_PG05_URL;
+				}
+				break;
+			case 'menu-manual-lib':
+				if (!window.open(resource.MANUAL_LIB_URL, '_blank')) {
+					location.href = resource.MANUAL_LIB_URL;
 				}
 				break;
 			}

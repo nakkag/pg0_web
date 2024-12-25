@@ -48,6 +48,9 @@ let resource = {
 	MENU_CLEAR: 'Claer console',
 	MENU_SETTING: 'Setting',
 	MENU_TUTORIAL: 'Tutorial',
+	MENU_MANUAL_PG0: 'PG0 Language specification',
+	MENU_MANUAL_PG05: 'PG0.5 Language specification',
+	MENU_MANUAL_LIB: 'Library Reference',
 
 	VARIABLE_NAME: 'Name',
 	VARIABLE_VALUE: 'Value',
@@ -60,6 +63,9 @@ let resource = {
 	DIALOG_NO: 'No',
 
 	TUTORIAL_URL: 'https://nakka.com/soft/pg0/tutorial/index_eng.html',
+	MANUAL_PG0_URL: 'https://nakka.com/soft/pg0/pg0_eng.txt.html',
+	MANUAL_PG05_URL: 'https://nakka.com/soft/pg0/pg0.5_eng.txt.html',
+	MANUAL_LIB_URL: 'https://nakka.com/soft/pg0/pg0.5_lib_eng.html',
 };
 
 if (_lang === 'ja') {
@@ -111,6 +117,9 @@ if (_lang === 'ja') {
 		MENU_CLEAR: '実行結果のクリア',
 		MENU_SETTING: '設定',
 		MENU_TUTORIAL: 'チュートリアル',
+		MENU_MANUAL_PG0: 'PG0言語仕様',
+		MENU_MANUAL_PG05: 'PG0.5言語仕様',
+		MENU_MANUAL_LIB: 'ライブラリリファレンス',
 
 		VARIABLE_NAME: '変数',
 		VARIABLE_VALUE: '値',
@@ -123,5 +132,8 @@ if (_lang === 'ja') {
 		DIALOG_NO: 'いいえ',
 
 		TUTORIAL_URL: 'https://nakka.com/soft/pg0/tutorial/',
+		MANUAL_PG0_URL: 'https://nakka.com/soft/pg0/pg0.txt.html',
+		MANUAL_PG05_URL: 'https://nakka.com/soft/pg0/pg0.5.txt.html',
+		MANUAL_LIB_URL: 'https://nakka.com/soft/pg0/pg0.5_lib.html',
 	};
 }
