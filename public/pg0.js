@@ -550,6 +550,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 				await onlineSaveView.show();
 				break;
 			case 'menu-online-history':
+				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
+					break;
+				}
 				if (ev.currentContent.cid) {
 					await onlineHistoryView.show(ev.currentContent.cid);
 				}

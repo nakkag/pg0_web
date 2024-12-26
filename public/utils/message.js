@@ -15,6 +15,7 @@ let resource = {
 	ONLINE_OPEN_REMOVE: 'Remove',
 	ONLINE_OPEN_REMOVE_PASSWORD: 'Enter the edit password.',
 	ONLINE_OPEN_READ_TITLE: 'Read more...',
+	ONLINE_HISTORY_CURRENT: 'Current version',
 
 	ONLINE_SAVE_FILE_TITLE: 'File name',
 	ONLINE_SAVE_AUTHOR_TITLE: 'Author',
@@ -85,6 +86,7 @@ if (_lang === 'ja') {
 		ONLINE_OPEN_REMOVE: '削除',
 		ONLINE_OPEN_REMOVE_PASSWORD: '編集パスワードを入力してください。',
 		ONLINE_OPEN_READ_TITLE: 'さらに読み込む...',
+		ONLINE_HISTORY_CURRENT: '現在のバージョン',
 
 		ONLINE_SAVE_FILE_TITLE: 'ファイル名',
 		ONLINE_SAVE_AUTHOR_TITLE: '作成者',

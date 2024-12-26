@@ -464,8 +464,13 @@ const onlineHistoryView = (function () {
 							const date = new Date(script.updateTime);
 							time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 						}
-						nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
-							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
+						if (document.getElementById('online-history-list').childElementCount === 0) {
+							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span> <span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span></div>' +
+								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
+						} else {
+							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
+								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
+						}
 						document.getElementById('online-history-list').appendChild(nameNode);
 					});
 					if (scripts.length >= listCount) {

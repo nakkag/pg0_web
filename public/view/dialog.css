@@ -266,6 +266,16 @@
 	font-size: calc(var(--font-size) * 0.8);
 	color: #aaa;
 }
+.file-current {
+	display: inline-block;
+	font-size: calc(var(--font-size) * 0.8);
+	padding: 4px 10px;
+	border-radius: 15px;
+	background-color: #bbb;
+	color: #fff;
+	white-space: nowrap;
+	vertical-align: top;
+}
 
 .file-menu {
 	position: absolute;
