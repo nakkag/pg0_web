@@ -101,6 +101,13 @@ body::before {
 	display: block;
 }
 
+.menu ul li.disable {
+	opacity: 0.5;
+}
+.menu ul li.disable a:hover {
+	background-color: unset;
+}
+
 #main {
 	display: none;
 }

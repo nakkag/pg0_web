@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-new').textContent = resource.MENU_NEW;
 	document.getElementById('menu-online-open').textContent = resource.MENU_ONLINE_OPEN;
 	document.getElementById('menu-online-save').textContent = resource.MENU_ONLINE_SAVE;
+	document.getElementById('menu-online-history').textContent = resource.MENU_ONLINE_HISTORY;
 	document.getElementById('menu-local-open').textContent = resource.MENU_LOCAL_OPEN;
 	document.getElementById('menu-local-save').textContent = resource.MENU_LOCAL_SAVE;
 	document.getElementById('menu-exec-to-cursor').textContent = resource.MENU_EXEC_TO_CURSOR;
@@ -114,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		} else {
 			document.title = baseTitle;
 		}
+		checkMenu();
 	}, false);
 	document.dispatchEvent(new CustomEvent('setting_change'));
 
@@ -535,6 +537,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 				history.replaceState('', '', location.pathname);
 				vv.clear();
 				cv.clear();
+				checkMenu();
 				break;
 			case 'menu-online-open':
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
@@ -546,8 +549,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 			case 'menu-online-save':
 				await onlineSaveView.show();
 				break;
+			case 'menu-online-history':
+				if (ev.currentContent.cid) {
+					await onlineHistoryView.show(ev.currentContent.cid);
+				}
+				break;
 			case 'menu-local-open':
 				await fileOpen();
+				checkMenu();
 				break;
 			case 'menu-local-save':
 				await fileSave();
@@ -587,6 +596,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 			document.getElementById('menu-toggle').checked = false;
 		}, false);
 	});
+
+	function checkMenu() {
+		if (ev.currentContent.cid) {
+			document.getElementById('menu-online-history').parentElement.classList.remove('disable');
+		} else {
+			document.getElementById('menu-online-history').parentElement.classList.add('disable');
+		}
+	}
 
 	async function fileOpen() {
 		if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
@@ -703,6 +720,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		} else if (param.cid && ev.currentContent.cid === param.cid && !ev.currentContent.modify) {
 			await onlineOpenView.getScript(param.cid, true);
 		}
+		checkMenu();
 		setTimeout(function() {
 			document.getElementById('main').style.display = 'block';
 		}, 100);

@@ -179,8 +179,12 @@ app.get('/api/script/history/:cid', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
+		const cdoc = await db.collection('script').findOne({cid: req.params.cid});
+		if (cdoc) {
+			ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, updateTime: cdoc.updateTime});
+		}
+		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
 		}
@@ -198,9 +202,12 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const doc = await db.collection('script_history').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
+		let doc = await db.collection('script_history').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
 		if (!doc) {
-			return res.status(404).send('Not found.');
+			doc = await db.collection('script').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
+			if (!doc) {
+				return res.status(404).send('Not found.');
+			}
 		}
 		delete doc._id;
 		delete doc.password;
