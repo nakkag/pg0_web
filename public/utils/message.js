@@ -53,6 +53,7 @@ let resource = {
 	MENU_MANUAL_PG0: 'PG0 Language specification',
 	MENU_MANUAL_PG05: 'PG0.5 Language specification',
 	MENU_MANUAL_LIB: 'Library Reference',
+	MENU_SRC: 'PG0 Source Code (Github)',
 
 	VARIABLE_NAME: 'Name',
 	VARIABLE_VALUE: 'Value',
@@ -68,6 +69,7 @@ let resource = {
 	MANUAL_PG0_URL: 'https://nakka.com/soft/pg0/pg0_eng.txt.html',
 	MANUAL_PG05_URL: 'https://nakka.com/soft/pg0/pg0.5_eng.txt.html',
 	MANUAL_LIB_URL: 'https://nakka.com/soft/pg0/pg0.5_lib_eng.html',
+	MANUAL_SRC_URL: 'https://github.com/nakkag/pg0_web',
 };
 
 if (_lang === 'ja') {
@@ -124,6 +126,7 @@ if (_lang === 'ja') {
 		MENU_MANUAL_PG0: 'PG0言語仕様',
 		MENU_MANUAL_PG05: 'PG0.5言語仕様',
 		MENU_MANUAL_LIB: 'ライブラリリファレンス',
+		MENU_SRC: 'PG0のソースコード (Github)',
 
 		VARIABLE_NAME: '変数',
 		VARIABLE_VALUE: '値',
@@ -139,5 +142,6 @@ if (_lang === 'ja') {
 		MANUAL_PG0_URL: 'https://nakka.com/soft/pg0/pg0.txt.html',
 		MANUAL_PG05_URL: 'https://nakka.com/soft/pg0/pg0.5.txt.html',
 		MANUAL_LIB_URL: 'https://nakka.com/soft/pg0/pg0.5_lib.html',
+		MANUAL_SRC_URL: 'https://github.com/nakkag/pg0_web',
 	};
 }

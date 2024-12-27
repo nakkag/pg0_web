@@ -18,7 +18,7 @@ let baseTitle = document.title;
 
 document.addEventListener('DOMContentLoaded', async function() {
 	if ('serviceWorker' in navigator) {
-		navigator.serviceWorker.register('/pg0/serviceworker.js', {scope: '/pg0/'}).then(function (registration) {
+		navigator.serviceWorker.register('/serviceworker.js', {scope: '/'}).then(function (registration) {
 			registration.onupdatefound = function() {
 				registration.update();
 			}
@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-manual-pg0').textContent = resource.MENU_MANUAL_PG0;
 	document.getElementById('menu-manual-pg05').textContent = resource.MENU_MANUAL_PG05;
 	document.getElementById('menu-manual-lib').textContent = resource.MENU_MANUAL_LIB;
+	document.getElementById('menu-src').textContent = resource.MENU_SRC;
 
 	// Load settings
 	if (!settingView.load()) {
@@ -593,6 +594,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 			case 'menu-manual-lib':
 				if (!window.open(resource.MANUAL_LIB_URL, '_blank')) {
 					location.href = resource.MANUAL_LIB_URL;
+				}
+				break;
+			case 'menu-src':
+				if (!window.open(resource.MANUAL_SRC_URL, '_blank')) {
+					location.href = resource.MANUAL_SRC_URL;
 				}
 				break;
 			}

@@ -1,7 +1,7 @@
 {
 	"name": "PG0",
 	"short_name": "PG0",
-	"start_url": "/pg0/",
+	"start_url": "/",
 	"display": "standalone",
 	"icons": [
 		{
