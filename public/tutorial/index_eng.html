@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>PG0 - Tutorial</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+	<style type="text/css">
+	<!--
+	body {
+		width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
+		margin: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 8px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 8px);
+		font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+		-webkit-text-size-adjust: 100%;
+	}
+	pre {
+		position: relative;
+		background-color: #f0f8ff;
+		width: 720px;
+		margin-left: 40px;
+		border: 1px solid #aaa;
+		tab-size: 4;
+	}
+	code {
+		display: inline-block;
+		overflow-x: auto;
+		width: 720px;
+		margin-top: -30px;
+		padding: 10px 10px 10px 30px;
+		font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	}
+	h2 {
+		margin-left: 0px;
+		padding-left: 5px;
+		background-color: #87ceeb;
+	}
+	h3 {
+		margin-left: 10px;
+		padding-left: 5px;
+		background-color: #e0ffff;
+	}
+	h4 {
+		margin-left: 20px;
+		padding-left: 5px;
+		background-color: #f0ffff;
+	}
+	div {
+		margin-left: 20px;
+	}
+	table {
+		border-collapse: collapse;
+		margin-left: 40px;
+	}
+	table th, table td {
+		border: solid 1px black;
+		padding: 5px 15px 5px 15px;
+	}
+	table th {
+		background-color: #f0f0f0;
+	}
+	.comment {
+		color: #008000;
+	}
+	.keyword {
+		color: #0000ff;
+	}
+	.balloon {
+		background-color: #ffe4b5;
+		padding: 10px 20px;
+		font-weight: bold;
+		font-size: 120%;
+	}
+	#screen {
+		position: relative;
+	}
+	#editor {
+		position: absolute;
+		top: 230px;
+		left: 100px;
+	}
+	#variable {
+		position: absolute;
+		top: 230px;
+		left: 510px;
+	}
+	#console {
+		position: absolute;
+		top: 490px;
+		left: 300px;
+	}
+	#m-screen {
+		width: 400px;
+	}
+	#m-editor {
+		position: absolute;
+		top: 180px;
+		left: 120px;
+	}
+	#m-variable {
+		position: absolute;
+		top: 410px;
+		left: 115px;
+	}
+	#m-console {
+		position: absolute;
+		top: 550px;
+		left: 110px;
+	}
+	img {
+		outline: 1px solid #555;
+	}
+	img.icon {
+		width: 30px;
+	}
+	.copy {
+		display: none;
+		position: absolute;
+		top: 2px;
+		right: 2px;
+		outline: 0px;
+		border: 0px;
+		background-color: #f0f8ff;
+		font-size: 120%;
+		padding: 0;
+		cursor: pointer;
+	}
+	pre:hover .copy,
+	pre:focus .copy,
+	pre:active .copy {
+		display: block;
+	}
+	pre .copied {
+		display: block;
+	}
+
+	.close {
+		position: fixed;
+		cursor: pointer;
+		background-color: #eee;
+		color: #000;
+		border-radius: 20px;
+		top: calc(8px + env(safe-area-inset-top));
+		right: calc(10px + env(safe-area-inset-right));
+		height: 30px;
+		width: 30px;
+		z-index: 999;
+	}
+	.close::before,
+	.close::after {
+		content: '';
+		display: block;
+		height: 2px;
+		width: 16px;
+		border-radius: 3px;
+		background-color: #000;
+		position: absolute;
+		top: 14px;
+		left: 7px;
+	}
+	.close::before {
+		transform: rotate(45deg);
+	}
+	.close::after {
+		transform: rotate(-45deg);
+	}
+	.close:hover, .close:focus {
+		background-color: #ccc;
+	}
+	.close:active {
+		background-color: #aaa;
+	}
+
+	@media (orientation: portrait) {
+		img {
+			width: 100%;
+		}
+		pre {
+			width: 100%;
+			margin-left: 0px;
+		}
+		code {
+			width: 95%;
+			padding: 10px 10px 10px 10px;
+		}
+		table {
+			margin-left: 20px;
+			font-size: 80%;
+		}
+
+		.balloon {
+			padding: 2% 3%;
+			font-size: 80%;
+		}
+		#editor {
+			top: 40%;
+			left: 10%;
+		}
+		#variable {
+			top: 40%;
+			left: 62%;
+		}
+		#console {
+			top: 80%;
+			left: 35%;
+		}
+		#m-screen {
+			width: 70%;
+		}
+		#m-editor {
+			top: 28%;
+			left: 23%;
+		}
+		#m-variable {
+			top: 60%;
+			left: 22%;
+		}
+		#m-console {
+			top: 80%;
+			left: 22%;
+		}
+	}
+	-->
+	</style>
+</head>
+<body>
+<a href="#" class="close" onclick="window.close();"></a>
+<h1>PG0 - Tutorial</h1>
+<h2>Introduction</h2>
+<div>PG0 is a programming language designed for learning programming.</div>
+<br />
+<div>It focuses on understanding the basic structures essential to programming: sequential, branching, and looping.</div>
+<div>For simplicity, the language specifications are very straightforward, supporting only one type of branching and looping, and handling only integer data types.</div>
+
+<h2>How to Use PG0</h2>
+<div>PG0 Execution Screen</div>
+<div id="screen">
+	<img src="image/eng_screen.png" />
+	<div id="editor" class="balloon">Editor</div>
+	<div id="variable" class="balloon">Variables</div>
+	<div id="console" class="balloon">Console</div>
+</div>
+<br />
+<div>PG0 Execution Screen (Mobile)</div>
+<div id="screen">
+	<img src="image/eng_mobile.png" id="m-screen" />
+	<div id="m-editor" class="balloon">Editor</div>
+	<div id="m-variable" class="balloon">Variables</div>
+	<div id="m-console" class="balloon">Console</div>
+</div>
+<h3>Editor</h3>
+<div>This is the section where you write your program.</div>
+<div>During execution, the current line is highlighted in light blue.</div>
+<div>Editing is not possible during execution​.</div>
+
+<h3>Variables</h3>
+<div>This displays the variables and their values during program execution.</div>
+<div>Values changed by the current line are highlighted in red.</div>
+<div>Arrays can be expanded to view their contents​.</div>
+
+<h3>Console</h3>
+<div>This displays information about the execution (Start, Stop, End).</div>
+<div>If a variable is specified with the 'exit' command, its content is displayed in the console as the execution result.</div>
+<div>Errors in the program are displayed in red in the console.</div>
+
+<h3>Execution</h3>
+<div><img src="image/play.svg" class="icon" /></div>
+<div>Automatically executes the program written in the editor, line by line.</div>
+
+<h3>Step execution</h3>
+<div><img src="image/step.svg" class="icon" /></div>
+<div>Executes the program step-by-step. </div>
+<div>Re-selecting step execution runs the next line.</div>
+<div>This feature allows manual execution of the program, one line at a time.</div>
+
+<h3>Execute to Cursor</h3>
+<div>Executes the program up to the line where the editor cursor is.</div>
+
+<h3>Stop</h3>
+<div><img src="image/stop.svg" class="icon" /></div>
+<div>Stops the running program. A stopped program cannot be resumed.</div>
+<div>For pausing a program, select step execution.</div>
+
+<h3>Execution speed</h3>
+<div>Choose the speed of automatic line-by-line execution.</div>
+<div>Selecting "No wait" will execute the program quickly until the end.</div>
+<div><ul>
+	<li>Fast</li>
+	<li>Normal</li>
+	<li>Slow</li>
+</ul></div>
+
+<h2>Variables</h2>
+<div>Containers for assigning numerical values.</div>
+<div>Use '=' to assign numbers, variables, or computation results to variables.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+a = 10</span> <span class="comment"><span class="notranslate">//</span> Assigns 10 to variable a</span>
+</code>
+</pre>
+<div>Variables are prepared when used but can be explicitly declared with 'var'.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate"><span class="keyword">var</span> i, j = 100</span> <span class="comment"><span class="notranslate">//</span> Multiple variables can be declared using ','</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_var.png" /></div>
+
+<h2>Arrays</h2>
+<div>Arrays are containers where variables are sequentially arranged.</div>
+<div>Specify '[]' after a variable to handle it as an array.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a[0] = 100</span> <span class="comment"><span class="notranslate">//</span> First element</span>
+<span class="notranslate">a[1] = 200</span> <span class="comment"><span class="notranslate">//</span> Second element</span>
+<span class="notranslate">i = 5</span>
+<span class="notranslate">b[i] = 10</span> <span class="comment"><span class="notranslate">//</span> Specify index with a variable</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_array_1.png" /></div>
+<br />
+<div>To initialize arrays, assign '{value1, value2, value3,...}'.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a[] = {1,2,3}</span> <span class="comment"><span class="notranslate">//</span> Equivalent to a[0] = 1; a[1] = 2; a[2] = 3;</span>
+<span class="notranslate">b[] = {1,2,{10,20,{100,200,300}},3}</span> <span class="comment"><span class="notranslate">//</span> Multi-dimensional initialization</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_array_2.png" /></div>
+
+<h2>Basic Structures</h2>
+<h3>Sequential</h3>
+<div>Each statement is written on a single line.</div>
+<div>Statements are executed in order from the top</div>
+<div>Statements perform calculations with variables and numbers, and assign to variables.</div>
+<p><table>
+	<tr><th>Expressions</th><th>Details</th></tr>
+	<tr><td><span class="notranslate">c = a + b</span></td><td>Add a and b and assign to c</td></tr>
+	<tr><td><span class="notranslate">c = a - b</span></td><td>Subtract a and b and assign to c</td></tr>
+	<tr><td><span class="notranslate">c = a * b</span></td><td>Multiply a and b and assign to c</td></tr>
+	<tr><td><span class="notranslate">c = a / b</span></td><td>Divide b from a and assign to c</td></tr>
+	<tr><td><span class="notranslate">c = a % b</span></td><td>Assigns the remainder of a divided by b into c</td></tr>
+</table></p>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a = 1</span> <span class="comment"><span class="notranslate">//</span> First executed, assigns 1 to variable a</span>
+<span class="notranslate">b = a + 2</span> <span class="comment"><span class="notranslate">//</span> Second executed, assigns the result of a + 2, which is 3, to variable b</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_sequence.png" /></div>
+
+<div>Blocks are used to group multiple statements, enclosed with { and }.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">{</span>
+	<span class="notranslate">a = 1</span>
+	<span class="notranslate">b = a + 2</span>
+<span class="notranslate">}</span>
+</code>
+</pre>
+<div>Variables prepared in the block are released when exiting the block.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">{</span>
+	<span class="notranslate"><span class="keyword">var</span> a = 1</span>
+<span class="notranslate">}</span>
+<span class="notranslate">b = a</span>	<span class="comment"><span class="notranslate">//</span> a inside the block is released, so b becomes 0</span>
+</code>
+</pre>
+<div>To prevent release, declare the variable outside the block.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate"><span class="keyword">var</span> a</span>
+<span class="notranslate">{</span>
+	<span class="notranslate">a = 1</span>
+<span class="notranslate">}</span>
+<span class="notranslate">b = a</span>	<span class="comment"><span class="notranslate">//</span> a is prepared outside the block, so b becomes 1</span>
+</code>
+</pre>
+
+<h3>Branching</h3>
+<h4><span class="notranslate">if</span></h4>
+<div>The 'if' statement controls the execution of statements based on conditions.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="keyword notranslate">if</span> (condition) <span class="notranslate">{</span>
+	statement
+<span class="notranslate">}</span>
+</code>
+</pre>
+<div>The statements are executed if the condition is true. If not, the statements are skipped.</div>
+<div>Conditions involve comparisons of variables and numbers, such as:</div>
+<p><table>
+	<tr><th>Conditions</th><th>Details</th></tr>
+	<tr><td><span class="notranslate">a == b</span></td><td>True if a and b are equal</td></tr>
+	<tr><td><span class="notranslate">a != b</span></td><td>True if a and b are not equal</td></tr>
+	<tr><td><span class="notranslate">a &lt; b</span></td><td>True if a is less than b</td></tr>
+	<tr><td><span class="notranslate">a &gt; b</span></td><td>True if a is greater than b</td></tr>
+	<tr><td><span class="notranslate">a &lt;= b</span></td><td>True if a is less than or equal to b</td></tr>
+	<tr><td><span class="notranslate">a &gt;= b</span></td><td>True if a is greater than or equal to b</td></tr>
+	<tr><td><span class="notranslate">a &amp;&amp; b</span></td><td>True if both a and b are true</td></tr>
+	<tr><td><span class="notranslate">a || b</span></td><td>True if either a or b is true</td></tr>
+</table></p>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a = 2</span>
+<span class="notranslate">b = 1</span>
+<span class="notranslate"><span class="keyword">if</span> (a > b) {</span>
+	<span class="notranslate">b = a</span> <span class="comment"><span class="notranslate">//</span> Executes when a is greater than b</span>
+<span class="notranslate">}</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_if_1.png" /></div>
+
+<h4><span class="notranslate">else</span></h4>
+<div>The 'else' statement specifies the statements to execute if the 'if' condition is not met.</div>
+<div>If the 'if' statement executes, the following 'else' statements will not execute.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a = 1</span>
+<span class="notranslate">b = 2</span>
+<span class="notranslate"><span class="keyword">if</span> (a > b) {</span>
+	<span class="notranslate">b = a</span>  <span class="comment"><span class="notranslate">//</span> Executes when a is greater than b</span>
+<span class="notranslate">} <span class="keyword">else</span> {</span>
+	<span class="notranslate">a = b</span>  <span class="comment"><span class="notranslate">//</span> Executes when a is less than or equal to b</span>
+<span class="notranslate">}</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_if_2.png" /></div>
+
+<h3>Looping</h3>
+<h4><span class="notranslate">while</span></h4>
+<div>The 'while' statement performs a loop based on a condition.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="keyword notranslate">while</span> (condition) <span class="notranslate">{</span>
+	statement
+<span class="notranslate">}</span>
+</code>
+</pre>
+<div>The statements are repeatedly executed as the condition is true.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+i = 1
+<span class="keyword notranslate">while</span> <span class="notranslate">(i <= 10) {</span> <span class="comment"><span class="notranslate">//</span> Loop from 1 to 10</span>
+	<span class="notranslate">i = i + 1</span>
+}
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_while.png" /></div>
+
+<h2>Other</h2>
+<div>To terminate a program that is running, write 'exit'.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="keyword notranslate">exit</span>
+</code>
+</pre>
+<div>You can set a variable with 'exit', and the content of that variable will be displayed in the console as the execution result.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">i = 100</span>
+<span class="notranslate"><span class="keyword">exit</span> i</span>
+</code>
+</pre>
+<div>The result of executing the above in the editor is shown below.</div>
+<div><img src="image/eng_sc_exit.png" /></div>
+<br />
+<div>For a comprehensive understanding of PG0 language specification, refer to "<a href="../doc/pg0_eng.html">pg0.txt</a>".</div>
+<br />
+<div>PG0.5, an advanced version of PG0 with functionalities similar to standard programming languages, is detailed in "<a href="../doc/pg0.5_eng.html">pg0.5.txt</a>".</div>
+<div>Selecting "PG0.5" mode in the menu allows you to run programs in PG0.5.</div>
+
+<div>The library for PG0.5 allows screen drawing, sound playback and mathematical functions.</div>
+<div><a href="../doc/pg0.5_lib_eng.html">PG0.5 - Library Reference</a></div>
+
+
+<h2>Sample Programs</h2>
+<div>Here are sample programs for PG0. You can execute these in PG0.</div>
+<h3>1_var.pg0</h3>
+<div>This is a sample using variables.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a = 1</span>
+<span class="notranslate">b = 2</span>
+<span class="notranslate">c = a + b</span>
+<span class="notranslate"><span class="keyword">exit</span> c</span>
+</code>
+</pre>
+
+<h3>2_array.pg0</h3>
+<div>This is a sample using arrays.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="notranslate">a[] = {1,2,3}</span>
+<span class="notranslate">a[3] = 4</span>
+<span class="notranslate">b[] = {5,6,7}</span>
+<span class="notranslate">c[] = a + b</span>
+<span class="notranslate"><span class="keyword">exit</span> c</span>
+</code>
+</pre>
+
+<h3>3_if.pg0</h3>
+<div>This is a sample to determine leap years using if statements.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="comment"><span class="notranslate">//</span> Determine leap year</span>
+<span class="notranslate"><span class="keyword">var</span> year = 2018</span>
+<span class="notranslate"><span class="keyword">var</span> leapYear</span>
+<span class="notranslate"><span class="keyword">if</span> (year % 400 == 0 ||</span>
+	<span class="notranslate">(year % 4 == 0 && year % 100 != 0)) {</span>
+	<span class="comment"><span class="notranslate">//</span> It's a leap year</span>
+	<span class="notranslate">leapYear = 1</span>
+<span class="notranslate">} <span class="keyword">else</span> {</span>
+	<span class="notranslate">leapYear = 0</span>
+<span class="notranslate">}</span>
+<span class="notranslate"><span class="keyword">exit</span> leapYear</span>
+</code>
+</pre>
+
+<h3>4_while.pg0</h3>
+<div>This is a sample for adding numbers from 1 to 10 using while statements.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="comment"><span class="notranslate">//</span> Adding from 1 to 10</span>
+<span class="notranslate">cnt = 0</span>
+<span class="notranslate">i = 1</span>
+<span class="notranslate"><span class="keyword">while</span> (i <= 10) {</span>
+	<span class="notranslate">cnt = cnt + i</span>
+	<span class="notranslate">i = i + 1</span>
+<span class="notranslate">}</span>
+<span class="notranslate"><span class="keyword">exit</span> cnt</span>
+</code>
+</pre>
+
+<h3>5_max.pg0</h3>
+<div>This is a sample to find the maximum value in an array.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="comment"><span class="notranslate">//</span> Finding the maximum value</span>
+<span class="notranslate">num[] = {3,4,56,25,47,72,2,23,25,9}</span>
+<span class="notranslate">size = 10</span>
+<span class="notranslate">max = num[0]</span>
+<span class="notranslate">i = 1</span>
+<span class="notranslate"><span class="keyword">while</span> (i < size) {</span>
+	<span class="notranslate"><span class="keyword">if</span> (max < num[i]) {</span>
+		<span class="notranslate">max = num[i]</span>
+	<span class="notranslate">}</span>
+	<span class="notranslate">i = i + 1</span>
+<span class="notranslate">}</span>
+<span class="notranslate"><span class="keyword">exit</span> max</span>
+</code>
+</pre>
+
+<h3>6_sort.pg0</h3>
+<div>This is a sample for sorting the contents of an array in ascending order.</div>
+<pre><input type="button" class="copy" value="📋"></input>
+<code>
+<span class="comment"><span class="notranslate">//</span> Sorting an array</span>
+<span class="notranslate">num[] = {3,4,56,25,47,72,2,23,25,9}</span>
+<span class="notranslate">size = 10</span>
+<span class="notranslate">i = 0</span>
+<span class="notranslate"><span class="keyword">while</span> (i < size - 1) {</span>
+	<span class="notranslate">j = size - 1</span>
+	<span class="notranslate"><span class="keyword">while</span> (j > i) {</span>
+		<span class="notranslate"><span class="keyword">if</span> (num[j - 1] > num[j]) {</span>
+			<span class="notranslate">tmp = num[j]</span>
+			<span class="notranslate">num[j] = num[j - 1]</span>
+			<span class="notranslate">num[j - 1] = tmp</span>
+		<span class="notranslate">}</span>
+		<span class="notranslate">j = j - 1</span>
+	<span class="notranslate">}</span>
+	<span class="notranslate">i = i + 1</span>
+<span class="notranslate">}</span>
+<span class="notranslate"><span class="keyword">exit</span> num</span>
+</code>
+</pre>
+
+<h2>Links</h2>
+<div>
+	<ul>
+		<li><a href="../doc/pg0_eng.html">PG0 Language specification</a></li>
+		<li><a href="../doc/pg0.5_eng.html">PG0.5 Language specification</a></li>
+		<li><a href="../doc/pg0.5_lib_eng.html">PG0.5 - Library Reference</a></li>
+	</ul>
+</div>
+<div>
+	<ul>
+		<li><a href="https://nakka.com/soft/pg0/question_eng.html">PG0 - Exercise Questions</a></li>
+		<li><a href="https://nakka.com/soft/pg0/question_eng.html?a=1">PG0 - Exercise Questions (with answers)</a></li>
+	</ul>
+</div>
+<div>
+	<ul>
+		<li><a href="https://nakka.com/soft/pg0/index_eng.html">PG0 for Windows</a></li>
+		<li><a href="https://github.com/nakkag/pg0_web">PG0 Source Code (Github)</a></li>
+	</ul>
+</div>
+<hr />
+<div style="text-align: center;padding-bottom: 20px;">
+	Copyright &copy; 1996-<script type="text/javascript">document.write(new Date().getFullYear());</script> by <a href="mailto:nakka@nakka.com">Ohno Tomoaki</a>. All rights reserved.
+</div>
+
+<script type="text/javascript">
+document.querySelector('body').addEventListener("click", function(e) {
+	if (e.target.classList.contains('copy')) {
+		copyToClipboard(e.target.nextElementSibling, e.target);
+	}
+});
+function copyToClipboard(textNode, buttonNode) {
+	if (navigator.clipboard) {
+		return navigator.clipboard.writeText(textNode.textContent.trim()).then(function () {
+			message(buttonNode)
+		})
+	} else {
+		const selection = window.getSelection();
+		if (!selection.rangeCount) {
+			return;
+		}
+		const range = document.createRange();
+		range.selectNodeContents(textNode);
+		selection.removeAllRanges();
+		selection.addRange(range);
+		document.execCommand('copy')
+		selection.removeAllRanges();
+		message(buttonNode)
+	}
+}
+function message(buttonNode) {
+	buttonNode.value = 'Copied';
+	buttonNode.classList.add('copied');
+	setTimeout(function() {
+		buttonNode.value = '📋';
+		buttonNode.classList.remove('copied');
+	}, 1000)
+}
+</script>
+</body>
+</html>

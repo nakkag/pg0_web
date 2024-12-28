@@ -1,10 +1,11 @@
-const CACHE_VERSION = 'pg0-v320';
+const CACHE_VERSION = 'pg0-v344';
 
 const resources = [
 	'./',
 	'pg0.css',
 	'pg0.js',
 	'pg0_settings.js',
+	'favicon.ico',
 
 	'pg0/script_common.js',
 	'pg0/script_exec.js',

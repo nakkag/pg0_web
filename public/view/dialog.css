@@ -210,7 +210,7 @@
 #online-open-list {
 	position: relative;
 	width: 100%;
-	height: calc(100vh - 200px);
+	height: calc(100vh - 180px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 	overflow-y: scroll;
 	border: 1px solid #999;
 	margin-top: 15px;
@@ -224,7 +224,7 @@
 #online-history-list {
 	position: relative;
 	width: 100%;
-	height: calc(100vh - 200px);
+	height: calc(100vh - 200px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 	overflow-y: scroll;
 	border: 1px solid #999;
 	margin-top: 15px;
@@ -232,10 +232,10 @@
 
 @supports(height: 100dvh) {
 	#online-open-list {
-		height: calc(100dvh - 200px);
+		height: calc(100dvh - 180px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 	}
 	#online-history-list {
-		height: calc(100dvh - 200px);
+		height: calc(100dvh - 200px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 	}
 }
 
