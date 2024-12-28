@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>PG0.5 - Library Reference</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+</head>
+<body><pre style="tab-size: 4;white-space: pre-wrap;">
+Programming Language PG0.5
+Library Reference
+--
+# Introduction
+PG0.5 is a programming language designed for learning programming.
+PG0.5 is extends the PG0 programming language.
+
+This is a reference for the following libraries. 
+* Screen API (screen.pg0)
+* Mathematical API (math.pg0)
+* String API (string.pg0)
+* Input/Output API (io.pg0)
+
+# Restrictions
+This library has the following restrictions. 
+* The operating environment is PG0 (web version) only. 
+* Operating speed and drawing speed may vary depending on the device and web browser. 
+* Sound playback may not function on iOS due to security restrictions. 
+* The specifications of each API may change in the future. 
+
+# Screen API (screen.pg0)
+Can be used with the following import statement. 
+	#import("lib/screen.pg0")
+
+startScreen(width, height, option)
+	* Description
+		Starts the screen.
+		Displays a screen of the specified size on the web browser.
+	* Parameters
+		width - Screen width (number)
+		height - Screen height (number)
+		option - Specify options as an associative array.
+					{"color": Hexadecimal color code (string), "fit": Flag whether to adapt to screen size(number)}
+	* Return Value
+		0
+
+sleep(time)
+	* Description
+		Performs processing for a certain period of time Stop.
+	* Parameters
+		time - Specify the stopping time in milliseconds as a numerical value.
+	* Return Value
+		0
+
+time()
+	* Description
+		Gets the current time (UTC).
+	* Parameters
+		None
+	* Return Value
+		Returns the number of milliseconds that have passed since January 1, 1970 00:00:00.
+
+timeString(time)
+	* Description
+		Format a time into a date/time string.
+	* Parameters
+		time - Number of milliseconds elapsed since January 1, 1970 00:00:00
+		format - date and time format. If omitted, the string will be formatted according to the locale.
+					YYYY - year
+					MM or M - month
+					DD or D - day
+					hh or h - hour
+					mm or m - minutes
+					ss or s - seconds
+	* Return Value
+		date and time string
+
+startOffscreen()
+	* Description
+		Start off-screen and draw the screen display off-screen.
+	* Parameters
+		None
+	* Return Value
+		0
+
+endOffscreen()
+	* Description
+		Exit off-screen and draw the contents of the off-screen to the screen.
+	* Parameters
+		None
+	* Return Value
+		0
+
+clearRect(x, y, width, height)
+	* Description
+		Makes the area transparent.
+	* Parameters
+		x - upper left horizontal coordinate (number)
+		y - vertical coordinate of top left (number)
+		width - width (number)
+		height - height (number)
+	* Return Value
+		0
+
+drawLine(x1, y1, x2, y2, option)
+	* Description
+		Draw a line.
+	* Parameters
+		x1 - starting horizontal coordinate (number)
+		y1 - starting vertical coordinate (number)
+		x2 - horizontal coordinate of end (number)
+		x2 - Vertical coordinate of end (number)
+		option - Specify options as an associative array.
+					{"width": line width (number), "color": hexadecimal color code (string)}
+	* Return Value
+		0
+
+drawRect(x, y, width, height, option)
+	* Description
+		Draw a square.
+	* Parameters
+		x - upper left horizontal coordinate (number)
+		y - vertical coordinate of top left (number)
+		width - width (number)
+		height - height (number)
+		option - Specify options as an associative array.
+					{"width": line width (number), "color": hexadecimal color code (string), "fill": fill (number)}
+					Setting the fill to 1 will fill the square with the specified color.
+	* Return Value
+		0
+
+drawCircle(x, y, radiusX, option)
+	* Description
+		Draw a circle.
+	* Parameters
+		x - horizontal coordinate of the center of the circle (number)
+		y - vertical coordinate of the center of the circle (number)
+		radiusX - radius of long side (number)
+		option - Specify options as an associative array.
+					{"width": line width (number), "color": hexadecimal color code (string), "fill": fill (number), "radius_y": short side radius (number), "rotation": Tilt of the circle (number), "start": Angle clockwise from the X-axis where the circle starts (number), "end": Angle clockwise from the X-axis where the circle ends (number)}
+					Setting fill to 1 will fill the circle with the specified color.
+	* Return Value
+		0
+
+drawPolyline(coordinates, option)
+	* Description
+		Draw a series of straight lines connected by several coordinates.
+	* Parameters
+		coordinates - Array of coordinates
+						Ex) drawPolyline({{100, 100}, {200, 100}, {150, 50}}, {"close": 1}) // Triangle
+		option - Specify options as an associative array.
+					{"width": line width (number), "color": hexadecimal color code (string), "fill": fill (number), "close": connect the last line with the first line (number)}
+	* Return Value
+		0
+
+drawFill(x, y, color)
+	* Description
+		Fills the specified coordinates with the specified color.
+		Traces adjacent pixels and fills them with specified color.
+	* Parameters
+		x - horizontal coordinate (number) to start filling
+		y - vertical coordinate to start filling (number)
+		color - hexadecimal color code (string)
+	* Return Value
+		0
+
+drawScroll(x, y)
+	* Description
+		Scroll the screen.
+		Areas that extend beyond the screen will be displayed on the opposite side.
+	* Parameters
+		x - horizontal scroll amount (number)
+		y - vertical scroll amount (number)
+	* Return Value
+		0
+
+createImage(x, y, width, height, option)
+	* Description
+		Creates an image of the specified area.
+		The returned Image ID can be drawn with drawImage().
+	* Parameters
+		x - upper left horizontal coordinate (number)
+		y - vertical coordinate of top left (number)
+		width - width (number)
+		height - height (number)
+		option - Specify options as an associative array.
+					{"id": Image ID (number)}
+					If an id is specified, it replaces the existing image.
+	* Return Value
+		Image ID
+
+drawImage(url, x, y, option)
+	* Description
+		Draws an image of the specified Image ID.
+	* Parameters
+		id - Image ID
+		x - upper left horizontal coordinate (number)
+		y - vertical coordinate of top left (number)
+		option - Specify options as an associative array.
+					{"width": width (number), "height": height(number), "angle": drawing angle(number), "alpha": transparency(number)}
+					Width and height cannot be specified for one side only.
+					alpha is specified between 0.0 and 1.0.
+	* Return Value
+		0
+
+drawText(text, x, y, option)
+	* Description
+		Draw text.
+	* Parameters
+		text - the text to draw (string)
+		x - starting horizontal coordinate (number)
+		y - starting vertical coordinate (number)
+		option - Specify options as an associative array.
+					{"width": line width (number), "color": hexadecimal color code (string), "fill": fill (number), "fontstyle": font style (string), "fontsize": font size (number), "fontface": font (string)}
+					The default for fill is 1, and if you specify 0, hollow characters will be drawn.
+					Specify the font style as normal, bold, italic, or oblique.
+	* Return Value
+		0
+
+measureText(text, option)
+	* Description
+		Gets the text drawing size.
+	* Parameters
+		text - text (string)
+		option - Specify options as an associative array.
+					{"fontstyle": font style (string), "fontsize": font size (number), "fontface": font (string)}
+					Specify the font style as normal, bold, italic, or oblique.
+	* Return Value
+		drawing size
+		{"width": width, "height": height}
+
+rgbToPoint(x, y)
+	* Description
+		Gets the color at the specified coordinates.
+	* Parameters
+		x - horizontal coordinate (number)
+		y - vertical coordinate (number)
+	* Return Value
+		RGB array
+		{"R": numbers up to 255 to indicate red, "G": numbers up to 255 to indicate green, "B": numbers up to 255 to indicate blue}
+
+rgbToHex(rgb)
+	* Description
+		Converts an RGB array to hexadecimal color code.
+	* Parameters
+		rgb - RGB array
+				{"R": numbers up to 255 to indicate red, "G": numbers up to 255 to indicate green, "B": numbers up to 255 to indicate blue}
+	* Return Value
+		Hexadecimal color code (string)
+
+hexToRgb(hex)
+	* Description
+		Converts a hexadecimal color code to an RGB array.
+	* Parameters
+		hex - Hexadecimal color code (string)
+	* Return Value
+		RGB array
+		{"R": numbers up to 255 to indicate red, "G": numbers up to 255 to indicate green, "B": numbers up to 255 to indicate blue}
+
+inTouch()
+	* Description
+		Returns the touch position.
+	* Parameters
+		None
+	* Return Value
+		touch state
+		{"x": horizontal coordinate, "y": vertical coordinate, "touch": touch state, "button": button, "pos": {{horizontal coordinate, vertical coordinate}, ...}}
+		If the touch status is 0, it is not currently touched and will be the last touched coordinate.
+		For button, 0 is left click, 1 is middle (wheel) click, and 2 is right click.
+		pos contains multi-touch coordinates.
+
+inKey()
+	* Description
+		Returns keyboard input.
+	* Parameters
+		key - Specifies the key string to check if pressed.
+				If specified as an array, check that all key strings in the array are pressed.
+				The key string will be equivalent to JavaScript's<a href="https://developer.mozilla.org/ja/docs/Web/API/UI_Events/Keyboard_event_key_values">KeyboardEvent.key</a>.
+	* Return Value
+		If no argument is specified, an array of pressed key strings is returned.
+		If the argument is specified as a string, it returns 1 if the key is pressed and 0 if not.
+		If the argument is specified as an array, it returns 1 if all keys are pressed and 0 if any keys are not pressed.
+
+playSound(note, start, end)
+	* Description
+		Plays the specified frequency for the specified time.
+	* Parameters
+		note - frequency (number)
+				If a string is specified, it will be converted to the corresponding frequency. If you put a number after it, it will be converted to an octave.
+				'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+					Ex) playSound("C4", 0, 500)
+		start - milliseconds of start time (number)
+		end - milliseconds of end time (number)
+		volume - volume, default is 1 (number)
+	* Return Value
+		0
+
+playMusic(notes, option)
+	* Description
+		Play multiple frequencies in sequence.
+	* Parameters
+		notes - Array of notes
+				{note, length, volume}
+				If a string is specified, it will be converted to the corresponding frequency. If you put a number after it, it will be converted to an octave.
+				'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+					Ex) playMusic({{"C4", 500}, {"D4", 500}, {"E4", 500}})
+
+				The following keys and values in the array have a special meaning.
+				start: start position, if several sounds are played at the same time, set the start position to 0 and another sound.
+					例) playMusic({{"C4", 800}, {"start": 0}, {"E4", 800}, {"start": 0}, {"G4", 800}})
+				volume: Volumes after this.
+		option - Specify options as an associative array.
+					{"repeat": repetition flag(number)}
+	* Return Value
+		0
+
+stopSound()
+	* Description
+		Stop any sound that is playing.
+	* Parameters
+		None
+	* Return Value
+		0
+
+# Mathematical API (math.pg0)
+Can be used with the following import statement. 
+	#import("lib/math.pg0")
+
+abs(num)
+	* Description
+		Returns the absolute value.
+	* Parameters
+		num - number
+	* Return Value
+		Absolute value
+
+atan(num)
+	* Description
+		Returns the arctangent in radians.
+	* Parameters
+		num - number
+	* Return Value
+		arctangent of argument
+
+cos(num)
+	* Description
+		Returns the cosine.
+	* Parameters
+		num - number
+	* Return Value
+		cosine of argument
+
+exp(num)
+	* Description
+		Returns the base of logarithm.
+	* Parameters
+		num - number
+	* Return Value
+		base of logarithm
+
+log(num)
+	* Description
+		Returns the logarithm.
+	* Parameters
+		num - number
+	* Return Value
+		logarithm
+
+random()
+	* Description
+		Returns a random number.
+	* Parameters
+		None
+	* Return Value
+		Random number greater than or equal to 0 and less than 1
+
+sign(num)
+	* Description
+		Returns a flag indicating whether the sign of a number is positive or negative.
+	* Parameters
+		num - number
+	* Return Value
+		1 - correct
+		-1 - negative
+		0 - zero
+
+sin(num)
+	* Description
+		Returns the sin.
+	* Parameters
+		num - number
+	* Return Value
+		sin of argument
+
+sqrt(num)
+	* Description
+		eturns the square root.
+	* Parameters
+		num - number
+	* Return Value
+		square root
+
+tan(num)
+	* Description
+		Returns the tangent.
+	* Parameters
+		num - number
+	* Return Value
+		tangent of argument
+
+pow(base, exponent)
+	* Description
+		Returns a value that is a power.
+	* Parameters
+		base - Base number
+		exponent - exponentiated index
+	* Return Value
+		Value of a number multiplied by a power
+
+# String API (string.pg0)
+Can be used with the following import statement. 
+	#import("lib/string.pg0")
+
+trim(str)
+	* Description
+		Trims the front and back of a string.
+		The characters to be trimmed are spaces (" ") and tabs ("\t").
+	* Parameters
+		str - String to be trimmed
+	* Return Value
+		Trimmed string
+
+to_lower(str)
+	* Description
+		Converts English strings to lowercase.
+	* Parameters
+		str - String to be converted to lowercase.
+	* Return Value
+		String converted to lowercase
+
+to_upper(str)
+	* Description
+		Converts English strings to uppercase.
+	* Parameters
+		str - String to be converted to uppercase.
+	* Return Value
+		String converted to uppercase
+
+str_match(ptn, str)
+	* Description
+		Use wildcards to compare strings.
+		Match any multi-character string with "*", match any single character with "?" to match any single character.
+	* Parameters
+		ptn - Pattern from which to compare (specify wildcard here)
+		str - String to be compared
+	* Return Value
+		Returns 1 if a match is found, 0 if no match is found.
+
+substring(str, begin, length = -1)
+	* Description
+		Extract substrings from a string.
+	* Parameters
+		str - String to be extracted
+		begin - Start index
+			(Negative numbers are indexed from the end of the string)
+		length - Length to be extracted (negative numbers will be the length to the end)
+	* Return Value
+		Extracted substrings.
+
+in_string(str, search, from = 0)
+	* Description
+		Searches for the position of a specified string within a string.
+	* Parameters
+		str - String to be searched for
+		search - String to be searched
+		from - Index to start the search.
+	* Return Value
+		Returns the index of the found string. If not found, returns -1.
+
+split(str, separator)
+	* Description
+		Split a string with a delimiter string.
+	* Parameters
+		str - String to be split
+		search - delimiter string
+	* Return Value
+		Array containing the divided strings.
+
+# Input/Output API (io.pg0)
+Can be used with the following import statement. 
+	#import("lib/io.pg0")
+
+println(line)
+	* Description
+		One line output to standard output.
+	* Parameters
+		line - The string to be output.
+	* Return Value
+		0
+
+saveValue(key, value)
+	* Description
+		Saves values.
+		The value to be saved can be a number, a string or an array.
+		The value is saved in the web browser.
+		The values are initialised if the script save location is changed.
+			New file - Common area.
+			Local file - Saves the local filename as a key.
+			Online file - Saved with the online cid as key.
+	* Parameters
+		key - Key
+		value - Value to be saved.
+	* Return Value
+		0
+
+loadValue(key)
+	* Description
+		Loads the saved value.
+	* Parameters
+		key - Key
+	* Return Value
+		Saved values.
+
+removeValue(key)
+	* Description
+		Remove saved values.
+	* Parameters
+		key - Key
+	* Return Value
+		0
+
+get_clipboard()
+	* Description
+		Get text from the clipboard.
+	* Parameters
+		None
+	* Return Value
+		Clipboard text
+
+set_clipboard(text)
+	* Description
+		Set text on the clipboard.
+	* Parameters
+		text - Text to be set on the clipboard.
+	* Return Value
+		Returns 1 on success, 0 on failure.
+
+--
+Copyright (C) 1996-2024 by Ohno Tomoaki. All rights reserved.
+    WEB SITE: https://nakka.com/
+    E-MAIL: nakka@nakka.com
+</pre>
+</body>
+</html>
