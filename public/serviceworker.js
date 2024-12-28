@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v338';
+const CACHE_VERSION = 'pg0-v340';
 
 const resources = [
 	'./',
@@ -56,23 +56,6 @@ const resources = [
 	'lib/image/sc_restore.svg',
 	'lib/image/sc_mute.svg',
 	'lib/image/sc_speaker.svg',
-
-	'doc/pg0.txt',
-	'doc/pg0_eng.txt',
-	'doc/pg0.5.txt',
-	'doc/pg0.5_eng.txt',
-	'doc/pg0.5_lib.txt',
-	'doc/pg0.5_lib_eng.txt',
-
-	'tutorial/index.html',
-	'tutorial/index_eng.html',
-	'tutorial/play.svg',
-	'tutorial/step.svg',
-	'tutorial/stop.svg',
-	'tutorial/screen.png',
-	'tutorial/eng_screen.png',
-	'tutorial/mobile.png',
-	'tutorial/eng_mobile.png',
 ];
 
 self.addEventListener('install', function (event) {
