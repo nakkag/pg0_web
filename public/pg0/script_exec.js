@@ -169,7 +169,7 @@ ScriptExec.lib['char'] = function(ei, param, ret) {
 		code = parseInt(param[0].v.num);
 		break;
 	}
-	ret.v.str = String.fromCharCode(code);
+	ret.v.str = String.fromCodePoint(code);
 	ret.v.type = TYPE_STRING;
 	delete ret.v.num;
 	return 0;
@@ -421,7 +421,7 @@ ScriptExec.convCtrl = function(buf) {
 					hex += a[i++];
 					len--;
 				}
-				ret += String.fromCharCode(parseInt(hex, 16));
+				ret += String.fromCodePoint(parseInt(hex, 16));
 				break;
 			default:
 				let oct = '';
@@ -433,7 +433,7 @@ ScriptExec.convCtrl = function(buf) {
 					oct += a[i++];
 					len--;
 				}
-				ret += String.fromCharCode(parseInt(oct, 8));
+				ret += String.fromCodePoint(parseInt(oct, 8));
 				break;
 			}
 		} else {
