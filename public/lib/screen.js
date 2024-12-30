@@ -1372,16 +1372,31 @@ function _screenResize() {
 	const back = document.getElementById('lib-screen-back');
 	const rect = back.getBoundingClientRect();
 
+	const sound = document.getElementById('lib-screen-sound');
+	const iconic = document.getElementById('lib-screen-iconic');
+	const close = document.getElementById('lib-screen-close');
+
 	screen.style.left = `calc(50% - ${width}px / 2)`;
 	let windowHeight;
 	if (back.classList.contains('icon')) {
 		screen.style.top = `calc(50% - ${height}px / 2 + 20px)`;
 		windowHeight = rect.height - 40;
+		sound.style.right = '100px';
+		sound.style.top = '0px';
+		iconic.style.right = '50px';
+		iconic.style.top = '0px';
+		close.style.right = '0px';
+		close.style.top = '0px';
 	} else {
 		screen.style.top = `calc(50% - ${height}px / 2 + env(safe-area-inset-top) - ${(top + bottom) / 2}px)`;
 		windowHeight = rect.height - top - bottom;
+		sound.style.right = 'calc(env(safe-area-inset-right) + 100px)';
+		sound.style.top = 'env(safe-area-inset-top)';
+		iconic.style.right = 'calc(env(safe-area-inset-right) + 50px)';
+		iconic.style.top = 'env(safe-area-inset-top)';
+		close.style.right = 'env(safe-area-inset-right)';
+		close.style.top = 'env(safe-area-inset-top)';
 	}
-	const iconic = document.getElementById('lib-screen-iconic');
 	if (screen.getAttribute('fit') !== '1' && iconic.textContent === '-') {
 		screen.style.transform = 'unset';
 		ScriptExec.lib['$scale'] = 1;
