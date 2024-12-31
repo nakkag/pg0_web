@@ -131,44 +131,6 @@
 	pre .copied {
 		display: block;
 	}
-
-	.close {
-		position: fixed;
-		cursor: pointer;
-		background-color: #eee;
-		color: #000;
-		border-radius: 20px;
-		top: calc(8px + env(safe-area-inset-top));
-		right: calc(10px + env(safe-area-inset-right));
-		height: 30px;
-		width: 30px;
-		z-index: 999;
-	}
-	.close::before,
-	.close::after {
-		content: '';
-		display: block;
-		height: 2px;
-		width: 16px;
-		border-radius: 3px;
-		background-color: #000;
-		position: absolute;
-		top: 14px;
-		left: 7px;
-	}
-	.close::before {
-		transform: rotate(45deg);
-	}
-	.close::after {
-		transform: rotate(-45deg);
-	}
-	.close:hover, .close:focus {
-		background-color: #ccc;
-	}
-	.close:active {
-		background-color: #aaa;
-	}
-
 	@media (orientation: portrait) {
 		img {
 			width: 100%;
@@ -222,7 +184,6 @@
 	</style>
 </head>
 <body>
-<a href="#" class="close" onclick="window.close();"></a>
 <h1>PG0 - チュートリアル</h1>
 <h2>はじめに</h2>
 <div>プログラミング学習を目的としたプログラミング言語です。</div>
