@@ -18,7 +18,7 @@ let baseTitle = document.title;
 
 document.addEventListener('DOMContentLoaded', async function() {
 	if ('serviceWorker' in navigator) {
-		navigator.serviceWorker.register('/serviceworker.js', {scope: '/'}).then(function (registration) {
+		navigator.serviceWorker.register('/dev/serviceworker.js', {scope: '/dev/'}).then(function (registration) {
 			registration.onupdatefound = function() {
 				registration.update();
 			}

@@ -64,10 +64,10 @@ let resource = {
 	DIALOG_YES: 'Yes',
 	DIALOG_NO: 'No',
 
-	TUTORIAL_URL: 'tutorial/index_eng.html',
-	MANUAL_PG0_URL: 'doc/pg0_eng.html',
-	MANUAL_PG05_URL: 'doc/pg0.5_eng.html',
-	MANUAL_LIB_URL: 'doc/pg0.5_lib_eng.html',
+	TUTORIAL_URL: '../tutorial/index_eng.html',
+	MANUAL_PG0_URL: '../doc/pg0_eng.html',
+	MANUAL_PG05_URL: '../doc/pg0.5_eng.html',
+	MANUAL_LIB_URL: '../doc/pg0.5_lib_eng.html',
 };
 
 if (_lang === 'ja') {
@@ -135,9 +135,9 @@ if (_lang === 'ja') {
 		DIALOG_YES: 'はい',
 		DIALOG_NO: 'いいえ',
 
-		TUTORIAL_URL: 'tutorial/',
-		MANUAL_PG0_URL: 'doc/pg0.html',
-		MANUAL_PG05_URL: 'doc/pg0.5.html',
-		MANUAL_LIB_URL: 'doc/pg0.5_lib.html',
+		TUTORIAL_URL: '../tutorial/',
+		MANUAL_PG0_URL: '../doc/pg0.html',
+		MANUAL_PG05_URL: '../doc/pg0.5.html',
+		MANUAL_LIB_URL: '../doc/pg0.5_lib.html',
 	};
 }

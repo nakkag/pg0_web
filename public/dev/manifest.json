@@ -1,11 +1,11 @@
 {
 	"name": "PG0",
 	"short_name": "PG0",
-	"start_url": "/",
+	"start_url": "/dev/",
 	"display": "standalone",
 	"icons": [
 		{
-			"src": "image/icon_256.png",
+			"src": "/dev/image/icon_256.png",
 			"sizes": "256x256",
 			"type": "image/png"
 		}
