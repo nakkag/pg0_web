@@ -629,6 +629,10 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-private-title').textContent = resource.ONLINE_SAVE_PRIVATE_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
 
+		if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator) {
+			document.getElementById('online-save-private').parentElement.style.display = 'none';
+		}
+
 		document.getElementById('online-save-private').addEventListener('click', function(e) {
 			if (document.getElementById('online-save-private').checked) {
 				alert(resource.ONLINE_CONFIRM_PRIVATE);
