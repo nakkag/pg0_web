@@ -108,8 +108,11 @@ body::before {
 	background-color: unset;
 }
 
-#container {
+#main {
 	display: none;
+}
+
+#container {
 	position: fixed;
 	top: 0;
 	overflow: hidden;
@@ -117,6 +120,7 @@ body::before {
 	margin: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 	height: calc(100vh - env(safe-area-inset-top));
 	background-color: #f1f3f4;
+	display: grid;
 	grid-template-rows: max-content 1fr var(--resize-with) 0 0;
 	grid-template-columns: max-content 1fr var(--resize-with) 0;
 	grid-template-areas: "ctrl ctrl ctrl ctrl"
