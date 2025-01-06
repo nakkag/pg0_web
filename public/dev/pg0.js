@@ -742,7 +742,7 @@ ScriptExec.lib['error'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	cv.error(`${pg0_string.escapeHTML(str)}`);
+	cv.error(pg0_string.escapeHTML(str));
 	return 0;
 };
 
