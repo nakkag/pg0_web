@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		}
 		checkMenu();
 		setTimeout(function() {
-			document.getElementById('main').style.display = 'block';
+			document.getElementById('container').style.display = 'grid';
 		}, 100);
 	}, 10);
 
