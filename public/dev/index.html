@@ -22,7 +22,7 @@
 	<link rel="stylesheet" type="text/css" href="view/editor.css?v=40">
 	<link rel="stylesheet" type="text/css" href="view/variable.css?v=28">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=8">
-	<link rel="stylesheet" type="text/css" href="pg0.css?v=206">
+	<link rel="stylesheet" type="text/css" href="pg0.css?v=207">
 	<script type="text/javascript" src="pg0/script_common.js?v=4"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=10"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=15"></script>
@@ -35,72 +35,73 @@
 	<script type="text/javascript" src="utils/user_agent.js?v=2"></script>
 	<script type="text/javascript" src="utils/message.js?v=31"></script>
 	<script type="text/javascript" src="pg0_settings.js?v=1"></script>
-	<script type="text/javascript" src="pg0.js?v=346"></script>
+	<script type="text/javascript" src="pg0.js?v=347"></script>
 </head>
 <body>
 	<div id="main">
-	<div id="container">
-		<div id="ctrl-container">
-			<div id="ctrl">
-				<input type="image" class="ctrl-icon" id="exec-button" src="image/play.svg" onclick="exec(false);"></input>
-				<input type="image" class="ctrl-icon" id="step-button" src="image/step.svg" onclick="exec(true);"></input>
-				<input type="image" class="ctrl-icon" id="stop-button" src="image/stop.svg" onclick="stop();" disabled></input>
-				<select id="exec-speed"></select>
-			</div>
+		<div id="container">
+			<div id="ctrl-container">
+				<div id="ctrl">
+					<input type="image" class="ctrl-icon" id="exec-button" src="image/play.svg" onclick="exec(false);"></input>
+					<input type="image" class="ctrl-icon" id="step-button" src="image/step.svg" onclick="exec(true);"></input>
+					<input type="image" class="ctrl-icon" id="stop-button" src="image/stop.svg" onclick="stop();" disabled></input>
+					<select id="exec-speed"></select>
+				</div>
 
-			<input type="checkbox" id="menu-toggle" class="menu-toggle">
-			<label for="menu-toggle" class="menu-btn" tabindex="0"><span></span></label>
-			<div class="menu">
-				<input type="file" id="file-input" style="display: none;"></input>
-				<ul>
-					<li><a href="#" id="menu-new"></a></li>
-					<hr />
-					<li><a href="#" id="menu-online-open"></a></li>
-					<li><a href="#" id="menu-online-save"></a></li>
-					<li class="disable"><a href="#" id="menu-online-history"></a></li>
-					<hr />
-					<li><a href="#" id="menu-local-open"></a></li>
-					<li><a href="#" id="menu-local-save"></a></li>
-					<hr />
-					<li><a href="#" id="menu-exec-to-cursor"></a></li>
-					<li><a href="#" id="menu-clear"></a></li>
-					<hr />
-					<li><a href="#" id="menu-setting"></a></li>
-					<hr />
-					<li><a href="#" id="menu-tutorial"></a></li>
-					<li><a href="#" id="menu-manual-pg0"></a></li>
-					<li><a href="#" id="menu-manual-pg05"></a></li>
-					<li><a href="#" id="menu-manual-lib"></a></li>
-				</ul>
+				<input type="checkbox" id="menu-toggle" class="menu-toggle">
+				<label for="menu-toggle" class="menu-btn" tabindex="0"><span></span></label>
+				<div class="menu">
+					<input type="file" id="file-input" style="display: none;"></input>
+					<ul>
+						<li><a href="#" id="menu-new"></a></li>
+						<hr />
+						<li><a href="#" id="menu-online-open"></a></li>
+						<li><a href="#" id="menu-online-save"></a></li>
+						<li class="disable"><a href="#" id="menu-online-history"></a></li>
+						<hr />
+						<li><a href="#" id="menu-local-open"></a></li>
+						<li><a href="#" id="menu-local-save"></a></li>
+						<hr />
+						<li><a href="#" id="menu-exec-to-cursor"></a></li>
+						<li><a href="#" id="menu-clear"></a></li>
+						<hr />
+						<li><a href="#" id="menu-setting"></a></li>
+						<hr />
+						<li><a href="#" id="menu-tutorial"></a></li>
+						<li><a href="#" id="menu-manual-pg0"></a></li>
+						<li><a href="#" id="menu-manual-pg05"></a></li>
+						<li><a href="#" id="menu-manual-lib"></a></li>
+					</ul>
+				</div>
 			</div>
-		</div>
-		<div id="line-container" translate="no">
-			<div id="line-number"></div>
-		</div>
-		<div id="editor-container" tabindex="0" translate="no">
-			<div id="editor" contenteditable="true" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" tabindex="0"></div>
-		</div>
-		<div id="var-resizer-x"></div>
-		<div id="var-resizer-y"></div>
-		<div id="variable-container" tabindex="0" translate="no">
-			<div id="variable">
-				<div id="var-name"></div>
-				<div id="var-resizer"></div>
-				<div id="var-value"></div>
+			<div id="line-container" translate="no">
+				<div id="line-number"></div>
 			</div>
-		</div>
-		<div id="console-resizer"></div>
-		<div id="console-container" tabindex="0">
-			<div id="console"></div>
-		</div>
-		<div id="key-container">
-			<div class="key-button" id="key-undo"><img src="image/undo.svg"></div>
-			<div class="key-button" id="key-redo"><img src="image/redo.svg"></div>
-			<div class="key-button" id="key-left"><img src="image/left.svg"></div>
-			<div class="key-button" id="key-right"><img src="image/right.svg"></div>
-			<div class="key-button" id="key-paste"><img src="image/paste.svg"></div>
-			<div class="key-button" id="key-tab"><img src="image/tab.svg"></div>
-			<div class="key-button" id="key-close"><img src="image/close.svg"></div>
+			<div id="editor-container" tabindex="0" translate="no">
+				<div id="editor" contenteditable="true" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" tabindex="0"></div>
+			</div>
+			<div id="var-resizer-x"></div>
+			<div id="var-resizer-y"></div>
+			<div id="variable-container" tabindex="0" translate="no">
+				<div id="variable">
+					<div id="var-name"></div>
+					<div id="var-resizer"></div>
+					<div id="var-value"></div>
+				</div>
+			</div>
+			<div id="console-resizer"></div>
+			<div id="console-container" tabindex="0">
+				<div id="console"></div>
+			</div>
+			<div id="key-container">
+				<div class="key-button" id="key-undo"><img src="image/undo.svg"></div>
+				<div class="key-button" id="key-redo"><img src="image/redo.svg"></div>
+				<div class="key-button" id="key-left"><img src="image/left.svg"></div>
+				<div class="key-button" id="key-right"><img src="image/right.svg"></div>
+				<div class="key-button" id="key-paste"><img src="image/paste.svg"></div>
+				<div class="key-button" id="key-tab"><img src="image/tab.svg"></div>
+				<div class="key-button" id="key-close"><img src="image/close.svg"></div>
+			</div>
 		</div>
 	</div>
 	<div id="message" class="dialog">
