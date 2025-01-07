@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-manual-pg0').textContent = resource.MENU_MANUAL_PG0;
 	document.getElementById('menu-manual-pg05').textContent = resource.MENU_MANUAL_PG05;
 	document.getElementById('menu-manual-lib').textContent = resource.MENU_MANUAL_LIB;
+	document.getElementById('menu-top').textContent = resource.MENU_TOP;
 
 	// Load settings
 	if (!settingView.load()) {
@@ -594,6 +595,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 				if (!window.open(resource.MANUAL_LIB_URL, '_blank')) {
 					location.href = resource.MANUAL_LIB_URL;
 				}
+				break;
+			case 'menu-top':
+				location.href = resource.TOP_URL;
 				break;
 			}
 			document.getElementById('menu-toggle').checked = false;

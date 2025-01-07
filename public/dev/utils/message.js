@@ -53,6 +53,7 @@ let resource = {
 	MENU_MANUAL_PG0: 'PG0 Language specification',
 	MENU_MANUAL_PG05: 'PG0.5 Language specification',
 	MENU_MANUAL_LIB: 'Library Reference',
+	MENU_TOP: 'Top page',
 
 	VARIABLE_NAME: 'Name',
 	VARIABLE_VALUE: 'Value',
@@ -64,6 +65,7 @@ let resource = {
 	DIALOG_YES: 'Yes',
 	DIALOG_NO: 'No',
 
+	TOP_URL: '/',
 	TUTORIAL_URL: '../tutorial/index_eng.html',
 	MANUAL_PG0_URL: '../doc/pg0_eng.html',
 	MANUAL_PG05_URL: '../doc/pg0.5_eng.html',
@@ -124,6 +126,7 @@ if (_lang === 'ja') {
 		MENU_MANUAL_PG0: 'PG0言語仕様',
 		MENU_MANUAL_PG05: 'PG0.5言語仕様',
 		MENU_MANUAL_LIB: 'ライブラリリファレンス',
+		MENU_TOP: 'トップページ',
 
 		VARIABLE_NAME: '変数',
 		VARIABLE_VALUE: '値',
@@ -135,6 +138,7 @@ if (_lang === 'ja') {
 		DIALOG_YES: 'はい',
 		DIALOG_NO: 'いいえ',
 
+		TOP_URL: '/',
 		TUTORIAL_URL: '../tutorial/',
 		MANUAL_PG0_URL: '../doc/pg0.html',
 		MANUAL_PG05_URL: '../doc/pg0.5.html',
