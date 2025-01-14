@@ -179,7 +179,7 @@ const SYM_CONTINUE = 68;
 const SYM_SWITCH = 69;
 const SYM_CASE = 70;
 const SYM_DEFAULT = 71;
-const SYM_DAMMY = 72;
+const SYM_DUMMY = 72;
 
 const SYM_FUNCSTART = 73;
 const SYM_FUNCEND = 74;

@@ -937,7 +937,7 @@ function ScriptExec(scis, sci) {
 				stack.push(vi);
 				break;
 			case SYM_BCLOSE:
-			case SYM_DAMMY:
+			case SYM_DUMMY:
 				break;
 			case SYM_LINEEND:
 				postfixValue(ei);

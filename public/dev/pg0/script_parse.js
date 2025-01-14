@@ -913,7 +913,7 @@ function ScriptParse(sci) {
 				return;
 			}
 			pi.token.push(token);
-			token = createToken(SYM_DAMMY, -1);
+			token = createToken(SYM_DUMMY, -1);
 			pi.token.push(token);
 			jmp_tk.link = pi.token.length - 1;
 		}
@@ -938,7 +938,7 @@ function ScriptParse(sci) {
 				return;
 			}
 			pi.token.push(token);
-			token = createToken(SYM_DAMMY, -1);
+			token = createToken(SYM_DUMMY, -1);
 			pi.token.push(token);
 			jmp_tk.link = pi.token.length - 1;
 		}
@@ -1204,7 +1204,7 @@ function ScriptParse(sci) {
 		tk[tk.length - 1].target = pi.token;
 		pi.token = tk;
 
-		token = createToken(SYM_DAMMY, -1);
+		token = createToken(SYM_DUMMY, -1);
 		pi.token.push(token);
 		if (pi.type !== SYM_WHILE) {
 			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
