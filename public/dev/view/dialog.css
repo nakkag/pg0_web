@@ -250,6 +250,7 @@
 	position: relative;
 	padding: 10px 40px 10px 10px;
 	border-bottom: 1px solid #ddd;
+    word-break: break-word;
 }
 .file-item:hover, .file-item:focus {
 	background-color: #eee;
