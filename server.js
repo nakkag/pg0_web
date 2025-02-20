@@ -156,7 +156,9 @@ app.get('/api/script/item/:cid', async (req, res) => {
 			return res.status(404).send('Not found.');
 		}
 		delete doc._id;
+		delete doc.ipaddr;
 		delete doc.password;
+		delete doc.keyword;
 		res.json(doc);
 	} catch (error) {
 		logger.error(error);
@@ -210,7 +212,9 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 			}
 		}
 		delete doc._id;
+		delete doc.ipaddr;
 		delete doc.password;
+		delete doc.keyword;
 		res.json(doc);
 	} catch (error) {
 		logger.error(error);
@@ -253,6 +257,9 @@ app.post('/api/script', async (req, res) => {
 			keyword: req.body.name + ' ' + req.body.author,
 			createTime: time,
 			updateTime: time,
+			ipaddr: (req.headers['x-forwarded-for'] ||
+				(req.connection && req.connection.remoteAddress) ||
+				(req.socket && req.socket.remoteAddress)),
 		});
 		res.send({cid: newCid});
 	} catch (error) {
@@ -291,6 +298,9 @@ app.put('/api/script/:cid', async (req, res) => {
 			speed: req.body.speed,
 			keyword: req.body.name + ' ' + req.body.author,
 			updateTime: new Date().getTime(),
+			ipaddr: (req.headers['x-forwarded-for'] ||
+				(req.connection && req.connection.remoteAddress) ||
+				(req.socket && req.socket.remoteAddress)),
 		}});
 		res.sendStatus(200);
 	} catch (error) {
