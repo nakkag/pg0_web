@@ -1243,7 +1243,7 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
 	}
-	if (ScriptExec.lib['$op'].mute) {
+	if (ScriptExec.lib['$op'] && ScriptExec.lib['$op'].mute) {
 		return 0;
 	}
 	let frequency = param[0].v.num;
@@ -1264,7 +1264,7 @@ ScriptExec.lib['playmusic'] = async function(ei, param, ret) {
 	if (param.length < 1 || param[0].v.type !== TYPE_ARRAY) {
 		return -2;
 	}
-	if (ScriptExec.lib['$op'].mute) {
+	if (ScriptExec.lib['$op'] && ScriptExec.lib['$op'].mute) {
 		return 0;
 	}
 	let repeat = 0;
