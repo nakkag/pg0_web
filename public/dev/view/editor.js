@@ -546,7 +546,8 @@ function editorView(editor, lineNumber) {
 			}
 		};
 		const selectLine = function(y, callback) {
-			const index = Math.floor((lineNumber.scrollTop + y - editorContainer.offsetTop) / lineNumber.firstChild.offsetHeight);
+			const rect = lineNumber.getBoundingClientRect();
+			const index = Math.floor((lineNumber.scrollTop + y - rect.top) / lineNumber.firstChild.offsetHeight);
 			const node = that.getLineNode(index);
 			if (node) {
 				if (!startNode) {
