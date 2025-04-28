@@ -374,6 +374,9 @@ const onlineOpenView = (function () {
 		}
 		menu.style.left = x + 'px';
 		menu.style.top = y + 'px';
+
+		document.getElementById('online-open-history').parentNode.style.display = 'block';
+		document.getElementById('online-open-remove-div').style.display = 'block';
 		menu.focus();
 	};
 	me.closeMenu = function() {
@@ -415,15 +418,41 @@ const onlineHistoryView = (function () {
 			return;
 		}
 		if (e.key === 'Escape') {
-			me.close();
+			if (document.getElementById('menu-overlay')) {
+				me.closeMenu();
+			} else {
+				me.close();
+			}
 		}
 		if (e.key === 'Enter') {
 			if (document.activeElement.classList.contains('file-item')) {
 				document.activeElement.click();
+			} else if (document.activeElement.classList.contains('file-menu')) {
+				me.showMenu(e.target);
 			}
 		}
 	};
 	me.openEvent = async function(e) {
+		if (e.target.closest('.file-menu')) {
+			me.showMenu(e.target);
+			return;
+		}
+		if (e.target.id === 'online-open-copy') {
+			me.closeMenu();
+			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}`);
+			}
+			return;
+		}
+		if (e.target.id === 'online-open-copy-autorun') {
+			me.closeMenu();
+			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}&run=1`);
+			}
+			return;
+		}
 		if (e.target.closest('.read-item')) {
 			me.getList();
 			return;
@@ -466,7 +495,7 @@ const onlineHistoryView = (function () {
 						}
 						if (document.getElementById('online-history-list').childElementCount === 0) {
 							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span> <span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span></div>' +
-								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
+								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 						} else {
 							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
 								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
@@ -564,6 +593,41 @@ const onlineHistoryView = (function () {
 		document.getElementById('online-history').style.display = 'none';
 		document.removeEventListener('keydown', me.keyEvent, false);
 		document.removeEventListener('click', me.openEvent, false);
+	};
+
+	me.showMenu = async function(elm) {
+		if (document.getElementById('menu-overlay')) {
+			return;
+		}
+		const modal = document.createElement('div');
+		modal.setAttribute('id', 'menu-overlay');
+		modal.addEventListener('click', function(e) {
+			me.closeMenu();
+		}, false);
+		document.body.append(modal);
+
+		const menu = document.getElementById('online-open-menu');
+		menu.setAttribute('cid', elm.parentNode.id);
+		menu.style.display = 'block';
+		const bound = elm.getBoundingClientRect();
+		let x = bound.left;
+		if (x + menu.offsetWidth > window.innerWidth) {
+			x = window.innerWidth - menu.offsetWidth;
+		}
+		let y = bound.top + bound.height;
+		if (y + menu.offsetHeight > window.innerHeight) {
+			y = window.innerHeight - menu.offsetHeight;
+		}
+		menu.style.left = x + 'px';
+		menu.style.top = y + 'px';
+
+		document.getElementById('online-open-history').parentNode.style.display = 'none';
+		document.getElementById('online-open-remove-div').style.display = 'none';
+		menu.focus();
+	};
+	me.closeMenu = function() {
+		document.getElementById('menu-overlay').remove();
+		document.getElementById('online-open-menu').style.display = 'none';
 	};
 
 	document.addEventListener('DOMContentLoaded', function() {
