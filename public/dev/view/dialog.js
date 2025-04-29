@@ -17,6 +17,7 @@ const settingView = (function () {
 			options.showLineNum = (op.showLineNum !== undefined) ? op.showLineNum : options.showLineNum;
 			options.boundary = (op.boundary !== undefined) ? op.boundary : options.boundary;
 			options.author = op.author || '';
+			options.password = op.password || '';
 			options.keyword = op.keyword || '';
 			return true;
 		}
@@ -669,7 +670,7 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save').focus();
 		document.getElementById('online-save-file').value = ev.currentContent.name || '';
 		document.getElementById('online-save-author').value = options.author || '';
-		document.getElementById('online-save-password').value = ev.currentContent.password || '';
+		document.getElementById('online-save-password').value = options.password || '';
 		if (ev.currentContent.cid) {
 			document.getElementById('online-save-new').checked = false;
 			document.getElementById('online-save-new').parentElement.style.display = 'block';
@@ -753,6 +754,7 @@ const onlineSaveView = (function () {
 					ev.saveState();
 
 					options.author = author;
+					options.password = password;
 					settingView.save();
 
 					// Notify main event
