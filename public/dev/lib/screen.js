@@ -246,6 +246,19 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		document.body.append(back);
 	} else {
 		back.style.display = 'block';
+		if (back.classList.contains('icon')) {
+			const b_rect = back.getBoundingClientRect();
+			if (b_rect.left + b_rect.width > window.innerWidth) {
+				const left = window.innerWidth - b_rect.width;
+				back.style.left = left + 'px';
+				back.setAttribute('icon-left', left + 'px');
+			}
+			if (b_rect.top + b_rect.height > window.innerHeight) {
+				const top = window.innerHeight - b_rect.height;
+				back.style.top = top + 'px';
+				back.setAttribute('icon-top', top + 'px');
+			}
+		}
 	}
 	let screen = document.getElementById('lib-screen');
 	if (!screen) {
@@ -338,6 +351,18 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 					back.style.height = '240px';
 				}
 				back.style.outline = '1px solid #aaa';
+
+				const b_rect = back.getBoundingClientRect();
+				if (b_rect.left + b_rect.width > window.innerWidth) {
+					const left = window.innerWidth - b_rect.width;
+					back.style.left = left + 'px';
+					back.setAttribute('icon-left', left + 'px');
+				}
+				if (b_rect.top + b_rect.height > window.innerHeight) {
+					const top = window.innerHeight - b_rect.height;
+					back.style.top = top + 'px';
+					back.setAttribute('icon-top', top + 'px');
+				}
 			} else {
 				iconic.innerHTML = '<img src="lib/image/sc_icon.svg">';
 				back.classList.remove('icon');
