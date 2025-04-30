@@ -129,9 +129,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				pt.x = ((e.x !== undefined) ? e.x : e.touches[0].clientX) - rect.left;
 				pt.y = ((e.y !== undefined) ? e.y : e.touches[0].clientY) - rect.top;
 				pt.resize_nw = (pt.x <= 10 && pt.y <= 10);
-				pt.resize_se = (pt.x >= rect.width - 10 && pt.y >= rect.height - 10);
 				pt.resize_sw = (pt.x <= 10 && pt.y >= rect.height - 10);
-				if (e.target === back || pt.resize_nw || pt.resize_se || pt.resize_sw) {
+				pt.resize_se = (pt.x >= rect.width - 10 && pt.y >= rect.height - 10);
+				if (e.target === back || pt.resize_nw || pt.resize_sw || pt.resize_se) {
 					if (e.type === 'mousedown') {
 						document.addEventListener('mousemove', backTouchMove, false);
 						['mouseup', 'mouseleave'].forEach(function(event) {
@@ -146,6 +146,24 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				}
 			}
 		};
+		back.addEventListener('mousemove', function(e) {
+			back.style.cursor = 'auto';
+			if (back.classList.contains('icon')) {
+				const rect = back.getBoundingClientRect();
+				const x = e.x - rect.left;
+				const y = e.y - rect.top;
+				const resize_nw = (x <= 10 && y <= 10);
+				const resize_sw = (x <= 10 && y >= rect.height - 10);
+				const resize_se = (x >= rect.width - 10 && y >= rect.height - 10);
+				if (resize_nw) {
+					back.style.cursor = 'nw-resize';
+				} else if (resize_sw) {
+					back.style.cursor = 'sw-resize';
+				} else if (resize_se) {
+					back.style.cursor = 'se-resize';
+				}
+			}
+		}, false);
 		back.addEventListener('mousedown', backTouchstart, false);
 		back.addEventListener('touchstart', backTouchstart, false);
 		const backTouchMove = function(e) {
@@ -177,7 +195,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				if (width < 90) {
 					width = 90;
 				}
-				let height = (((e.y !== undefined) ? e.y : e.touches[0].clientY) - rect.top);
+				let height = (((e.y !== undefined) ? e.y : e.touches[0].clientY) - rect.top) + 1;
 				if (height < 90) {
 					height = 90;
 				}
@@ -189,11 +207,11 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				back.setAttribute('icon-height', height + 'px');
 			} else if (pt.resize_se) {
 				const rect = back.getBoundingClientRect();
-				let width = (((e.x !== undefined) ? e.x : e.touches[0].clientX) - rect.left);
+				let width = (((e.x !== undefined) ? e.x : e.touches[0].clientX) - rect.left) + 1;
 				if (width < 90) {
 					width = 90;
 				}
-				let height = (((e.y !== undefined) ? e.y : e.touches[0].clientY) - rect.top);
+				let height = (((e.y !== undefined) ? e.y : e.touches[0].clientY) - rect.top) + 1;
 				if (height < 90) {
 					height = 90;
 				}
