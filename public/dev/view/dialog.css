@@ -182,8 +182,9 @@
 	overflow: hidden;
 }
 #online-open-search-text {
-	width: 95%;
+	width: calc(100% - var(--font-size));
 	border: none;
+	font-size: var(--font-size);
 }
 #online-open-search-text:focus {
 	outline: 0;
