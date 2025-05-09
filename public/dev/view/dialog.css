@@ -185,6 +185,8 @@
 	width: calc(100% - var(--font-size));
 	border: none;
 	font-size: var(--font-size);
+	background-color: #fff;
+	color: #000;
 }
 #online-open-search-text:focus {
 	outline: 0;
