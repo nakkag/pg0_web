@@ -709,8 +709,8 @@ const onlineSaveView = (function () {
 		}, false);
 
 		document.getElementById('online-save-button').addEventListener('click', async function(e) {
-			const filename = document.getElementById('online-save-file').value;
-			const author = document.getElementById('online-save-author').value;
+			const filename = document.getElementById('online-save-file').value.trim();
+			const author = document.getElementById('online-save-author').value.trim();
 			const password = document.getElementById('online-save-password').value;
 			const privateMode = document.getElementById('online-save-private').checked ? 1 : 0;
 			if (!filename || !author || !password) {
