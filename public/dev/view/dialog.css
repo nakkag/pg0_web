@@ -261,6 +261,10 @@
 .file-item:active {
 	background-color: #ddd;
 }
+.file-memo {
+	font-size: calc(var(--font-size) * 0.8);
+	color: #808080;
+}
 .file-author {
 	font-size: calc(var(--font-size) * 0.8);
 	color: #aaa;
@@ -274,6 +278,7 @@
 	display: inline-block;
 	font-size: calc(var(--font-size) * 0.8);
 	padding: 4px 10px;
+	margin-left: 10px;
 	border-radius: 15px;
 	background-color: #bbb;
 	color: #fff;

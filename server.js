@@ -184,11 +184,11 @@ app.get('/api/script/history/:cid', async (req, res) => {
 		const ret = [];
 		const cdoc = await db.collection('script').findOne({cid: req.params.cid});
 		if (cdoc) {
-			ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, updateTime: cdoc.updateTime});
+			ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, memo: cdoc.memo, updateTime: cdoc.updateTime});
 		}
 		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, memo: doc.memo, updateTime: doc.updateTime});
 		}
 		res.json(ret);
 	} catch (error) {
@@ -251,6 +251,7 @@ app.post('/api/script', async (req, res) => {
 			type: req.body.type,
 			author: req.body.author,
 			password: req.body.password,
+			memo: req.body.memo,
 			private: req.body.private,
 			code: req.body.code,
 			speed: req.body.speed,
@@ -293,6 +294,7 @@ app.put('/api/script/:cid', async (req, res) => {
 			name: req.body.name,
 			type: req.body.type,
 			author: req.body.author,
+			memo: req.body.memo,
 			private: req.body.private,
 			code: req.body.code,
 			speed: req.body.speed,

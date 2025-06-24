@@ -494,11 +494,15 @@ const onlineHistoryView = (function () {
 							const date = new Date(script.updateTime);
 							time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 						}
+						let memo = '';
+						if (script.memo) {
+							memo = '<div class="file-memo">' + pg0_string.escapeHTML(script.memo) + '</div>'
+						}
 						if (document.getElementById('online-history-list').childElementCount === 0) {
-							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span> <span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span></div>' +
+							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span><span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span></div>' + memo +
 								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 						} else {
-							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
+							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' + memo +
 								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
 						}
 						document.getElementById('online-history-list').appendChild(nameNode);
@@ -671,6 +675,7 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-file').value = ev.currentContent.name || '';
 		document.getElementById('online-save-author').value = options.author || '';
 		document.getElementById('online-save-password').value = options.password || '';
+		document.getElementById('online-save-memo').value = '';
 		if (ev.currentContent.cid) {
 			document.getElementById('online-save-new').checked = false;
 			document.getElementById('online-save-new').parentElement.style.display = 'block';
@@ -690,6 +695,7 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-file-title').textContent = resource.ONLINE_SAVE_FILE_TITLE;
 		document.getElementById('online-save-author-title').textContent = resource.ONLINE_SAVE_AUTHOR_TITLE;
 		document.getElementById('online-save-password-title').textContent = resource.ONLINE_SAVE_PASSWORD_TITLE;
+		document.getElementById('online-save-memo-title').textContent = resource.ONLINE_SAVE_MEMO_TITLE;
 		document.getElementById('online-save-new-title').textContent = resource.ONLINE_SAVE_NEW_TITLE;
 		document.getElementById('online-save-private-title').textContent = resource.ONLINE_SAVE_PRIVATE_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
@@ -712,6 +718,7 @@ const onlineSaveView = (function () {
 			const filename = document.getElementById('online-save-file').value.trim();
 			const author = document.getElementById('online-save-author').value.trim();
 			const password = document.getElementById('online-save-password').value;
+			const memo = document.getElementById('online-save-memo').value;
 			const privateMode = document.getElementById('online-save-private').checked ? 1 : 0;
 			if (!filename || !author || !password) {
 				return;
@@ -721,6 +728,7 @@ const onlineSaveView = (function () {
 				type: options.execMode,
 				author: author,
 				password: pg0_string.crc32(password),
+				memo: memo,
 				code: ev.getText(),
 				speed: options.execSpeed,
 				private: privateMode
