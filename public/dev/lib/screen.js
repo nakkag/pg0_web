@@ -421,8 +421,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			screen.setAttribute('fit', fit.v.num);
 		}
 	}
-	window.addEventListener('resize', _screenResize, false);
-	window.addEventListener('orientationchange', _screenResize, false);
+	window.addEventListener('resize', _screenResizeDelay, false);
+	window.addEventListener('orientationchange', _screenResizeDelay, false);
 	_screenResize();
 
 	if (ScriptExec.lib['$i']) {
@@ -442,8 +442,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				ScriptExec.lib['$audio_ctx'] = null;
 			}
 			document.getElementById('lib-screen-back').style.display = 'none';
-			window.removeEventListener('resize', _screenResize, false);
-			window.removeEventListener('orientationchange', _screenResize, false);
+			window.removeEventListener('resize', _screenResizeDelay, false);
+			window.removeEventListener('orientationchange', _screenResizeDelay, false);
 			document.removeEventListener('keydown', _keyDown, false);
 			document.removeEventListener('keyup', _keyUp, false);
 		}
@@ -1402,6 +1402,11 @@ function stopSound() {
 	ScriptExec.lib['$oscillators'] = [];
 }
 
+function _screenResizeDelay() {
+	setTimeout(function() {
+		_screenResize();
+	}, 100);
+}
 function _screenResize() {
 	const screen = document.getElementById('lib-screen');
 	if (!screen) {
