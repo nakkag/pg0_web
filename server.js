@@ -373,6 +373,7 @@ async function diffHistory(cid) {
 						doc1.type === doc2.type &&
 						doc1.author === doc2.author &&
 						doc1.password === doc2.password &&
+						doc1.memo === doc2.memo &&
 						doc1.code === doc2.code &&
 						doc1.speed === doc2.speed) {
 						ret = true;
