@@ -286,6 +286,9 @@
 	white-space: nowrap;
 	vertical-align: top;
 }
+.file-private {
+	color: #aaa;
+}
 
 .file-menu {
 	position: absolute;

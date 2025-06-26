@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	setTimeout(function() {
 		if (!ev.loadState()) {
 			ev.setText("cnt = 0\ni = 1\nwhile (i <= 10) {\n\tcnt = cnt + i\n\ti = i + 1\n}\nexit cnt", '');
+			options.uuid = crypto.randomUUID();
 			settingView.save();
 		}
 		if (ev.currentContent.name) {

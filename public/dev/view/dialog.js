@@ -19,6 +19,7 @@ const settingView = (function () {
 			options.author = op.author || '';
 			options.password = op.password || '';
 			options.keyword = op.keyword || '';
+			options.uuid = op.uuid || crypto.randomUUID();
 			return true;
 		}
 		return false;
@@ -237,7 +238,7 @@ const onlineOpenView = (function () {
 		try {
 			const id = me.id = Math.random().toString(36).slice(-8);
 			const keyword = document.getElementById('online-open-search-text').value;
-			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${listCount}&skip=${me.skip}`)).json();
+			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${listCount}&skip=${me.skip}&uuid=${options.uuid}`)).json();
 			if (id !== me.id) {
 				return;
 			}
@@ -258,7 +259,7 @@ const onlineOpenView = (function () {
 						const date = new Date(script.updateTime);
 						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 					}
-					nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
+					nameNode.innerHTML = '<div><span class="file-name ' + ((script.private) ? 'file-private' : '') + '">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
 						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
@@ -700,10 +701,6 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-private-title').textContent = resource.ONLINE_SAVE_PRIVATE_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
 
-		if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator) {
-			document.getElementById('online-save-private').parentElement.style.display = 'none';
-		}
-
 		document.getElementById('online-save-private').addEventListener('click', function(e) {
 			if (document.getElementById('online-save-private').checked) {
 				alert(resource.ONLINE_CONFIRM_PRIVATE);
@@ -729,6 +726,7 @@ const onlineSaveView = (function () {
 				author: author,
 				password: pg0_string.crc32(password),
 				memo: memo,
+				uuid: options.uuid,
 				code: ev.getText(),
 				speed: options.execSpeed,
 				private: privateMode

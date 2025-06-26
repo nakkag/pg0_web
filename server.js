@@ -100,10 +100,10 @@ app.get('/api/script', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const cursor = db.collection('script').find({private: {$ne: 1}}).sort({updateTime: -1}).limit(count).skip(skip);
+		const cursor = db.collection('script').find({$or: [{private: {$ne: 1}}, {uuid: req.query.uuid}]}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
 		res.json(ret);
 	} catch (error) {
@@ -132,10 +132,10 @@ app.get('/api/script/:keyword', async (req, res) => {
 		list.forEach(function(d) {
 			regs.push({keyword: new RegExp(d, 'i')});
 		});
-		const cursor = await db.collection('script').find({$and: regs, private: {$ne: 1}}).sort({updateTime: -1}).limit(count).skip(skip);
+		const cursor = await db.collection('script').find({$and: regs, $or: [{private: {$ne: 1}}, {uuid: req.query.uuid}]}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
 		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime});
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
 		res.json(ret);
 	} catch (error) {
@@ -159,6 +159,7 @@ app.get('/api/script/item/:cid', async (req, res) => {
 		delete doc.ipaddr;
 		delete doc.password;
 		delete doc.keyword;
+		delete doc.uuid;
 		res.json(doc);
 	} catch (error) {
 		logger.error(error);
@@ -215,6 +216,7 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 		delete doc.ipaddr;
 		delete doc.password;
 		delete doc.keyword;
+		delete doc.uuid;
 		res.json(doc);
 	} catch (error) {
 		logger.error(error);
@@ -252,6 +254,7 @@ app.post('/api/script', async (req, res) => {
 			author: req.body.author,
 			password: req.body.password,
 			memo: req.body.memo,
+			uuid: req.body.uuid,
 			private: req.body.private,
 			code: req.body.code,
 			speed: req.body.speed,
@@ -295,6 +298,7 @@ app.put('/api/script/:cid', async (req, res) => {
 			type: req.body.type,
 			author: req.body.author,
 			memo: req.body.memo,
+			uuid: req.body.uuid,
 			private: req.body.private,
 			code: req.body.code,
 			speed: req.body.speed,
