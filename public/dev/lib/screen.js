@@ -85,27 +85,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	// Key events
 	ScriptExec.lib['$key'] = [];
 	ScriptExec.lib['$keyTimer'] = null;
-	const _keyDown = function(e) {
-		e.preventDefault();
-		if (!ScriptExec.lib['$key'].includes(e.key)) {
-			ScriptExec.lib['$key'].push(e.key);
-		}
-		if (ScriptExec.lib['$keyTimer']) {
-			clearTimeout(ScriptExec.lib['$keyTimer']);
-		}
-		ScriptExec.lib['$keyTimer'] = setTimeout(function() {
-			ScriptExec.lib['$keyTimer'] = null;
-			ScriptExec.lib['$key'] = [];
-		}, 1000);
-	};
-	const _keyUp = function(e) {
-		e.preventDefault();
-		ScriptExec.lib['$key'] = ScriptExec.lib['$key'].filter(function(d) {
-			return d !== e.key;
-		});
-	};
-	document.addEventListener('keydown', _keyDown, false);
-	document.addEventListener('keyup', _keyUp, false);
+	if (!ScriptExec.lib['$show']) {
+		document.addEventListener('keydown', _screenKeyDown, false);
+		document.addEventListener('keyup', _screenKeyUp, false);
+	}
 
 	let back = document.getElementById('lib-screen-back');
 	if (!back) {
@@ -304,7 +287,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			} else {
 				ScriptExec.lib['$op'].mute = true;
 				sound.innerHTML = '<img src="lib/image/sc_mute.svg">';
-				stopSound();
+				_screenStopSound();
 			}
 			localStorage.setItem('pg0_screen', JSON.stringify(ScriptExec.lib['$op']));
 		}, false);
@@ -411,18 +394,20 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	ScriptExec.lib['$offscreen'].setAttribute('height', `${h}px`);
 	screen.setAttribute('fit', 1);
 	if (param.length >= 3 && param[2].v.type === TYPE_ARRAY) {
-		const color = _getArrayValue(param[2].v.array, 'color');
+		const color = _screenGetArrayValue(param[2].v.array, 'color');
 		if (color && color.v.type === TYPE_STRING) {
 			screen.style.backgroundColor = color.v.str;
 			ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
 		}
-		const fit = _getArrayValue(param[2].v.array, 'fit');
+		const fit = _screenGetArrayValue(param[2].v.array, 'fit');
 		if (fit) {
 			screen.setAttribute('fit', fit.v.num);
 		}
 	}
-	window.addEventListener('resize', _screenResizeDelay, false);
-	window.addEventListener('orientationchange', _screenResizeDelay, false);
+	if (!ScriptExec.lib['$show']) {
+		window.addEventListener('resize', _screenResizeDelay, false);
+		window.addEventListener('orientationchange', _screenResizeDelay, false);
+	}
 	_screenResize();
 
 	if (ScriptExec.lib['$i']) {
@@ -432,7 +417,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		if (!run) {
 			clearInterval(ScriptExec.lib['$i']);
 			ScriptExec.lib['$i'] = null;
-			stopSound();
+			_screenStopSound();
 			if (ScriptExec.lib['$offscreen']) {
 				ScriptExec.lib['$offscreen'].remove();
 				ScriptExec.lib['$offscreen'] = null;
@@ -444,10 +429,12 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			document.getElementById('lib-screen-back').style.display = 'none';
 			window.removeEventListener('resize', _screenResizeDelay, false);
 			window.removeEventListener('orientationchange', _screenResizeDelay, false);
-			document.removeEventListener('keydown', _keyDown, false);
-			document.removeEventListener('keyup', _keyUp, false);
+			document.removeEventListener('keydown', _screenKeyDown, false);
+			document.removeEventListener('keyup', _screenKeyUp, false);
+			ScriptExec.lib['$show'] = false;
 		}
 	}, 100);
+	ScriptExec.lib['$show'] = true;
 	return 0;
 };
 
@@ -523,7 +510,7 @@ ScriptExec.lib['timestring'] = function(ei, param, ret) {
 	return 0;
 };
 
-function getCanvas() {
+function _screenGetCanvas() {
 	if (ScriptExec.lib['$offscreen_flag']) {
 		return ScriptExec.lib['$offscreen'];
 	}
@@ -557,7 +544,7 @@ ScriptExec.lib['clearrect'] = async function(ei, param, ret) {
 	const w = param[2].v.num;
 	const h = param[3].v.num;
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.clearRect(x, y, w, h);
 	return 0;
@@ -567,7 +554,7 @@ ScriptExec.lib['drawline'] = async function(ei, param, ret) {
 	if (param.length < 4) {
 		return -2;
 	}
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	ctx.moveTo(param[0].v.num, param[1].v.num);
@@ -575,11 +562,11 @@ ScriptExec.lib['drawline'] = async function(ei, param, ret) {
 	ctx.lineWidth = 1;
 	ctx.strokeStyle = '#000';
 	if (param.length >= 5 && param[4].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[4].v.array, 'width');
+		let vi = _screenGetArrayValue(param[4].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			ctx.lineWidth = vi.v.num;
 		}
-		vi = _getArrayValue(param[4].v.array, 'color');
+		vi = _screenGetArrayValue(param[4].v.array, 'color');
 		if (vi && vi.v.type === TYPE_STRING) {
 			ctx.strokeStyle = vi.v.str;
 		}
@@ -600,20 +587,20 @@ ScriptExec.lib['drawrect'] = async function(ei, param, ret) {
 	let width = 1;
 	let fill = 0;
 	if (param.length >= 5 && param[4].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[4].v.array, 'color');
+		let vi = _screenGetArrayValue(param[4].v.array, 'color');
 		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
-		vi = _getArrayValue(param[4].v.array, 'width');
+		vi = _screenGetArrayValue(param[4].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
-		vi = _getArrayValue(param[4].v.array, 'fill');
+		vi = _screenGetArrayValue(param[4].v.array, 'fill');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
 	}
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	ctx.rect(x, y, w, h);
@@ -644,40 +631,40 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 	let fill = 0;
 	let close = 0;
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[3].v.array, 'radius_y');
+		let vi = _screenGetArrayValue(param[3].v.array, 'radius_y');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			radiusY = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'rotation');
+		vi = _screenGetArrayValue(param[3].v.array, 'rotation');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			rotation = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'start');
+		vi = _screenGetArrayValue(param[3].v.array, 'start');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			startAngle = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'end');
+		vi = _screenGetArrayValue(param[3].v.array, 'end');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			endAngle = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'color');
+		vi = _screenGetArrayValue(param[3].v.array, 'color');
 		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
-		vi = _getArrayValue(param[3].v.array, 'width');
+		vi = _screenGetArrayValue(param[3].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'fill');
+		vi = _screenGetArrayValue(param[3].v.array, 'fill');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'close');
+		vi = _screenGetArrayValue(param[3].v.array, 'close');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			close = vi.v.num;
 		}
 	}
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	ctx.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle);
@@ -704,25 +691,25 @@ ScriptExec.lib['drawpolyline'] = async function(ei, param, ret) {
 	let fill = 0;
 	let close = 0;
 	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[1].v.array, 'color');
+		let vi = _screenGetArrayValue(param[1].v.array, 'color');
 		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
-		vi = _getArrayValue(param[1].v.array, 'width');
+		vi = _screenGetArrayValue(param[1].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
-		vi = _getArrayValue(param[1].v.array, 'fill');
+		vi = _screenGetArrayValue(param[1].v.array, 'fill');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
-		vi = _getArrayValue(param[1].v.array, 'close');
+		vi = _screenGetArrayValue(param[1].v.array, 'close');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			close = vi.v.num;
 		}
 	}
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
 	let first = true;
@@ -772,7 +759,7 @@ ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
 	}
 	const fillColor = {r: parseInt(rr, 16), g: parseInt(gg, 16), b: parseInt(bb, 16), a: 255};
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const width = parseInt(screen.getAttribute('width'));
 	const height = parseInt(screen.getAttribute('height'));
@@ -858,7 +845,7 @@ ScriptExec.lib['drawscroll'] = async function(ei, param, ret) {
 	let dx = parseInt(param[0].v.num);
 	let dy = parseInt(param[1].v.num);
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const width = parseInt(screen.getAttribute('width'));
 	const height = parseInt(screen.getAttribute('height'));
@@ -894,13 +881,13 @@ ScriptExec.lib['createimage'] = async function(ei, param, ret) {
 	const h = param[3].v.num;
 	let imageId = -1;
 	if (param.length >= 5 && param[4].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[4].v.array, 'id');
+		let vi = _screenGetArrayValue(param[4].v.array, 'id');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			imageId = parseInt(vi.v.num);
 		}
 	}
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const tmpScreen = document.createElement('canvas');
 	tmpScreen.setAttribute('width', `${w}px`);
 	tmpScreen.setAttribute('height', `${h}px`);
@@ -943,25 +930,25 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 	let angle = null;
 	let alpha = 1.0;
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[3].v.array, 'width');
+		let vi = _screenGetArrayValue(param[3].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'height');
+		vi = _screenGetArrayValue(param[3].v.array, 'height');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			height = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'angle');
+		vi = _screenGetArrayValue(param[3].v.array, 'angle');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			angle = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'alpha');
+		vi = _screenGetArrayValue(param[3].v.array, 'alpha');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			alpha = vi.v.num;
 		}
 	}
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.globalAlpha = alpha;
 	if (!angle) {
@@ -996,32 +983,32 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	let fontSize = 30;
 	let fontFace = 'sans-serif';
 	if (param.length >= 4 && param[3].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[3].v.array, 'color');
+		let vi = _screenGetArrayValue(param[3].v.array, 'color');
 		if (vi && vi.v.type === TYPE_STRING) {
 			color = vi.v.str;
 		}
-		vi = _getArrayValue(param[3].v.array, 'width');
+		vi = _screenGetArrayValue(param[3].v.array, 'width');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			width = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'fill');
+		vi = _screenGetArrayValue(param[3].v.array, 'fill');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fill = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'fontstyle');
+		vi = _screenGetArrayValue(param[3].v.array, 'fontstyle');
 		if (vi && vi.v.type === TYPE_STRING) {
 			fontStyle = vi.v.str;
 		}
-		vi = _getArrayValue(param[3].v.array, 'fontsize');
+		vi = _screenGetArrayValue(param[3].v.array, 'fontsize');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fontSize = vi.v.num;
 		}
-		vi = _getArrayValue(param[3].v.array, 'fontface');
+		vi = _screenGetArrayValue(param[3].v.array, 'fontface');
 		if (vi && vi.v.type === TYPE_STRING) {
 			fontFace = vi.v.str;
 		}
 	}
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.font = `${fontStyle} ${fontSize}px ${fontFace}`;
 	if (fill) {
@@ -1049,20 +1036,20 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 	let fontSize = 30;
 	let fontFace = 'sans-serif';
 	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[1].v.array, 'fontstyle');
+		let vi = _screenGetArrayValue(param[1].v.array, 'fontstyle');
 		if (vi && vi.v.type === TYPE_STRING) {
 			fontStyle = vi.v.str;
 		}
-		vi = _getArrayValue(param[1].v.array, 'fontsize');
+		vi = _screenGetArrayValue(param[1].v.array, 'fontsize');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			fontSize = vi.v.num;
 		}
-		vi = _getArrayValue(param[1].v.array, 'fontface');
+		vi = _screenGetArrayValue(param[1].v.array, 'fontface');
 		if (vi && vi.v.type === TYPE_STRING) {
 			fontFace = vi.v.str;
 		}
 	}
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.font = `${fontStyle} ${fontSize}px ${fontFace}`;
 	const mesure = ctx.measureText(text);
@@ -1087,7 +1074,7 @@ ScriptExec.lib['rgbtopoint'] = async function(ei, param, ret) {
 	const x = param[0].v.num;
 	const y = param[1].v.num;
 
-	const screen = getCanvas();
+	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	const imgData = ctx.getImageData(x, y, 1, 1);
 	
@@ -1119,15 +1106,15 @@ ScriptExec.lib['rgbtohex'] = async function(ei, param, ret) {
 		g = param[0].v.array[1].v.num;
 		b = param[0].v.array[2].v.num;
 	} else {
-		let vi = _getArrayValue(param[0].v.array, 'r')
+		let vi = _screenGetArrayValue(param[0].v.array, 'r')
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			r = vi.v.num;
 		}
-		vi = _getArrayValue(param[0].v.array, 'g')
+		vi = _screenGetArrayValue(param[0].v.array, 'g')
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			g = vi.v.num;
 		}
-		vi = _getArrayValue(param[0].v.array, 'b')
+		vi = _screenGetArrayValue(param[0].v.array, 'b')
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			b = vi.v.num;
 		}
@@ -1260,14 +1247,14 @@ ScriptExec.lib['inkey'] = async function(ei, param, ret) {
 	return 0;
 };
 
-function _getArrayValue(array, key) {
+function _screenGetArrayValue(array, key) {
 	const tmp_key = key.toLowerCase();
 	return array.find(function(v) {
 		return v.name !== '' && tmp_key === v.name.toLowerCase();
 	});
 }
 
-function noteFrequency(note) {
+function _screenNoteFrequency(note) {
 	const notePattern = /^([A-Ga-g][#b]?)(\d+)?$/;
 	const match = note.match(notePattern);
 	if (!match) {
@@ -1291,7 +1278,7 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	}
 	let frequency = param[0].v.num;
 	if (param[0].v.type === TYPE_STRING) {
-		frequency = noteFrequency(param[0].v.str);
+		frequency = _screenNoteFrequency(param[0].v.str);
 	}
 	const start = param[1].v.num;
 	const end = param[2].v.num;
@@ -1299,7 +1286,7 @@ ScriptExec.lib['playsound'] = async function(ei, param, ret) {
 	if (param.length >= 4) {
 		volume = param[3].v.num;
 	}
-	playSound(frequency, start, end, volume, null);
+	_screenPlaySound(frequency, start, end, volume, null);
 	return 0;
 };
 
@@ -1312,25 +1299,25 @@ ScriptExec.lib['playmusic'] = async function(ei, param, ret) {
 	}
 	let repeat = 0;
 	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
-		let vi = _getArrayValue(param[1].v.array, 'repeat');
+		let vi = _screenGetArrayValue(param[1].v.array, 'repeat');
 		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
 			repeat = vi.v.num;
 		}
 	}
 	if (repeat) {
-		repeatSounds(param[0].v.array);
+		_screenRepeatSounds(param[0].v.array);
 	} else {
-		playMusic(param[0].v.array, null);
+		_screenPlayMusic(param[0].v.array, null);
 	}
 	return 0;
 };
 
 ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
-	stopSound();
+	_screenStopSound();
 	return 0;
 }
 
-function playSound(frequency, start, end, volume, callback) {
+function _screenPlaySound(frequency, start, end, volume, callback) {
 	if (!ScriptExec.lib['$audio_ctx']) {
 		ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 	}
@@ -1357,7 +1344,7 @@ function playSound(frequency, start, end, volume, callback) {
 	}
 	ScriptExec.lib['$oscillators'].push(oscillator);
 }
-function playMusic(array, callback) {
+function _screenPlayMusic(array, callback) {
 	let start = 0;
 	let baseVolume = 1.0;
 	array.forEach(function(d, i) {
@@ -1373,7 +1360,7 @@ function playMusic(array, callback) {
 		if (d.v.type === TYPE_ARRAY && d.v.array.length >= 2) {
 			let frequency = d.v.array[0].v.num;
 			if (d.v.array[0].v.type === TYPE_STRING) {
-				frequency = noteFrequency(d.v.array[0].v.str);
+				frequency = _screenNoteFrequency(d.v.array[0].v.str);
 			}
 			const len = d.v.array[1].v.num;
 			let volume = baseVolume;
@@ -1381,25 +1368,45 @@ function playMusic(array, callback) {
 				volume = d.v.array[2].v.num;
 			}
 			if (i === array.length - 1) {
-				playSound(frequency, start, len, volume, callback);
+				_screenPlaySound(frequency, start, len, volume, callback);
 			} else {
-				playSound(frequency, start, len, volume, null);
+				_screenPlaySound(frequency, start, len, volume, null);
 			}
 			start += len;
 		}
 	});
 }
-function repeatSounds(array) {
-	playMusic(array, function() {
-		repeatSounds(array);
+function _screenRepeatSounds(array) {
+	_screenPlayMusic(array, function() {
+		_screenRepeatSounds(array);
 	});
 }
-function stopSound() {
+function _screenStopSound() {
 	ScriptExec.lib['$oscillators'].forEach(function(oscillator) {
 		oscillator.stopSound = 1;
 		oscillator.stop();
 	});
 	ScriptExec.lib['$oscillators'] = [];
+}
+
+function _screenKeyDown(e) {
+	e.preventDefault();
+	if (!ScriptExec.lib['$key'].includes(e.key)) {
+		ScriptExec.lib['$key'].push(e.key);
+	}
+	if (ScriptExec.lib['$keyTimer']) {
+		clearTimeout(ScriptExec.lib['$keyTimer']);
+	}
+	ScriptExec.lib['$keyTimer'] = setTimeout(function() {
+		ScriptExec.lib['$keyTimer'] = null;
+		ScriptExec.lib['$key'] = [];
+	}, 1000);
+}
+function _screenKeyUp(e) {
+	e.preventDefault();
+	ScriptExec.lib['$key'] = ScriptExec.lib['$key'].filter(function(d) {
+		return d !== e.key;
+	});
 }
 
 function _screenResizeDelay() {
