@@ -227,6 +227,13 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 });
 
 app.post('/api/script', async (req, res) => {
+	if (req.body.name && req.body.name.length > settings.nameLength) {
+		return res.status(413).json({type: 'name', max: settings.nameLength});
+	}
+	if (req.body.author && req.body.author.length > settings.authorLength) {
+		return res.status(413).json({type: 'author', max: settings.authorLength});
+	}
+
 	let newCid = crypto.randomUUID();
 	const time = new Date().getTime();
 
@@ -275,6 +282,13 @@ app.post('/api/script', async (req, res) => {
 });
 
 app.put('/api/script/:cid', async (req, res) => {
+	if (req.body.name && req.body.name.length > settings.nameLength) {
+		return res.status(413).json({type: 'name', max: settings.nameLength});
+	}
+	if (req.body.author && req.body.author.length > settings.authorLength) {
+		return res.status(413).json({type: 'author', max: settings.authorLength});
+	}
+
 	let client;
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);

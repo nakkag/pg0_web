@@ -8,3 +8,6 @@ exports.httpPort = 80;
 
 exports.listCount = 30;
 exports.maxCount = 100;
+
+exports.nameLength = 100;
+exports.authorLength = 100;

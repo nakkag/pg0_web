@@ -717,7 +717,16 @@ const onlineSaveView = (function () {
 			const password = document.getElementById('online-save-password').value;
 			const memo = document.getElementById('online-save-memo').value;
 			const privateMode = document.getElementById('online-save-private').checked ? 1 : 0;
-			if (!filename || !author || !password) {
+			if (!filename) {
+				alert(resource.ONLINE_ERROR_NAME_NOT_ENTERED);
+				return;
+			}
+			if (!author) {
+				alert(resource.ONLINE_ERROR_AUTHOR_NOT_ENTERED);
+				return;
+			}
+			if (!password) {
+				alert(resource.ONLINE_ERROR_PASSWORD_NOT_ENTERED);
 				return;
 			}
 			const script = {
@@ -775,6 +784,16 @@ const onlineSaveView = (function () {
 					break;
 				case 409:
 					alert(resource.ONLINE_ERROR_CONFLICT);
+					break;
+				case 413:
+					const errbody = await res.json();
+					if (errbody.type === 'name') {
+						alert(resource.ONLINE_ERROR_NAME_TOO_LONG);
+					} else if (errbody.type === 'author') {
+						alert(resource.ONLINE_ERROR_AUTHOR_TOO_LONG);
+					} else {
+						alert(res.statusText + '(' + res.status + ')');
+					}
 					break;
 				default:
 					alert(res.statusText + '(' + res.status + ')');
