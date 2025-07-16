@@ -100,8 +100,12 @@ app.get('/api/script', async (req, res) => {
 	try {
 		client = await mongodb.MongoClient.connect(settings.dbOption);
 		const db = client.db('pg0');
-		const cursor = db.collection('script').find({$or: [{private: {$ne: 1}}, {uuid: req.query.uuid || ''}]}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
+		let cursor = db.collection('script').find({uuid: req.query.uuid}).sort({updateTime: -1}).limit(count).skip(skip);
+		for await (const doc of cursor) {
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
+		}
+		cursor = db.collection('script').find({private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
@@ -132,8 +136,12 @@ app.get('/api/script/:keyword', async (req, res) => {
 		list.forEach(function(d) {
 			regs.push({keyword: new RegExp(d, 'i')});
 		});
-		const cursor = await db.collection('script').find({$and: regs, $or: [{private: {$ne: 1}}, {uuid: req.query.uuid || ''}]}).sort({updateTime: -1}).limit(count).skip(skip);
 		const ret = [];
+		let cursor = await db.collection('script').find({$and: regs, uuid: req.query.uuid}).sort({updateTime: -1}).limit(count).skip(skip);
+		for await (const doc of cursor) {
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
+		}
+		cursor = await db.collection('script').find({$and: regs, private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
@@ -155,11 +163,22 @@ app.get('/api/script/item/:cid', async (req, res) => {
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
+		const prev = (req.headers['x-forwarded-for'] ||
+			(req.connection && req.connection.remoteAddress) ||
+			(req.socket && req.socket.remoteAddress));
+		if (prev !== doc.prev) {
+			await db.collection('script').updateOne({cid: req.params.cid}, {$set: {
+				showCount: (doc.showCount || 0) + 1,
+				prev: prev,
+			}});
+		}
 		delete doc._id;
 		delete doc.ipaddr;
 		delete doc.password;
 		delete doc.keyword;
 		delete doc.uuid;
+		delete doc.showCount;
+		delete doc.prev;
 		res.json(doc);
 	} catch (error) {
 		logger.error(error);
@@ -217,6 +236,8 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 		delete doc.password;
 		delete doc.keyword;
 		delete doc.uuid;
+		delete doc.showCount;
+		delete doc.prev;
 		res.json(doc);
 	} catch (error) {
 		logger.error(error);
@@ -268,6 +289,7 @@ app.post('/api/script', async (req, res) => {
 			keyword: req.body.name + ' ' + req.body.author,
 			createTime: time,
 			updateTime: time,
+			showCount: 0,
 			ipaddr: (req.headers['x-forwarded-for'] ||
 				(req.connection && req.connection.remoteAddress) ||
 				(req.socket && req.socket.remoteAddress)),
