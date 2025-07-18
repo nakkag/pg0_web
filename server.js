@@ -105,7 +105,7 @@ app.get('/api/script', async (req, res) => {
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
-		cursor = db.collection('script').find({private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
+		cursor = db.collection('script').find({uuid: {$ne: req.query.uuid}, private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
@@ -141,7 +141,7 @@ app.get('/api/script/:keyword', async (req, res) => {
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
-		cursor = await db.collection('script').find({$and: regs, private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
+		cursor = await db.collection('script').find({$and: regs, uuid: {$ne: req.query.uuid}, private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
 			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
 		}
