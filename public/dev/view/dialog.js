@@ -746,6 +746,7 @@ const onlineSaveView = (function () {
 				method = 'PUT';
 				url = `${apiServer}/api/script/${ev.currentContent.cid}`;
 			}
+			document.getElementById('online-save-button').disabled = true;
 			try {
 				const res = await fetch(url, {
 					method: method,
@@ -803,6 +804,7 @@ const onlineSaveView = (function () {
 				console.error(e);
 				alert(resource.ONLINE_ERROR_CONNECTION);
 			}
+			document.getElementById('online-save-button').disabled = false;
 		}, false);
 	}, false);
 
