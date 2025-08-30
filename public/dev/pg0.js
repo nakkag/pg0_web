@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	function setGridTemplate() {
 		if (editFocus) {
 			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
-			if (ua.name.indexOf('iphone os 19') >= 0 && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator)) {
+			if (ua.name.indexOf('iphone os 18_6') >= 0 && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator)) {
 				container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top) - 25px)`;
 			}
 		} else {
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		}
 		if (editFocus) {
 			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
-			if (ua.name.indexOf('iphone os 19') >= 0 && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator)) {
+			if (ua.name.indexOf('iphone os 18_6') >= 0 && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && 'serviceWorker' in navigator)) {
 				container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top) - 25px)`;
 			}
 			editorContainer.scrollTop = scrollTop;
