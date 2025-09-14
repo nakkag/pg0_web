@@ -500,9 +500,9 @@ function ScriptParse(sci) {
 
 		let m;
 		if (sci.extension) {
-			m = pi.buf.match(/(&[a-z0-9_]+)|([a-z0-9_]+)/i);
+			m = pi.buf.match(/(&[_\p{L}\p{N}]+)|([_\p{L}\p{N}]+)/iu);
 		} else {
-			m = pi.buf.match(/[a-z0-9_]+/i);
+			m = pi.buf.match(/[_\p{L}\p{N}]+/iu);
 		}
 		if (!m) {
 			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
