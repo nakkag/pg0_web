@@ -114,7 +114,7 @@ Allocating the same variable name within the same block results in an error.
 	}
 	y = x // The value of x is 0
 
-Variable names can include alphanumeric characters and underscores, but cannot start with a number.
+Variable names can include alphanumeric characters underscores and full-width characters, but cannot start with a number.
 Variable names are case-insensitive.
 
 Stating only numerical values or only strings is a constant.
@@ -354,6 +354,7 @@ Functions are defined with the following syntax:
 To call a function, use the following form:
 	functionName(argument1, [argument2, ...])
 Functions can be called regardless of whether they are defined before or after the call in the script.
+Function names can include alphanumeric characters underscores and full-width characters, but cannot start with a number.
 Function names are case-insensitive.
 Functions always return 0 by default, but can return a specific value using the return statement.
 It is necessary to specify 'function' before the function name.
