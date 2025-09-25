@@ -121,7 +121,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}, false);
 	document.dispatchEvent(new CustomEvent('setting_change'));
 
-	document.addEventListener('state_change', function(e) {
+	document.addEventListener('setting_load', function(e) {
+		settingView.load();
+		document.dispatchEvent(new CustomEvent('setting_change'));
+	}, false);
+
+	document.addEventListener('state_load', function(e) {
 		ev.loadState();
 	}, false);
 
