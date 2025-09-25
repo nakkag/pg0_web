@@ -121,6 +121,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}, false);
 	document.dispatchEvent(new CustomEvent('setting_change'));
 
+	document.addEventListener('state_change', function(e) {
+		ev.loadState();
+	}, false);
+
 	document.addEventListener('keydown', async function(e) {
 		switch (e.key) {
 		case 'F5':
