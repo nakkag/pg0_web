@@ -333,12 +333,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 	let editFocus = false;
 	function setGridTemplate() {
 		if (editFocus) {
-			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
+			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top) - 5px)`;
 		} else {
 			if (CSS.supports('height: 100dvh')) {
-				container.style.height = 'calc(100dvh - env(safe-area-inset-top))';
+				container.style.height = 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))';
 			} else {
-				container.style.height = 'calc(100vh - env(safe-area-inset-top))';
+				container.style.height = 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))';
 			}
 			if (checkOrientation() === 0) {
 				if (container.classList.contains('mobile')) {
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 			fullEditor = true;
 		}
 		if (editFocus) {
-			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top))`;
+			container.style.height = `calc(${window.visualViewport.height}px - env(safe-area-inset-top) - 5px)`;
 			editorContainer.scrollTop = scrollTop;
 			ev.showCaret();
 		}
