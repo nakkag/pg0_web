@@ -846,7 +846,7 @@ async function exec(_step) {
 	run = false;
 
 	const ua = user_agent.get();
-	if (!ua.isiOS && !ua.isAndroid) {
+	if (!ua.isiOS && !ua.isAndroid && !ua.isChromeOS) {
 		document.getElementById('editor').focus();
 	}
 }
