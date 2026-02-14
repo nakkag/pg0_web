@@ -741,6 +741,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 		checkMenu();
 		setTimeout(function() {
 			document.getElementById('main').style.display = 'block';
+			if (window.parent && window.parent.postMessage) {
+				window.parent.postMessage({type: 'pg0', event: 'load', content: ev.currentContent}, '*');
+			}
 		}, 100);
 	}, 10);
 
