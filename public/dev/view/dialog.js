@@ -300,6 +300,10 @@ const onlineOpenView = (function () {
 				// Notify main event
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				history.replaceState('', '', `${location.pathname}?cid=${cid}`);
+
+				if (window.parent && window.parent.postMessage) {
+					window.parent.postMessage({type: 'pg0', event: 'read', content: ev.currentContent}, '*');
+				}
 				break;
 			case 404:
 				if (!ignoreError) {
@@ -556,6 +560,10 @@ const onlineHistoryView = (function () {
 				// Notify main event
 				document.dispatchEvent(new CustomEvent('setting_change'));
 				history.replaceState('', '', `${location.pathname}?cid=${me.cid}`);
+
+				if (window.parent && window.parent.postMessage) {
+					window.parent.postMessage({type: 'pg0', event: 'read', content: ev.currentContent}, '*');
+				}
 				break;
 			case 404:
 				alert(resource.ONLINE_ERROR_NOT_FOUND);

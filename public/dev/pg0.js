@@ -550,6 +550,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 				vv.clear();
 				cv.clear();
 				checkMenu();
+				if (window.parent && window.parent.postMessage) {
+					window.parent.postMessage({type: 'pg0', event: 'new', content: ev.currentContent}, '*');
+				}
 				break;
 			case 'menu-online-open':
 				if (ev.currentContent.modify && !window.confirm(resource.MSG_NEW)) {
@@ -648,6 +651,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 				history.replaceState('', '', location.pathname);
 				vv.clear();
 				cv.clear();
+				if (window.parent && window.parent.postMessage) {
+					window.parent.postMessage({type: 'pg0', event: 'read', content: ev.currentContent}, '*');
+				}
 			} catch(err) {
 				console.error(err);
 				alert(err);
