@@ -98,6 +98,25 @@ endOffscreen()
 	* Return Value
 		0
 
+startMask()
+	* Description
+		Start mask drawing mode.
+		While in mask drawing mode, only the areas you draw on will remain visible; everything else will be transparent.
+	* Parameters
+		option - Specify options as an associative array.
+					{"destination": Mask destination (string)}
+					If you specify "out", the drawn area will become transparent.
+	* Return Value
+		0
+
+endMask()
+	* Description
+		Exit mask drawing mode.
+	* Parameters
+		None
+	* Return Value
+		0
+
 clearRect(x, y, width, height)
 	* Description
 		Makes the area transparent.
@@ -553,7 +572,7 @@ set_clipboard(text)
 		Returns 1 on success, 0 on failure.
 
 --
-Copyright (C) 1996-2024 by Ohno Tomoaki. All rights reserved.
+Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.
     WEB SITE: https://nakka.com/
     E-MAIL: nakka@nakka.com
 </pre>

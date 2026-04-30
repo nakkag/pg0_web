@@ -521,8 +521,8 @@ ScriptExec.lib['startoffscreen'] = async function(ei, param, ret) {
 	ScriptExec.lib['$offscreen_flag'] = 1;
 
 	const offScreen = ScriptExec.lib['$offscreen'];
-	const osCtx = offScreen.getContext('2d');
-	osCtx.drawImage(document.getElementById('lib-screen'), 0, 0);
+	const ctx = offScreen.getContext('2d');
+	ctx.drawImage(document.getElementById('lib-screen'), 0, 0);
 	return 0;
 };
 
@@ -532,6 +532,27 @@ ScriptExec.lib['endoffscreen'] = async function(ei, param, ret) {
 	const screen = document.getElementById('lib-screen');
 	const ctx = screen.getContext('2d');
 	ctx.drawImage(ScriptExec.lib['$offscreen'], 0, 0);
+	return 0;
+};
+
+ScriptExec.lib['startmask'] = async function(ei, param, ret) {
+	let op = 'destination-in';
+	if (param.length >= 1 && param[0].v.type === TYPE_ARRAY) {
+		let vi = _screenGetArrayValue(param[0].v.array, 'destination');
+		if (vi && vi.v.type === TYPE_STRING && vi.v.str.toLowerCase() === 'out') {
+			op = 'destination-out';
+		}
+	}
+	const screen = _screenGetCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.globalCompositeOperation = op;
+	return 0;
+};
+
+ScriptExec.lib['endmask'] = async function(ei, param, ret) {
+	const screen = _screenGetCanvas();
+	const ctx = screen.getContext('2d', {willReadFrequently: true});
+	ctx.globalCompositeOperation = 'source-over';
 	return 0;
 };
 

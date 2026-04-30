@@ -99,6 +99,25 @@ endOffscreen()
 	[戻り値]
 		0
 
+startMask()
+	[説明]
+		マスク描画モードを開始します。
+		マスク描画モード中は描画した領域のみが残り、それ以外の部分は透明になります。
+	[引数]
+		option - オプションを連想配列で指定します。
+					{"destination": マスクの場所(文字列)}
+					"out"を指定すると描画した領域が透明になります。
+	[戻り値]
+		0
+
+endMask()
+	[説明]
+		マスク描画モードを終了します。
+	[引数]
+		なし
+	[戻り値]
+		0
+
 clearRect(x, y, width, height)
 	[説明]
 		指定領域の描画を透明化します。
@@ -559,7 +578,7 @@ set_clipboard(text)
 		成功すると1、失敗すると0を返す。
 
 --
-Copyright (C) 1996-2024 by Ohno Tomoaki. All rights reserved.
+Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.
     WEB SITE: https://nakka.com/
     E-MAIL: nakka@nakka.com
 </pre>
