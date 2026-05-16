@@ -45,6 +45,28 @@ app.options('*', function (req, res) {
 	res.sendStatus(200);
 });
 
+let client = null;
+let db = null;
+
+async function getDB() {
+	if (db) {
+		return db;
+	}
+	client = new mongodb.MongoClient(settings.dbOption, {
+		maxPoolSize: 20,
+		minPoolSize: 5,
+		connectTimeoutMS: 5000,
+		socketTimeoutMS: 30000
+	});
+	await client.connect();
+
+	db = client.db('pg0');
+	if (!db) {
+		throw new Error('MongoDB is not connected');
+	}
+	return db;
+}
+
 app.get('/import', async (req, res) => {
 	try {
 		const url = req.query.url.replace(/\r\n/, '');
@@ -59,10 +81,8 @@ app.get('/import', async (req, res) => {
 					cid = result[1];
 				}
 			}
-			let client;
 			try {
-				client = await mongodb.MongoClient.connect(settings.dbOption);
-				const db = client.db('pg0');
+				const db = await getDB();
 				const doc = await db.collection('script').findOne({cid: cid});
 				if (!doc) {
 					return res.status(404).send('Not found.');
@@ -71,8 +91,6 @@ app.get('/import', async (req, res) => {
 			} catch (error) {
 				logger.error(error);
 				return res.status(500).send('Internal Server Error.');
-			} finally {
-				client.close();
 			}
 		} else {
 			const r = await fetch(url);
@@ -96,10 +114,8 @@ app.get('/api/script', async (req, res) => {
 	if (count > settings.maxCount) {
 		count = settings.maxCount;
 	}
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const ret = [];
 		let cursor = db.collection('script').find({uuid: req.query.uuid}).sort({updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
@@ -113,8 +129,6 @@ app.get('/api/script', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
@@ -127,10 +141,8 @@ app.get('/api/script/:keyword', async (req, res) => {
 	if (count > settings.maxCount) {
 		count = settings.maxCount;
 	}
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const list = req.params.keyword.split(' ');
 		const regs = [];
 		list.forEach(function(d) {
@@ -149,16 +161,12 @@ app.get('/api/script/:keyword', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
 app.get('/api/script/item/:cid', async (req, res) => {
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
@@ -183,8 +191,6 @@ app.get('/api/script/item/:cid', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
@@ -197,10 +203,8 @@ app.get('/api/script/history/:cid', async (req, res) => {
 	if (count > settings.maxCount) {
 		count = settings.maxCount;
 	}
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const ret = [];
 		const cdoc = await db.collection('script').findOne({cid: req.params.cid});
 		if (cdoc) {
@@ -214,16 +218,12 @@ app.get('/api/script/history/:cid', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
 app.get('/api/script/item/:cid/:time', async (req, res) => {
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		let doc = await db.collection('script_history').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
 		if (!doc) {
 			doc = await db.collection('script').findOne({cid: req.params.cid, updateTime: parseInt(req.params.time)});
@@ -242,8 +242,6 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
@@ -258,10 +256,8 @@ app.post('/api/script', async (req, res) => {
 	let newCid = crypto.randomUUID();
 	const time = new Date().getTime();
 
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		if (!req.body.private) {
 			const checkDoc = await db.collection('script').findOne({name: req.body.name, private: {$ne: 1}});
 			if (checkDoc) {
@@ -298,8 +294,6 @@ app.post('/api/script', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
@@ -311,10 +305,8 @@ app.put('/api/script/:cid', async (req, res) => {
 		return res.status(413).json({type: 'author', max: settings.authorLength});
 	}
 
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		let checkDoc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!checkDoc) {
 			return res.status(404).send('Not found.');
@@ -348,16 +340,12 @@ app.put('/api/script/:cid', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
 app.delete('/api/script/:cid', async (req, res) => {
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const checkDoc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!checkDoc) {
 			return res.status(404).send('Not found.');
@@ -371,8 +359,6 @@ app.delete('/api/script/:cid', async (req, res) => {
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
-	} finally {
-		client.close();
 	}
 });
 
@@ -380,10 +366,8 @@ async function addHistory(cid) {
 	if (await diffHistory(cid)) {
 		return;
 	}
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const doc = await db.collection('script').findOne({cid: cid});
 		if (doc) {
 			delete doc._id;
@@ -392,17 +376,13 @@ async function addHistory(cid) {
 		}
 	} catch (error) {
 		logger.error(error);
-	} finally {
-		client.close();
 	}
 }
 
 async function diffHistory(cid) {
 	let ret = false;
-	let client;
 	try {
-		client = await mongodb.MongoClient.connect(settings.dbOption);
-		const db = client.db('pg0');
+		const db = await getDB();
 		const doc1 = await db.collection('script').findOne({cid: cid});
 		if (doc1) {
 			const cursor = db.collection('script_history').find({cid: cid}).sort({historyTime: -1}).limit(1);
@@ -423,8 +403,6 @@ async function diffHistory(cid) {
 		}
 	} catch (error) {
 		logger.error(error);
-	} finally {
-		client.close();
 	}
 	return ret;
 }
