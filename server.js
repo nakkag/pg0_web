@@ -3,7 +3,6 @@ const settings = require('./server_settings.js');
 const fs = require('fs');
 const https = require('https');
 const mongodb = require('mongodb');
-const MongoClient = mongodb.MongoClient;
 const crypto = require('crypto');
 
 const log4js = require('log4js');
@@ -24,7 +23,9 @@ const server = https.createServer({
 
 app.disable('x-powered-by');
 app.use(log4js.connectLogger(logger));
-app.use(express.json());
+app.use(express.json({
+	limit: '1mb'
+}));
 app.use(function (req, res, next) {
 	res.header('Access-Control-Allow-Origin', req.headers.origin);
 	res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
