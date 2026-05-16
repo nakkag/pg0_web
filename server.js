@@ -387,7 +387,7 @@ async function addHistory(cid) {
 		const doc = await db.collection('script').findOne({cid: cid});
 		if (doc) {
 			delete doc._id;
-			doc.hisotryTime = new Date().getTime();
+			doc.historyTime = new Date().getTime();
 			await db.collection('script_history').insertOne(doc);
 		}
 	} catch (error) {
@@ -405,7 +405,7 @@ async function diffHistory(cid) {
 		const db = client.db('pg0');
 		const doc1 = await db.collection('script').findOne({cid: cid});
 		if (doc1) {
-			const cursor = db.collection('script_history').find({cid: cid}).sort({hisotryTime: -1}).limit(1);
+			const cursor = db.collection('script_history').find({cid: cid}).sort({historyTime: -1}).limit(1);
 			if (cursor) {
 				const doc2 = await cursor.next();
 				if (doc2) {
