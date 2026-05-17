@@ -14,6 +14,48 @@ const fetch = async function (url, init) {
 	return await fetch(url, init);
 };
 
+let client = null;
+let db = null;
+
+async function getDB() {
+	if (db) {
+		return db;
+	}
+	client = new mongodb.MongoClient(settings.dbOption, {
+		maxPoolSize: 20,
+		minPoolSize: 5,
+		connectTimeoutMS: 5000,
+		socketTimeoutMS: 30000
+	});
+	await client.connect();
+
+	db = client.db('pg0');
+	if (!db) {
+		throw new Error('MongoDB is not connected');
+	}
+	return db;
+}
+
+async function getScriptFromKeyword(keyword) {
+	let cid = keyword;
+	const regex = /^https?:\/\/.*?[?&]cid=([^&#]+)/;
+	const match = keyword.match(regex);
+	if (match) {
+		cid = match[1];
+	}
+	try {
+		const db = await getDB();
+		const doc = await db.collection('script').findOne({cid: cid});
+		if (!doc) {
+			return null;
+		}
+		return [{cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private}];
+	} catch (error) {
+		logger.error(error);
+	}
+	return null;
+}
+
 const express = require('express');
 const app = express();
 const server = https.createServer({
@@ -45,28 +87,6 @@ app.use('/', express.static('public'));
 app.options('*', function (req, res) {
 	res.sendStatus(200);
 });
-
-let client = null;
-let db = null;
-
-async function getDB() {
-	if (db) {
-		return db;
-	}
-	client = new mongodb.MongoClient(settings.dbOption, {
-		maxPoolSize: 20,
-		minPoolSize: 5,
-		connectTimeoutMS: 5000,
-		socketTimeoutMS: 30000
-	});
-	await client.connect();
-
-	db = client.db('pg0');
-	if (!db) {
-		throw new Error('MongoDB is not connected');
-	}
-	return db;
-}
 
 app.get('/import', async (req, res) => {
 	try {
@@ -134,6 +154,12 @@ app.get('/api/script', async (req, res) => {
 });
 
 app.get('/api/script/:keyword', async (req, res) => {
+	const r = await getScriptFromKeyword(req.params.keyword);
+	if (r) {
+		res.json(r);
+		return;
+	}
+
 	const skip = parseInt(req.query.skip || 0);
 	let count = parseInt(req.query.count || settings.listCount);
 	if (count < 0) {
