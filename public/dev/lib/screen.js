@@ -830,7 +830,7 @@ ScriptExec.lib['drawfill'] = async function(ei, param, ret) {
 		++y;
 		let reachLeft = false;
 		let reachRight = false;
-		while(y++ < width - 1 && matchStartColor(pixelPos)) {
+		while(y++ < height - 1 && matchStartColor(pixelPos)) {
 			colorPixel(pixelPos);
 			if(x > 0) {
 				if(matchStartColor(pixelPos - 4)) {

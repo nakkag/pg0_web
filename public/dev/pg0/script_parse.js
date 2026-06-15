@@ -45,7 +45,7 @@ function ScriptParse(sci) {
 			}
 			const m = pi.buf.match(re);
 			if (!m) {
-				pi.err = Script.error(sci, errMsg.ERR_SENTENC, pi.line);
+				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 				return;
 			}
 			pi.str = m[1];
@@ -61,7 +61,7 @@ function ScriptParse(sci) {
 				if (pi.buf.length > 2 && pi.buf.substring(2, 3) === '<') {
 					pi.type = SYM_LEFTSHIFT_LOGICAL;
 					pi.buf = pi.buf.substring(2);
-					if (pi.buf.length > 2 && pi.buf.substring(2, 3) === '=') {
+					if (pi.buf.length > 2 && pi.buf.substring(1, 2) === '=') {
 						pi.cType = pi.type;
 						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substring(1);
@@ -69,7 +69,7 @@ function ScriptParse(sci) {
 				} else {
 					pi.type = SYM_LEFTSHIFT;
 					pi.buf = pi.buf.substring(1);
-					if (pi.buf.length > 2 && pi.buf.substring(2, 3) === '=') {
+					if (pi.buf.length > 2 && pi.buf.substring(1, 2) === '=') {
 						pi.cType = pi.type;
 						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substring(1);
@@ -87,7 +87,7 @@ function ScriptParse(sci) {
 				if (pi.buf.length > 2 && pi.buf.substring(2, 3) === '>') {
 					pi.type = SYM_RIGHTSHIFT_LOGICAL;
 					pi.buf = pi.buf.substring(2);
-					if (pi.buf.length > 2 && pi.buf.substring(2, 3) === '=') {
+					if (pi.buf.length > 2 && pi.buf.substring(1, 2) === '=') {
 						pi.cType = pi.type;
 						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substring(1);
@@ -95,7 +95,7 @@ function ScriptParse(sci) {
 				} else {
 					pi.type = SYM_RIGHTSHIFT;
 					pi.buf = pi.buf.substring(1);
-					if (pi.buf.length > 2 && pi.buf.substring(2, 3) === '=') {
+					if (pi.buf.length > 2 && pi.buf.substring(1, 2) === '=') {
 						pi.cType = pi.type;
 						pi.type = SYM_COMP_EQ;
 						pi.buf = pi.buf.substring(1);
@@ -1019,6 +1019,7 @@ function ScriptParse(sci) {
 		}
 		while (pi.type === SYM_WORDEND) {
 			const token = createToken(pi.type, pi.line);
+			pi.token.push(token);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -1027,7 +1028,6 @@ function ScriptParse(sci) {
 			if (pi.err) {
 				return;
 			}
-			pi.token.push(token);
 		}
 	}
 

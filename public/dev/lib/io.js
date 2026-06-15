@@ -18,7 +18,7 @@ function _getIoId() {
 	if (ev.currentContent.cid) {
 		return 'cid_' + ev.currentContent.cid;
 	} else if (ev.currentContent.name) {
-		return 'name_' + ev.currentContent.cid;
+		return 'name_' + ev.currentContent.name;
 	}
 	return 'common';
 }

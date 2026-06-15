@@ -5,7 +5,7 @@ const user_agent = (function () {
 
 	const ua = {};
 	me.get = function () {
-		if (ua.length > 0) {
+		if (ua.name) {
 			return ua;
 		}
 		ua.name = window.navigator.userAgent.toLowerCase();

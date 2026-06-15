@@ -98,7 +98,7 @@ app.get('/import', async (req, res) => {
 				cid = cUrl.searchParams.get('cid');
 			} catch (error) {
 				const result = url.match(/cid *= *([a-zA-Z0-9\-]+)/);
-				if (result.length >= 2) {
+				if (result && result.length >= 2) {
 					cid = result[1];
 				}
 			}

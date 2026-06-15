@@ -948,7 +948,10 @@ function ScriptExec(scis, sci) {
 				stack = [];
 				break;
 			case SYM_WORDEND:
-				if (ei.index >= ei.token.length && ei.token[ei.index + 1].type === SYM_WORDEND) {
+				if (stack.length === 0) {
+					stack.push(ScriptExec.initValueInfo());
+				}
+				if (ei.index + 1 < ei.token.length && ei.token[ei.index + 1].type === SYM_WORDEND) {
 					stack.push(ScriptExec.initValueInfo());
 				}
 				break;
