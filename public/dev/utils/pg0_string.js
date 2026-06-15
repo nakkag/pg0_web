@@ -56,7 +56,9 @@ const pg0_string = (function () {
 			return 0;
 		}
 		str = str.trim().toLowerCase();
-		var crcTable = crcTable || me.makeCRCTable();
+		if (!crcTable) {
+			crcTable = me.makeCRCTable();
+		}
 		var crc = 0 ^ (-1);
 		for (var i = 0; i < str.length; i++ ) {
 			crc = (crc >>> 8) ^ crcTable[(crc ^ str.charCodeAt(i)) & 0xFF];
