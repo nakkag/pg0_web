@@ -259,7 +259,7 @@ const onlineOpenView = (function () {
 						const date = new Date(script.updateTime);
 						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 					}
-					nameNode.innerHTML = '<div><span class="file-name ' + ((script.private) ? 'file-private' : '') + '">' + pg0_string.escapeHTML(script.name) + '</span></div>' +
+					nameNode.innerHTML = '<div><span class="file-name ' + ((script.private) ? 'file-private' : '') + '">' + pg0_string.escapeHTML(script.name || '') + '</span></div>' +
 						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
