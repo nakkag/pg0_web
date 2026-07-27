@@ -285,9 +285,9 @@ const onlineOpenView = (function () {
 			switch (res.status) {
 			case 200:
 				const script = await res.json();
-				ev.setText(script.code, script.name);
+				ev.setText(script.code || '', script.name || '');
 				ev.currentContent.cid = cid;
-				ev.currentContent.author = script.author;
+				ev.currentContent.author = script.author || '';
 				ev.currentContent.private = script.private;
 				ev.saveState();
 				vv.clear();
