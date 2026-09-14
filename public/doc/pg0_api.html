@@ -3,139 +3,249 @@
 <head>
 	<title>PG0 - APIマニュアル (AIエージェント)</title>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-	<style type="text/css">
-	<!--
-	body {
-		width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
-		margin: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 8px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 8px);
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+	<meta name="color-scheme" content="light dark">
+	<style>
+:root {
+	--bg: #f6f7f9; --card: #ffffff; --text: #1f2933; --muted: #5f6b7a; --line: #dfe3e8;
+	--accent: #1a73e8; --accent-bg: #e8f0fe; --note-bg: #fff8e1; --note-line: #f2c14e; --code-bg: #f1f3f5; --pre-bg: #1e2430; --pre-text: #e6edf3;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0f1419; --card: #161c24; --text: #e6edf3; --muted: #9aa7b4; --line: #2a3340;
+		--accent: #6cb0ff; --accent-bg: #16283d; --note-bg: #2a2410; --note-line: #c9a227; --code-bg: #232b36; --pre-bg: #0b0f14; --pre-text: #e6edf3;
 	}
-	-->
-	</style>
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+	margin: 0; background: var(--bg); color: var(--text);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+	font-size: 16px; line-height: 1.75;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.page { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
+header.hero { padding: 8px 0 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+header.hero .kicker { color: var(--muted); font-size: 14px; margin: 0 0 4px; }
+header.hero h1 { font-size: 28px; line-height: 1.3; margin: 0 0 10px; }
+header.hero p.lead { margin: 0; color: var(--muted); }
+.lang { float: right; font-size: 14px; margin-top: 4px; }
+.lang a { color: var(--accent); text-decoration: none; }
+nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 20px 0 28px; }
+nav.toc strong { display: block; margin-bottom: 6px; font-size: 14px; color: var(--muted); }
+nav.toc ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 24px; }
+nav.toc li { break-inside: avoid; }
+nav.toc a { color: var(--accent); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+section { margin: 0 0 36px; }
+h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--accent-bg); }
+h3 { font-size: 17px; margin: 22px 0 8px; }
+p { margin: 0 0 12px; }
+ul, ol { margin: 0 0 12px; padding-left: 24px; }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.92em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--pre-bg); color: var(--pre-text); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 0 0 14px; }
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+.prompt { position: relative; white-space: pre-wrap; word-break: break-word; padding-top: 22px; }
+.prompt::before { content: attr(data-label); position: absolute; top: 0; right: 0; font-size: 11px; letter-spacing: .04em; color: #a8b3c0; background: rgba(255,255,255,.08); padding: 2px 10px; border-radius: 0 10px 0 8px; }
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 0 0 12px; }
+.steps li { position: relative; padding: 10px 14px 10px 52px; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 14px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; text-align: center; line-height: 28px; font-size: 14px; }
+.note { background: var(--note-bg); border-left: 4px solid var(--note-line); padding: 10px 14px; border-radius: 6px; margin: 0 0 14px; }
+.note strong { display: block; margin-bottom: 2px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 0 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px; font-size: 16px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--accent-bg); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; }
+dl.links { margin: 0 0 14px; }
+dl.links dt { font-weight: 600; margin-top: 8px; }
+dl.links dd { margin: 0; }
+dl.links dd a { word-break: break-all; }
+footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+@media (max-width: 600px) {
+	.page { padding: 16px 14px 40px; }
+	header.hero h1 { font-size: 23px; }
+	nav.toc ol { columns: 1; }
+	.lang { float: none; display: block; margin: 0 0 8px; }
+}
+</style>
 </head>
 <body>
-<pre style="tab-size: 4;white-space: pre-wrap;">
-プログラミング言語 PG0
-APIマニュアル (AIエージェントでプログラムを作る)
---
-■はじめに
-PG0(Web版)には、AIエージェント向けのHTTP APIがあります。
-AIエージェントはこのAPIを使って、PG0 / PG0.5のプログラムを書き、構文チェックし、実行して結果を確かめ、オンラインに保存できます。
-保存したプログラムは、このエディタの「オンラインを開く」や、APIが返すURLから開いて動かせます。
+<div class="page">
 
-このページは、AIエージェントにプログラムを作らせたい人のための手引きです。
-エージェント自身が読む詳細な仕様(API、言語仕様、ライブラリ)は次のURLにあります。
+<header class="hero">
+	<span class="lang"><a href="pg0_api_eng.html">English</a></span>
+	<p class="kicker">プログラミング言語 PG0</p>
+	<h1>APIマニュアル (AIエージェント)</h1>
+	<p class="lead">AIエージェントにPG0のプログラムを作らせるための手引きです。人が行うのは「指示」と「確認」だけです。</p>
+</header>
 
-	<a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a>   エージェント用マニュアル(日本語、Markdown)
-	<a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a>   同 英語
-	<a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a>       OpenAPI定義
-	<a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a>          関数一覧(JSON)
-	<a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>                    APIの索引と制限値
-	<a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a>                          エージェント向けの入口
+<nav class="toc">
+	<strong>目次</strong>
+	<ol>
+		<li><a href="#intro">APIでできること</a></li>
+		<li><a href="#need">必要なもの</a></li>
+		<li><a href="#flow">基本の流れ</a></li>
+		<li><a href="#prompt">エージェントへの指示の例</a></li>
+		<li><a href="#save">オンライン保存のルール</a></li>
+		<li><a href="#screen">画面(ゲーム)のプログラム</a></li>
+		<li><a href="#api">APIの概要</a></li>
+		<li><a href="#limits">制限</a></li>
+		<li><a href="#trouble">うまくいかないとき</a></li>
+	</ol>
+</nav>
 
-■必要なもの
-・Webにアクセスできる(HTTPリクエストを送れる)AIエージェント
-	例) Claude Code、Web検索やコード実行ができるチャットAI、独自に作ったエージェント
-・APIキーは不要です。誰でも使えます。
-・プログラムを保存するときは、後で更新・削除するためのパスワードをエージェントに決めさせるか、指示で与えます。
+<section id="intro">
+	<h2>APIでできること</h2>
+	<p>PG0(Web版)には、AIエージェント向けのHTTP APIがあります。エージェントはこのAPIを通じて次のことができます。</p>
+	<div class="cards">
+		<div class="card"><h3>書く・確かめる</h3><p>PG0 / PG0.5のプログラムを書き、構文チェックと実行で動作を確かめます。</p></div>
+		<div class="card"><h3>保存する</h3><p>オンラインに保存し、このエディタで開けるURLを返します。修正の履歴も残ります。</p></div>
+		<div class="card"><h3>ゲームも試せる</h3><p>画面描画ライブラリを使うゲームも、キーやタッチの操作を与えて動きを検証できます。</p></div>
+	</div>
+	<p>エージェント自身が読む詳細な仕様(APIの使い方、言語仕様、ライブラリ)は次のURLにあります。エージェントには、最初にこのマニュアルを読むように伝えてください。</p>
+	<dl class="links">
+		<dt>エージェント用マニュアル</dt>
+		<dd><a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a>(日本語) / <a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a>(英語)</dd>
+		<dt>機械可読の定義</dt>
+		<dd><a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a>(OpenAPI) / <a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a>(関数一覧) / <a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>(索引と制限値)</dd>
+		<dt>エージェント向けの入口</dt>
+		<dd><a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a></dd>
+	</dl>
+</section>
 
-■基本の流れ
-AIエージェントは、次の手順でプログラムを作ります。人が行うのは指示と確認だけです。
+<section id="need">
+	<h2>必要なもの</h2>
+	<ul>
+		<li><strong>Webにアクセスできる(HTTPリクエストを送れる)AIエージェント。</strong> 例: Claude Code、Web検索やコード実行ができるチャットAI、独自に作ったエージェント。</li>
+		<li><strong>APIキーは不要です。</strong> 誰でも使えます。</li>
+		<li><strong>保存用のパスワード。</strong> 後で更新・削除するために使います。エージェントに決めさせるか、指示で与えます。</li>
+	</ul>
+</section>
 
-	1. エージェントがマニュアル(上記URL)を読み、言語仕様とライブラリを把握する
-	2. プログラムを書き、/check で構文チェックする(典型的な間違いは警告として返る)
-	3. /run で実行し、出力・戻り値・変数の値を見て動作を確かめる
-	4. 期待どおりになるまで 2〜3 を繰り返す
-	5. /scripts にオンライン保存する(名前、作者、パスワード、メモ)
-	6. 人はエージェントが伝えるURLを開き、エディタで動かして確認する
-	7. 修正を頼むと、エージェントは同じスクリプトを更新し、変更内容をメモ(変更履歴)に残す
+<section id="flow">
+	<h2>基本の流れ</h2>
+	<ol class="steps">
+		<li>エージェントがマニュアル(上記URL)を読み、言語仕様とライブラリを把握する</li>
+		<li>プログラムを書き、<code>/check</code> で構文チェックする(典型的な間違いは警告として返る)</li>
+		<li><code>/run</code> で実行し、出力・戻り値・変数の値を見て動作を確かめる</li>
+		<li>期待どおりになるまで 2〜3 を繰り返す</li>
+		<li><code>/scripts</code> にオンライン保存する(名前、作者、パスワード、メモ)</li>
+		<li>人はエージェントが伝えるURLを開き、エディタで動かして確認する</li>
+		<li>修正を頼むと、エージェントは同じスクリプトを更新し、変更内容をメモ(変更履歴)に残す</li>
+	</ol>
+	<p>保存したプログラムは、エディタの「オンラインを開く」から名前や作者で検索して開くこともできます。</p>
+</section>
 
-エディタの「オンラインを開く」で探すこともできます。名前や作者で検索できます。
+<section id="prompt">
+	<h2>エージェントへの指示の例</h2>
+	<p>最初にマニュアルのURLを読むように伝えるのが確実です。そのままコピーして使えます。</p>
 
-■エージェントへの指示の例
-最初に、マニュアルのURLを読むように伝えるのが確実です。以下は指示の例です。
+	<h3>ふつうのプログラム</h3>
+<pre class="prompt" data-label="指示の例"><code>PG0.5でプログラムを作ってください。まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで
+言語仕様とAPIの使い方を把握し、/check と /run で動作を確認してから、/scripts にオンライン保存してください。
+内容: 1から100までの素数を表示する。
+保存時の名前は「素数の表示」、作者は「(あなたの名前)」、パスワードは「(任意の文字列)」、公開で。
+最後に、エディタで開くURLを教えてください。</code></pre>
 
-	PG0.5でプログラムを作ってください。まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで
-	言語仕様とAPIの使い方を把握し、/check と /run で動作を確認してから、/scripts にオンライン保存してください。
-	内容: 1から100までの素数を表示する。
-	保存時の名前は「素数の表示」、作者は「(あなたの名前)」、パスワードは「(任意の文字列)」、公開で。
-	最後に、エディタで開くURLを教えてください。
+	<h3>ゲーム</h3>
+<pre class="prompt" data-label="指示の例"><code>PG0.5の画面描画ライブラリ(lib/screen.pg0)を使って、タッチで操作するブロック崩しを作ってください。
+https://pg0.jp/api/agent/v1/manual?lang=ja を読み、ヘッドレス実行でゲームのロジックを確かめてください。
+画面のプログラムなので実行速度は「待ち無し」(speed: 0)で保存し、開いてすぐ実行できるURL(run_url)を教えてください。</code></pre>
 
-ゲームを作る場合の例です。
+	<h3>保存済みのプログラムを直す</h3>
+	<p>cid(スクリプトのID)とパスワードを伝えます。cidはURLの <code>?cid=</code> 以降の文字列です。</p>
+<pre class="prompt" data-label="指示の例"><code>cid が xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx のスクリプトを取得して、
+ボールの速度をステージごとに10%ずつ速くするように直してください。パスワードは「(保存時の文字列)」です。
+更新するときは、変更内容をメモに書いてください。</code></pre>
 
-	PG0.5の画面描画ライブラリ(lib/screen.pg0)を使って、タッチで操作するブロック崩しを作ってください。
-	https://pg0.jp/api/agent/v1/manual?lang=ja を読み、ヘッドレス実行でゲームのロジックを確かめてください。
-	画面のプログラムなので実行速度は「待ち無し」(speed: 0)で保存し、開いてすぐ実行できるURL(run_url)を教えてください。
+	<h3>学習用にPG0モードで</h3>
+	<p>機能の少ないPG0(整数のみ、関数なし)で作らせることもできます。</p>
+<pre class="prompt" data-label="指示の例"><code>PG0モード(整数のみ、関数なし)で、while文だけを使って九九の表を作るプログラムを作ってください。
+結果は変数に残し、/run の variables で確認してください。</code></pre>
+</section>
 
-保存済みのプログラムを直してもらう場合は、cid(スクリプトのID)とパスワードを伝えます。
+<section id="save">
+	<h2>オンライン保存のルール</h2>
+	<ul>
+		<li><strong>名前</strong>は公開スクリプトの中で重複できません。同じ名前があると保存に失敗します(非公開なら重複できます)。</li>
+		<li><strong>パスワード</strong>は更新と削除に必要です。エディタで保存したときと同じ扱いなので、エージェントが保存したものを人がエディタで更新することも、その逆もできます。大文字小文字は区別せず、前後の空白は無視されます。</li>
+		<li><strong>メモ</strong>はバージョンごとに残り、エディタの「変更履歴」に表示されます。作成時は内容を、更新時は変更点を書くようエージェントに指示してください。</li>
+		<li><strong>公開スクリプト</strong>は誰でも見られます。個人情報などは入れないでください。</li>
+	</ul>
+	<div class="note"><strong>エージェントが返す2種類のURL</strong><code>url</code> はエディタで開くURL、<code>run_url</code> は開いてすぐ実行するURLです。ゲームを人に渡すときは <code>run_url</code> が便利です。</div>
+	<div class="note"><strong>パスワードについて</strong>強い保護ではありません。大事な情報を守る用途には使わないでください。</div>
+</section>
 
-	cid が xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx のスクリプトを取得して、
-	ボールの速度をステージごとに10%ずつ速くするように直してください。パスワードは「(保存時の文字列)」です。
-	更新するときは、変更内容をメモに書いてください。
+<section id="screen">
+	<h2>画面(ゲーム)のプログラム</h2>
+	<ul>
+		<li>画面描画ライブラリ(<code>lib/screen.pg0</code>)を使うプログラムは、APIでは画面を出さずに実行されます(ヘッドレス実行)。描画の呼び出しが記録され、キーやタッチの操作を時刻付きで与えてゲームの動きを確かめられます。</li>
+		<li>見た目(レイアウトや色)はAPIでは確認できません。人がエディタで開いて確認してください。</li>
+		<li>実行速度は<strong>「待ち無し」(speed: 0)</strong>で保存させてください。他の速度では1文ごとに待ちが入り、画面のプログラムは極端に遅くなります。</li>
+		<li>サウンドは、ブラウザの制限により最初のタップやキー入力の後でないと鳴らないことがあります。</li>
+	</ul>
+</section>
 
-プログラミング学習用に、機能の少ないPG0で作らせることもできます。
+<section id="api">
+	<h2>APIの概要</h2>
+	<p>すべて <code>https://pg0.jp/api/agent/v1</code> の下にあり、リクエストとレスポンスはJSONです。詳細はエージェント用マニュアルにあります。</p>
+	<div class="table-wrap">
+	<table>
+		<tr><th>メソッド</th><th>パス</th><th>内容</th></tr>
+		<tr><td>GET</td><td><code>/manual?lang=ja|en</code></td><td>マニュアル(Markdown)</td></tr>
+		<tr><td>GET</td><td><code>/openapi.json</code></td><td>OpenAPI定義</td></tr>
+		<tr><td>GET</td><td><code>/libraries</code></td><td>関数一覧</td></tr>
+		<tr><td>POST</td><td><code>/check</code></td><td>構文チェック(警告付き)</td></tr>
+		<tr><td>POST</td><td><code>/run</code></td><td>実行(出力、戻り値、変数、画面の記録を返す)</td></tr>
+		<tr><td>GET</td><td><code>/scripts</code></td><td>保存済みスクリプトの一覧・検索</td></tr>
+		<tr><td>POST</td><td><code>/scripts</code></td><td>新規保存</td></tr>
+		<tr><td>GET</td><td><code>/scripts/{cid}</code></td><td>取得(コード込み)</td></tr>
+		<tr><td>PUT</td><td><code>/scripts/{cid}</code></td><td>更新(パスワード必要)</td></tr>
+		<tr><td>DELETE</td><td><code>/scripts/{cid}</code></td><td>削除(パスワード必要)</td></tr>
+		<tr><td>POST</td><td><code>/scripts/{cid}/run</code></td><td>保存済みスクリプトの実行</td></tr>
+		<tr><td>GET</td><td><code>/scripts/{cid}/history</code></td><td>変更履歴</td></tr>
+	</table>
+	</div>
+	<h3>動作確認の例(curl)</h3>
+<pre><code>curl -H &quot;Content-Type: application/json&quot; \
+     -d &#x27;{&quot;code&quot;:&quot;#import(\&quot;lib/io.pg0\&quot;)\nfor (i = 1; i &lt;= 3; i++) { println(i * i) }&quot;}&#x27; \
+     https://pg0.jp/api/agent/v1/run
 
-	PG0モード(整数のみ、関数なし)で、while文だけを使って九九の表を作るプログラムを作ってください。
-	結果は変数に残し、/run の variables で確認してください。
+{&quot;status&quot;:&quot;ok&quot;,&quot;output&quot;:&quot;1\n4\n9\n&quot;, ...}</code></pre>
+</section>
 
-■オンライン保存について
-・名前は、公開スクリプトの中で重複できません。同じ名前があると保存に失敗します(非公開なら重複できます)。
-・パスワードは更新と削除に必要です。エディタで保存したときと同じ扱いなので、エージェントが保存したものを人がエディタで更新することも、その逆もできます。
-・パスワードは大文字小文字を区別せず、前後の空白を除いて比較します。強い保護ではないので、大事な情報を守る用途には使わないでください。
-・メモはバージョンごとに残り、エディタの「変更履歴」に表示されます。エージェントには、作成時は内容を、更新時は変更点を書くよう指示してください。
-・公開スクリプトは誰でも見られます。個人情報などは入れないでください。
-・エージェントが返すURLは2種類あります。
-	url      エディタで開く
-	run_url  エディタで開いてすぐ実行する(ゲームを人に渡すときはこちら)
+<section id="limits">
+	<h2>制限</h2>
+	<ul>
+		<li>1回の実行は標準5秒(最大30秒)。実行文数やメモリにも上限があります。長い処理は分割するか、ゲームならフレーム数の上限(<code>max_frames</code>)で区切ります。</li>
+		<li>同時に実行できる数には上限があり、超えると少し待ってから再試行するよう応答します(429)。</li>
+		<li>実際の値は <a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a> の <code>limits</code> に載っています。</li>
+		<li>ライブラリの読み込み(<code>#import</code>)は <code>lib/math.pg0</code>、<code>lib/string.pg0</code>、<code>lib/io.pg0</code>、<code>lib/screen.pg0</code> のみです。URLや他のファイルは読み込めません。</li>
+	</ul>
+</section>
 
-■画面(ゲーム)のプログラムについて
-・画面描画ライブラリ(lib/screen.pg0)を使うプログラムは、APIでは画面を出さずに実行されます(ヘッドレス実行)。
-	描画の呼び出しが記録され、キーやタッチの操作を時刻付きで与えてゲームの動きを確かめられます。
-	見た目(レイアウトや色)はAPIでは確認できないので、人がエディタで開いて確認してください。
-・実行速度は「待ち無し」(speed: 0)で保存させてください。他の速度では1文ごとに待ちが入り、画面のプログラムは極端に遅くなります。
-・サウンドは、ブラウザの制限により最初のタップやキー入力の後でないと鳴らないことがあります。
+<section id="trouble">
+	<h2>うまくいかないとき</h2>
+	<div class="table-wrap">
+	<table>
+		<tr><th>症状</th><th>対処</th></tr>
+		<tr><td>保存で「名前が重複」(409)</td><td>別の名前にするか、非公開(<code>private: 1</code>)で保存させる。</td></tr>
+		<tr><td>更新や削除で「パスワード不一致」(401)</td><td>保存時のパスワードを伝える。</td></tr>
+		<tr><td>実行結果が <code>status: "timeout"</code></td><td>無限ループか処理が重すぎる。画面のプログラムなら <code>max_frames</code> を指定させる。</td></tr>
+		<tr><td>「スクリプトまたはライブラリの読み込みに失敗しました」</td><td>対応していない <code>#import</code> を使っている。</td></tr>
+		<tr><td>言語仕様の勘違い(<code>if</code> の波括弧、ブロック内の変数、文字列の演算など)</td><td>マニュアルの「注意点チェックリスト」を読むよう伝える。</td></tr>
+	</table>
+	</div>
+</section>
 
-■APIの概要
-すべて https://pg0.jp/api/agent/v1 の下にあり、リクエストとレスポンスはJSONです。詳細はエージェント用マニュアルにあります。
-
-	GET    /manual?lang=ja|en    マニュアル(Markdown)
-	GET    /openapi.json         OpenAPI定義
-	GET    /libraries            関数一覧
-	POST   /check                構文チェック(警告付き)
-	POST   /run                  実行(出力、戻り値、変数、画面の記録を返す)
-	GET    /scripts              保存済みスクリプトの一覧・検索
-	POST   /scripts              新規保存
-	GET    /scripts/{cid}        取得(コード込み)
-	PUT    /scripts/{cid}        更新(パスワード必要)
-	DELETE /scripts/{cid}        削除(パスワード必要)
-	POST   /scripts/{cid}/run    保存済みスクリプトの実行
-	GET    /scripts/{cid}/history 変更履歴
-
-動作確認の例(curl):
-
-	curl -H "Content-Type: application/json" \
-	     -d '{"code":"#import(\"lib/io.pg0\")\nfor (i = 1; i <= 3; i++) { println(i * i) }"}' \
-	     https://pg0.jp/api/agent/v1/run
-
-	{"status":"ok","output":"1\n4\n9\n", ... }
-
-■制限
-・1回の実行は標準5秒(最大30秒)、実行文数やメモリにも上限があります。長い処理は分割するか、ゲームならフレーム数の上限(max_frames)で区切ります。
-・同時に実行できる数には上限があり、超えると少し待ってから再試行するよう応答します(429)。
-・実際の値は https://pg0.jp/api/agent/v1 の limits に載っています。
-・ライブラリの読み込み(#import)は lib/math.pg0、lib/string.pg0、lib/io.pg0、lib/screen.pg0 のみです。URLや他のファイルは読み込めません。
-
-■うまくいかないとき
-・保存で「名前が重複」(409): 別の名前にするか、非公開(private: 1)で保存させる。
-・更新や削除で「パスワード不一致」(401): 保存時のパスワードを伝える。
-・実行結果が status: "timeout": 無限ループか処理が重すぎる。画面のプログラムなら max_frames を指定させる。
-・「スクリプトまたはライブラリの読み込みに失敗しました」: 対応していない #import を使っている。
-・エージェントが言語仕様を勘違いしている(if の波括弧、ブロック内の変数、文字列の演算など): マニュアルの「注意点チェックリスト」を読むよう伝える。
-
---
-Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.
-    WEB SITE: https://nakka.com/
-    E-MAIL: nakka@nakka.com
-</pre>
+<footer>Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.<br>WEB SITE: <a href="https://nakka.com/">https://nakka.com/</a> / E-MAIL: nakka@nakka.com</footer>
+</div>
 </body>
 </html>

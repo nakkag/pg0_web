@@ -3,140 +3,250 @@
 <head>
 	<title>PG0 - API Manual (AI agents)</title>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-	<style type="text/css">
-	<!--
-	body {
-		width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
-		margin: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 8px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 8px);
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+	<meta name="color-scheme" content="light dark">
+	<style>
+:root {
+	--bg: #f6f7f9; --card: #ffffff; --text: #1f2933; --muted: #5f6b7a; --line: #dfe3e8;
+	--accent: #1a73e8; --accent-bg: #e8f0fe; --note-bg: #fff8e1; --note-line: #f2c14e; --code-bg: #f1f3f5; --pre-bg: #1e2430; --pre-text: #e6edf3;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0f1419; --card: #161c24; --text: #e6edf3; --muted: #9aa7b4; --line: #2a3340;
+		--accent: #6cb0ff; --accent-bg: #16283d; --note-bg: #2a2410; --note-line: #c9a227; --code-bg: #232b36; --pre-bg: #0b0f14; --pre-text: #e6edf3;
 	}
-	-->
-	</style>
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+	margin: 0; background: var(--bg); color: var(--text);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+	font-size: 16px; line-height: 1.75;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.page { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
+header.hero { padding: 8px 0 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+header.hero .kicker { color: var(--muted); font-size: 14px; margin: 0 0 4px; }
+header.hero h1 { font-size: 28px; line-height: 1.3; margin: 0 0 10px; }
+header.hero p.lead { margin: 0; color: var(--muted); }
+.lang { float: right; font-size: 14px; margin-top: 4px; }
+.lang a { color: var(--accent); text-decoration: none; }
+nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 20px 0 28px; }
+nav.toc strong { display: block; margin-bottom: 6px; font-size: 14px; color: var(--muted); }
+nav.toc ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 24px; }
+nav.toc li { break-inside: avoid; }
+nav.toc a { color: var(--accent); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+section { margin: 0 0 36px; }
+h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--accent-bg); }
+h3 { font-size: 17px; margin: 22px 0 8px; }
+p { margin: 0 0 12px; }
+ul, ol { margin: 0 0 12px; padding-left: 24px; }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.92em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--pre-bg); color: var(--pre-text); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 0 0 14px; }
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+.prompt { position: relative; white-space: pre-wrap; word-break: break-word; padding-top: 22px; }
+.prompt::before { content: attr(data-label); position: absolute; top: 0; right: 0; font-size: 11px; letter-spacing: .04em; color: #a8b3c0; background: rgba(255,255,255,.08); padding: 2px 10px; border-radius: 0 10px 0 8px; }
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 0 0 12px; }
+.steps li { position: relative; padding: 10px 14px 10px 52px; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 14px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; text-align: center; line-height: 28px; font-size: 14px; }
+.note { background: var(--note-bg); border-left: 4px solid var(--note-line); padding: 10px 14px; border-radius: 6px; margin: 0 0 14px; }
+.note strong { display: block; margin-bottom: 2px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 0 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px; font-size: 16px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--accent-bg); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; }
+dl.links { margin: 0 0 14px; }
+dl.links dt { font-weight: 600; margin-top: 8px; }
+dl.links dd { margin: 0; }
+dl.links dd a { word-break: break-all; }
+footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+@media (max-width: 600px) {
+	.page { padding: 16px 14px 40px; }
+	header.hero h1 { font-size: 23px; }
+	nav.toc ol { columns: 1; }
+	.lang { float: none; display: block; margin: 0 0 8px; }
+}
+</style>
 </head>
 <body>
-<pre style="tab-size: 4;white-space: pre-wrap;">
-Programming language PG0
-API Manual (creating programs with AI agents)
---
-# Introduction
-PG0 (Web) provides an HTTP API for AI agents.
-Through it an AI agent can write PG0 / PG0.5 programs, check their syntax, run them to verify the results, and save them online.
-Saved programs can be opened from "Open online" in this editor or from the URL the API returns.
+<div class="page">
 
-This page is a guide for people who want an AI agent to create programs for them.
-The detailed specification that the agent itself reads (API, language, libraries) is here:
+<header class="hero">
+	<span class="lang"><a href="pg0_api.html">日本語</a></span>
+	<p class="kicker">Programming language PG0</p>
+	<h1>API Manual (AI agents)</h1>
+	<p class="lead">A guide for having an AI agent create PG0 programs for you. You only give instructions and check the results.</p>
+</header>
 
-	<a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a>   Agent manual (English, Markdown)
-	<a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a>   Same, Japanese
-	<a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a>       OpenAPI description
-	<a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a>          Function list (JSON)
-	<a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>                    API index and limits
-	<a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a>                          Entry point for agents
+<nav class="toc">
+	<strong>Contents</strong>
+	<ol>
+		<li><a href="#intro">What the API offers</a></li>
+		<li><a href="#need">What you need</a></li>
+		<li><a href="#flow">Basic workflow</a></li>
+		<li><a href="#prompt">Example instructions</a></li>
+		<li><a href="#save">Rules for saving online</a></li>
+		<li><a href="#screen">Screen (game) programs</a></li>
+		<li><a href="#api">API overview</a></li>
+		<li><a href="#limits">Limits</a></li>
+		<li><a href="#trouble">Troubleshooting</a></li>
+	</ol>
+</nav>
 
-# What you need
-* An AI agent that can access the web (send HTTP requests)
-	Ex) Claude Code, a chat AI with web access or code execution, an agent you built yourself
-* No API key is needed. Anyone can use the API.
-* To save a program, let the agent choose a password for later updates and deletion, or give it one in your instructions.
+<section id="intro">
+	<h2>What the API offers</h2>
+	<p>PG0 (Web) provides an HTTP API for AI agents. Through it an agent can:</p>
+	<div class="cards">
+		<div class="card"><h3>Write and verify</h3><p>Write PG0 / PG0.5 programs, check the syntax and run them to confirm the behaviour.</p></div>
+		<div class="card"><h3>Save</h3><p>Save programs online and get a URL that opens them in this editor. Revisions are kept.</p></div>
+		<div class="card"><h3>Test games too</h3><p>Games that use the screen library can be exercised with timed key and touch input.</p></div>
+	</div>
+	<p>The detailed specification the agent itself reads (API usage, language, libraries) is at the URLs below. Tell the agent to read the manual first.</p>
+	<dl class="links">
+		<dt>Agent manual</dt>
+		<dd><a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a> (English) / <a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a> (Japanese)</dd>
+		<dt>Machine-readable definitions</dt>
+		<dd><a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a> (OpenAPI) / <a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a> (function list) / <a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a> (index and limits)</dd>
+		<dt>Entry point for agents</dt>
+		<dd><a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a></dd>
+	</dl>
+</section>
 
-# Basic workflow
-The agent creates programs in the following steps. You only give instructions and check the result.
+<section id="need">
+	<h2>What you need</h2>
+	<ul>
+		<li><strong>An AI agent that can access the web (send HTTP requests).</strong> For example Claude Code, a chat AI with web access or code execution, or an agent you built yourself.</li>
+		<li><strong>No API key.</strong> Anyone can use the API.</li>
+		<li><strong>A password for saving.</strong> It is needed later for updates and deletion. Let the agent choose one or give it in your instructions.</li>
+	</ul>
+</section>
 
-	1. The agent reads the manual (URL above) to learn the language and the libraries
-	2. It writes the program and checks the syntax with /check (typical mistakes come back as warnings)
-	3. It runs the program with /run and inspects output, return value and variables
-	4. Steps 2 and 3 are repeated until the program behaves as expected
-	5. It saves the program online with /scripts (name, author, password, memo)
-	6. You open the URL the agent reports and run the program in the editor
-	7. When you ask for changes, the agent updates the same script and writes what changed into the memo (revision history)
+<section id="flow">
+	<h2>Basic workflow</h2>
+	<ol class="steps">
+		<li>The agent reads the manual (URL above) to learn the language and the libraries</li>
+		<li>It writes the program and checks the syntax with <code>/check</code> (typical mistakes come back as warnings)</li>
+		<li>It runs the program with <code>/run</code> and inspects output, return value and variables</li>
+		<li>Steps 2 and 3 are repeated until the program behaves as expected</li>
+		<li>It saves the program online with <code>/scripts</code> (name, author, password, memo)</li>
+		<li>You open the URL the agent reports and run the program in the editor</li>
+		<li>When you ask for changes, the agent updates the same script and writes what changed into the memo (revision history)</li>
+	</ol>
+	<p>Saved programs can also be found with "Open online" in the editor, searching by name or author.</p>
+</section>
 
-You can also find the program with "Open online" in the editor, searching by name or author.
+<section id="prompt">
+	<h2>Example instructions</h2>
+	<p>Telling the agent to read the manual URL first is the most reliable start. Copy and adapt these examples.</p>
 
-# Example instructions for the agent
-Telling the agent to read the manual URL first is the most reliable start. Examples:
+	<h3>An ordinary program</h3>
+<pre class="prompt" data-label="Example"><code>Create a program in PG0.5. First read https://pg0.jp/api/agent/v1/manual?lang=en to learn the
+language and the API, verify the program with /check and /run, then save it online with /scripts.
+Task: print the prime numbers from 1 to 100.
+Save it as "Prime numbers", author "(your name)", password "(any string)", public.
+Finally tell me the URL that opens it in the editor.</code></pre>
 
-	Create a program in PG0.5. First read https://pg0.jp/api/agent/v1/manual?lang=en to learn the
-	language and the API, verify the program with /check and /run, then save it online with /scripts.
-	Task: print the prime numbers from 1 to 100.
-	Save it as "Prime numbers", author "(your name)", password "(any string)", public.
-	Finally tell me the URL that opens it in the editor.
+	<h3>A game</h3>
+<pre class="prompt" data-label="Example"><code>Using the screen library of PG0.5 (lib/screen.pg0), create a touch-controlled breakout game.
+Read https://pg0.jp/api/agent/v1/manual?lang=en and verify the game logic with headless runs.
+Since it is a screen program, save it with execution speed "No wait" (speed: 0) and give me the
+URL that opens and runs it immediately (run_url).</code></pre>
 
-For a game:
+	<h3>Modifying a saved program</h3>
+	<p>Give the agent the cid (script id) and the password. The cid is the string after <code>?cid=</code> in the URL.</p>
+<pre class="prompt" data-label="Example"><code>Fetch the script with cid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx and change it so that the ball gets
+10% faster on every stage. The password is "(the string used when saving)".
+When you update it, describe the change in the memo.</code></pre>
 
-	Using the screen library of PG0.5 (lib/screen.pg0), create a touch-controlled breakout game.
-	Read https://pg0.jp/api/agent/v1/manual?lang=en and verify the game logic with headless runs.
-	Since it is a screen program, save it with execution speed "No wait" (speed: 0) and give me the
-	URL that opens and runs it immediately (run_url).
+	<h3>PG0 mode for learning</h3>
+	<p>You can also ask for the smaller PG0 mode (integers only, no functions).</p>
+<pre class="prompt" data-label="Example"><code>In PG0 mode (integers only, no functions), write a program that builds the multiplication table using
+only while loops. Leave the result in variables and verify it with the "variables" field of /run.</code></pre>
+</section>
 
-To have a saved program modified, give the agent the cid (script id) and the password:
+<section id="save">
+	<h2>Rules for saving online</h2>
+	<ul>
+		<li><strong>Names</strong> must be unique among public scripts; saving fails if the name exists (private scripts may repeat names).</li>
+		<li><strong>The password</strong> is needed for updates and deletion. It works exactly like a password entered in the editor, so a person can update an agent's script in the editor and vice versa. It is compared case-insensitively with surrounding spaces removed.</li>
+		<li><strong>The memo</strong> is kept per version and shown in the editor's "Revision history". Tell the agent to describe the program on creation and the change on every update.</li>
+		<li><strong>Public scripts</strong> are visible to everyone. Do not put personal information in them.</li>
+	</ul>
+	<div class="note"><strong>Two URLs from the agent</strong><code>url</code> opens the script in the editor; <code>run_url</code> opens it and runs it immediately, which is convenient for handing a game to someone.</div>
+	<div class="note"><strong>About passwords</strong>This is not strong protection. Do not rely on it for anything valuable.</div>
+</section>
 
-	Fetch the script with cid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx and change it so that the ball gets
-	10% faster on every stage. The password is "(the string used when saving)".
-	When you update it, describe the change in the memo.
+<section id="screen">
+	<h2>Screen (game) programs</h2>
+	<ul>
+		<li>Programs that use the screen library (<code>lib/screen.pg0</code>) run through the API without a screen (headless). Drawing calls are recorded, and key or touch input can be given with timestamps to verify the game logic.</li>
+		<li>Appearance (layout, colors) cannot be checked through the API; open the program in the editor for that.</li>
+		<li>Have the agent save such programs with execution speed <strong>"No wait" (speed: 0)</strong>. Other speeds pause after every statement and make screen programs extremely slow.</li>
+		<li>Because of browser restrictions, sound may not play before the first tap or key press.</li>
+	</ul>
+</section>
 
-For learning purposes you can ask for the smaller PG0 mode:
+<section id="api">
+	<h2>API overview</h2>
+	<p>Everything lives under <code>https://pg0.jp/api/agent/v1</code> with JSON requests and responses. Details are in the agent manual.</p>
+	<div class="table-wrap">
+	<table>
+		<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+		<tr><td>GET</td><td><code>/manual?lang=en|ja</code></td><td>Manual (Markdown)</td></tr>
+		<tr><td>GET</td><td><code>/openapi.json</code></td><td>OpenAPI description</td></tr>
+		<tr><td>GET</td><td><code>/libraries</code></td><td>Function list</td></tr>
+		<tr><td>POST</td><td><code>/check</code></td><td>Syntax check (with warnings)</td></tr>
+		<tr><td>POST</td><td><code>/run</code></td><td>Run (returns output, result, variables, screen recording)</td></tr>
+		<tr><td>GET</td><td><code>/scripts</code></td><td>List / search saved scripts</td></tr>
+		<tr><td>POST</td><td><code>/scripts</code></td><td>Save a new script</td></tr>
+		<tr><td>GET</td><td><code>/scripts/{cid}</code></td><td>Get a script including its code</td></tr>
+		<tr><td>PUT</td><td><code>/scripts/{cid}</code></td><td>Update (password required)</td></tr>
+		<tr><td>DELETE</td><td><code>/scripts/{cid}</code></td><td>Delete (password required)</td></tr>
+		<tr><td>POST</td><td><code>/scripts/{cid}/run</code></td><td>Run a saved script</td></tr>
+		<tr><td>GET</td><td><code>/scripts/{cid}/history</code></td><td>Revision history</td></tr>
+	</table>
+	</div>
+	<h3>Quick test with curl</h3>
+<pre><code>curl -H &quot;Content-Type: application/json&quot; \
+     -d &#x27;{&quot;code&quot;:&quot;#import(\&quot;lib/io.pg0\&quot;)\nfor (i = 1; i &lt;= 3; i++) { println(i * i) }&quot;}&#x27; \
+     https://pg0.jp/api/agent/v1/run
 
-	In PG0 mode (integers only, no functions), write a program that builds the multiplication table using
-	only while loops. Leave the result in variables and verify it with the "variables" field of /run.
+{&quot;status&quot;:&quot;ok&quot;,&quot;output&quot;:&quot;1\n4\n9\n&quot;, ...}</code></pre>
+</section>
 
-# About saving online
-* Names must be unique among public scripts; saving fails if the name exists (private scripts may repeat names).
-* The password is needed for updates and deletion. It works exactly like a password entered in the editor, so a person can update an agent's script in the editor and vice versa.
-* Passwords are compared case-insensitively with surrounding spaces removed. This is not strong protection; do not rely on it for anything valuable.
-* The memo is kept per version and shown in the editor's "Revision history". Tell the agent to describe the program on creation and the change on every update.
-* Public scripts are visible to everyone. Do not put personal information in them.
-* The agent gets two URLs:
-	url      opens the script in the editor
-	run_url  opens it and runs it immediately (use this to hand a game to someone)
+<section id="limits">
+	<h2>Limits</h2>
+	<ul>
+		<li>One run is limited to 5 seconds by default (30 seconds at most); the number of executed statements and the memory are capped too. Split long work, or for games use the frame limit (<code>max_frames</code>).</li>
+		<li>The number of concurrent runs is limited; beyond it the API asks to retry after a short wait (429).</li>
+		<li>The actual values are listed under <code>limits</code> at <a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>.</li>
+		<li>Only <code>lib/math.pg0</code>, <code>lib/string.pg0</code>, <code>lib/io.pg0</code> and <code>lib/screen.pg0</code> can be imported with <code>#import</code>; URLs and other files cannot.</li>
+	</ul>
+</section>
 
-# About screen (game) programs
-* Programs that use the screen library (lib/screen.pg0) run through the API without a screen (headless).
-	Drawing calls are recorded, and key or touch input can be given with timestamps to verify the game logic.
-	Appearance (layout, colors) cannot be checked through the API; open the program in the editor for that.
-* Have the agent save such programs with execution speed "No wait" (speed: 0). Other speeds pause after every statement and make screen programs extremely slow.
-* Because of browser restrictions, sound may not play before the first tap or key press.
+<section id="trouble">
+	<h2>Troubleshooting</h2>
+	<div class="table-wrap">
+	<table>
+		<tr><th>Symptom</th><th>What to do</th></tr>
+		<tr><td>Saving reports a name conflict (409)</td><td>Use another name or save as private (<code>private: 1</code>).</td></tr>
+		<tr><td>Updating or deleting reports a wrong password (401)</td><td>Give the agent the password used when saving.</td></tr>
+		<tr><td>A run ends with <code>status: "timeout"</code></td><td>Endless loop or too much work; for screen programs have the agent set <code>max_frames</code>.</td></tr>
+		<tr><td>"Read error in script or library"</td><td>An unsupported <code>#import</code> is used.</td></tr>
+		<tr><td>The agent misunderstands the language (braces after <code>if</code>, block-local variables, string operators, ...)</td><td>Tell it to read the "Pitfalls checklist" in the manual.</td></tr>
+	</table>
+	</div>
+</section>
 
-# API overview
-Everything lives under https://pg0.jp/api/agent/v1 with JSON requests and responses. Details are in the agent manual.
-
-	GET    /manual?lang=en|ja    Manual (Markdown)
-	GET    /openapi.json         OpenAPI description
-	GET    /libraries            Function list
-	POST   /check                Syntax check (with warnings)
-	POST   /run                  Run (returns output, result, variables, screen recording)
-	GET    /scripts              List / search saved scripts
-	POST   /scripts              Save a new script
-	GET    /scripts/{cid}        Get a script including its code
-	PUT    /scripts/{cid}        Update (password required)
-	DELETE /scripts/{cid}        Delete (password required)
-	POST   /scripts/{cid}/run    Run a saved script
-	GET    /scripts/{cid}/history Revision history
-
-Quick test with curl:
-
-	curl -H "Content-Type: application/json" \
-	     -d '{"code":"#import(\"lib/io.pg0\")\nfor (i = 1; i <= 3; i++) { println(i * i) }"}' \
-	     https://pg0.jp/api/agent/v1/run
-
-	{"status":"ok","output":"1\n4\n9\n", ... }
-
-# Limits
-* One run is limited to 5 seconds by default (30 seconds at most), and the number of executed statements and the memory are capped too. Split long work, or for games use the frame limit (max_frames).
-* The number of concurrent runs is limited; beyond it the API asks to retry after a short wait (429).
-* The actual values are listed under "limits" at https://pg0.jp/api/agent/v1.
-* Only lib/math.pg0, lib/string.pg0, lib/io.pg0 and lib/screen.pg0 can be imported with #import; URLs and other files cannot.
-
-# Troubleshooting
-* Saving reports a name conflict (409): use another name or save as private (private: 1).
-* Updating or deleting reports a wrong password (401): give the agent the password used when saving.
-* A run ends with status "timeout": endless loop or too much work; for screen programs have the agent set max_frames.
-* "Read error in script or library": an unsupported #import is used.
-* The agent misunderstands the language (braces after if, block-local variables, string operators, ...): tell it to read the "Pitfalls checklist" in the manual.
-
---
-Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.
-    WEB SITE: https://nakka.com/
-    E-MAIL: nakka@nakka.com
-</pre>
+<footer>Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.<br>WEB SITE: <a href="https://nakka.com/">https://nakka.com/</a> / E-MAIL: nakka@nakka.com</footer>
+</div>
 </body>
 </html>
