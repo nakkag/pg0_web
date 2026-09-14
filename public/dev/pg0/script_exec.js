@@ -1419,10 +1419,10 @@ function ScriptExec(scis, sci) {
 			if (name in top.fi) {
 				return await execNameFunction(scis[i].ei, top, top.fi[name], param);
 			}
-			for (let i = 0; i < top.token.length; i++) {
-				if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
-					top.fi[name] = i;
-					const ret = await execNameFunction(scis[i].ei, top, i, param);
+			for (let j = 0; j < top.token.length; j++) {
+				if (top.token[j].type === SYM_FUNCSTART && top.token[j].buf === name) {
+					top.fi[name] = j;
+					const ret = await execNameFunction(scis[i].ei, top, j, param);
 					if (ret === RET_ERROR) {
 						ei.err = scis[i].ei.err;
 					}

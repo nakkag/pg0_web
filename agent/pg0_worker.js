@@ -134,24 +134,8 @@ ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
 };
 `;
 
-// execFunction in script_exec.js reuses the loop variable "i" for the token scan inside the
-// loop over imported scripts, so calling any but the first function of an imported script
-// fails. The sandbox loads a corrected copy of that loop; the file on disk is left as is.
-const EXEC_FUNCTION_BUGGY = `			for (let i = 0; i < top.token.length; i++) {
-				if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
-					top.fi[name] = i;
-					const ret = await execNameFunction(scis[i].ei, top, i, param);`;
-const EXEC_FUNCTION_FIXED = `			for (let j = 0; j < top.token.length; j++) {
-				if (top.token[j].type === SYM_FUNCSTART && top.token[j].buf === name) {
-					top.fi[name] = j;
-					const ret = await execNameFunction(scis[i].ei, top, j, param);`;
-
 function readDevFile(rel) {
-	let src = fs.readFileSync(path.join(DEV_DIR, rel), 'utf8');
-	if (rel === 'pg0/script_exec.js' && src.indexOf(EXEC_FUNCTION_BUGGY) >= 0) {
-		src = src.replace(EXEC_FUNCTION_BUGGY, EXEC_FUNCTION_FIXED);
-	}
-	return src;
+	return fs.readFileSync(path.join(DEV_DIR, rel), 'utf8');
 }
 
 function runSource(context, source, filename) {
