@@ -45,6 +45,7 @@ Content-Type: application/json
 - 認証: デフォルトでは不要。サーバ管理者が API キーを設定している場合は `Authorization: Bearer <key>`（または `X-API-Key: <key>`）を付けます。無い場合は `401` になります。
 - API 自体のエラー（プログラムのエラーではない）は HTTP 4xx/5xx と `{"error": {"code": "...", "message": "..."}}` で返します。プログラムの失敗は HTTP `200` で、`status` が `"ok"` 以外になります（2.3 参照）。
 - 制限値は `GET /api/agent/v1` に載っています。標準値: タイムアウト 5 秒（最大 30 秒）、実行文数 10,000,000、コード 200,000 文字、出力 1,000,000 文字、同時実行 4（超えると `429 too_many_runs`。レスポンスに `Retry-After: 1` ヘッダと `retry_after_ms` が付くので、1 秒待って再試行）。
+- レスポンスは約 4MB までです。超える場合は `screen.record`、`screen.last_drawn_frame`、`screen.frame_steps`、`storage`、`variables`、`result`、`profile` の順に、収まるまでフィールドが `null` に置き換えられ、置き換えたフィールド名が `truncated`（例: `["screen.record", "variables"]`）に入ります。巨大な配列を `exit` や変数に残さず、必要な値だけを `print` するか `max_calls` を小さくしてください。
 
 ### 2.2 エンドポイント
 
@@ -95,7 +96,7 @@ Content-Type: application/json
 | `max_steps` | integer | 10000000 | 実行する文の数の上限。サーバ側の上限で頭打ちになります。 |
 | `variables` | boolean | true | 終了時のグローバル変数をレスポンスに含めるか。 |
 | `seed` | number または string | なし | `lib/math.pg0` の `random()` を再現可能にします。プログラム開始前に `random(seed)` を 1 回呼ぶのと同じです（4.2 参照）。 |
-| `globals` | object | `{}` | グローバル変数の初期値 `{"名前": 値}`。JSON の数値・文字列・配列・オブジェクトはそれぞれ整数/実数・文字列・配列・キー付き配列になります。前回実行の `variables` を渡せば、長いプレイを複数回の実行に分けて続けられます（4.5 参照）。 |
+| `globals` | object | `{}` | グローバル変数の初期値 `{"名前": 値}`。JSON の数値・文字列・配列・オブジェクトはそれぞれ整数/実数・文字列・配列・キー付き配列になります。前回実行の `variables` を渡せば、長いプレイを複数回の実行に分けて続けられます（4.5 参照）。キーは PG0 の変数名として妥当なもの（英字・`_`・非 ASCII 文字で始まる）に限られ、それ以外は `400`。 |
 | `globals_at` | `"start"` または `"first_sleep"` | `"start"` | `globals` を適用する時点。最初の文より前か、プログラム自身の初期化が終わった最初の `sleep()` の時点か（スクリーンのプログラム向け。4.5 参照）。 |
 | `profile` | boolean | false | ソースの行別・関数別の実行ステップ数を `profile` で返します。どこが重いかを調べるときに使います。 |
 | `storage` | object | `{}` | `lib/io.pg0` のキー/値ストア（`loadValue`）の初期内容 `{"キー": 値}`。最終的なストアはレスポンスの `storage` に返ります。 |
@@ -120,7 +121,7 @@ Content-Type: application/json
 | `memo` | string | **変更履歴のメモ。** エディタと、バージョンごとの変更履歴に表示されます。作成時はプログラムの説明を、更新時は毎回その変更内容を書きます（下の「変更履歴」参照）。 |
 | `private` | 0 または 1 | 1 で一覧に出なくなります（`cid` では取得可能。名前の一意性も不要）。 |
 | `mode` | `"PG0.5"` または `"PG0"` | エディタと `/scripts/{cid}/run` が使うモード。 |
-| `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。 |
+| `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。省略するとランダムな ID が割り当てられ、レスポンスには含まれません。後で自分のスクリプト（非公開分を含む）を一覧したいときは、推測されにくい ID を自分で決めて毎回渡してください。 |
 | `speed` | 0, 1, 250, 500 のいずれか | Web エディタでの実行速度。1 文ごとの待ち時間（ミリ秒）で、0 = 待ち無し、1 = 速い、250 = 普通（デフォルト）、500 = 遅い。**`lib/screen.pg0` を使うプログラムは 0 にしてください。** 待ちがあると描画やアニメーションが極端に遅くなります。 |
 | `check` | boolean | `true` にすると保存前に `code` を構文解析し、通らなければ `422 syntax_error`（詳細は `error.detail`）で保存を拒否します。指定しなければ保存時に構文チェックは行われないので、先に `/check` を実行してください。 |
 
@@ -132,7 +133,7 @@ Content-Type: application/json
 
 試作を繰り返す間は `"private": 1`（必要なら自分の `uuid` も）で保存し、エディタの公開一覧に試作版が並ばないようにしてください。完成したら最後の `PUT` で公開に切り替えます。
 
-`GET /api/agent/v1/scripts?q=単語&uuid=所有者&skip=0&count=30`: `{"scripts": [要約...], "skip", "count"}`。`q` の単語（空白区切り）は名前と作者に対して照合されます。
+`GET /api/agent/v1/scripts?q=単語&uuid=所有者&skip=0&count=30`: `{"scripts": [要約...], "skip", "count"}`。`q` の単語（空白区切り）は名前と作者に対して照合されます（先頭 10 語まで）。
 
 `POST /api/agent/v1/scripts/{cid}/run`: `/run` から `code` を除いたボディ。`mode` は保存時のモードがデフォルトです。
 
@@ -173,6 +174,7 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `storage` | `lib/io.pg0` を import していなければ `null`。import していれば最終的なキー/値ストア `{"キー": 値}`（リクエストの `storage` で初期化）。 |
 | `stats` | `steps`（実行ステップ数。おおむね文や演算子ごとに 1）、`elapsed_ms`、`input_lines_used`、`globals_applied`（`"start"`、`"first_sleep"`、`globals` を渡したのに適用されなかったときは `false`、`globals` 無しなら `null`）、スクリーンのプログラムでは `steps_per_frame: {"avg", "max", "max_frame", "first", "avg_after_first"}`（`max_frame` は最も重いフレームの番号、`first` は初期化を含むことが多いフレーム 0 のステップ数、`avg_after_first` はそれを除いた平均。4.5 の性能の目安を参照）。 |
 | `profile` | `profile: true` を指定しない限り `null`。指定すると主プログラムについて `{"top_level_steps", "by_function": {"名前": {"calls", "steps"}}, "by_line": {"12": ステップ数, ...}}` を返します（ライブラリ内は数えません）。関数の `steps` はその関数の本体で実行したステップ数で、引数の受け渡しを含み、呼び出した先の関数は含みません。`by_line` の行番号は 1 始まりです。 |
+| `truncated` | レスポンスが約 4MB を超えたために `null` に置き換えたフィールド名の配列（通常は `[]`。2.1 参照）。 |
 
 JSON への変換: 整数・実数は数値、文字列は文字列になります。要素にキーが一つも無い配列は JSON 配列、キー付き要素が一つでもある配列は JSON オブジェクトになり、キーの無い要素はインデックスがキーになります（例: `{"x": 1, 7}` は `{"x": 1, "1": 7}`）。
 

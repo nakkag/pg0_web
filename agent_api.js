@@ -188,7 +188,8 @@ module.exports = function(app, deps) {
 				max_max_frames: settings.maxMaxFrames,
 				max_max_virtual_ms: settings.maxMaxVirtualMs,
 				default_recorded_calls: settings.defaultRecordedCalls,
-				max_recorded_calls: settings.maxRecordedCalls
+				max_recorded_calls: settings.maxRecordedCalls,
+				max_response_length: settings.maxResponseLength
 			}
 		});
 	});
@@ -230,6 +231,14 @@ module.exports = function(app, deps) {
 	// ---- stored-script imports -----------------------------------------
 	const IMPORT_RE = /^[ \t]*#[ \t]*import[ \t]*\([ \t]*["']([^"']*)["'][ \t]*\)/gm;
 
+	// "private" accepts 0/1, true/false and their string forms ("0" is public, not private).
+	function toPrivate(v) {
+		if (typeof v === 'string') {
+			return /^\s*(1|true)\s*$/i.test(v) ? 1 : 0;
+		}
+		return v ? 1 : 0;
+	}
+
 	function importCid(file) {
 		const m = String(file).match(/cid *= *([a-zA-Z0-9\-]+)/);
 		return m ? m[1] : null;
@@ -237,7 +246,7 @@ module.exports = function(app, deps) {
 
 	// Collects the code of every stored script that "code" imports (recursively) as {cid: code | null}.
 	async function resolveImports(code) {
-		const imports = {};
+		const imports = Object.create(null);
 		if (typeof getDB !== 'function') {
 			return imports;
 		}
@@ -286,6 +295,13 @@ module.exports = function(app, deps) {
 		for (const key of ['storage', 'globals']) {
 			if (body[key] !== undefined && body[key] !== null && (typeof body[key] !== 'object' || Array.isArray(body[key]))) {
 				apiError(res, 400, 'invalid_request', `"${key}" must be an object of {"name": value}`);
+				return null;
+			}
+		}
+		if (body.globals) {
+			const bad = Object.keys(body.globals).find(function(n) { return !/^[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*$/.test(n) || n === '__proto__'; });
+			if (bad !== undefined) {
+				apiError(res, 400, 'invalid_request', `"globals" key "${bad}" is not a valid variable name`);
 				return null;
 			}
 		}
@@ -388,7 +404,7 @@ module.exports = function(app, deps) {
 			const db = await getDB();
 			const cond = {};
 			if (q) {
-				cond.$and = q.split(/\s+/).map(function(d) {
+				cond.$and = q.split(/\s+/).slice(0, 10).map(function(d) {
 					return {keyword: new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')};
 				});
 			}
@@ -487,7 +503,7 @@ module.exports = function(app, deps) {
 		}
 		const name = body.name.trim();
 		const author = (body.author && String(body.author).trim()) || settings.defaultAuthor;
-		const isPrivate = body.private ? 1 : 0;
+		const isPrivate = toPrivate(body.private);
 		const time = Date.now();
 		try {
 			const db = await getDB();
@@ -508,7 +524,8 @@ module.exports = function(app, deps) {
 				author: author,
 				password: crc32(body.password),
 				memo: body.memo || '',
-				uuid: body.uuid ? String(body.uuid) : '',
+				// A random owner id keeps scripts without uuid out of listings for the empty owner id.
+				uuid: body.uuid ? String(body.uuid) : crypto.randomUUID(),
 				private: isPrivate,
 				code: body.code,
 				speed: (body.speed !== undefined && body.speed !== null) ? normalizeSpeed(body.speed) : settings.defaultSpeed,
@@ -565,7 +582,7 @@ module.exports = function(app, deps) {
 			}
 			const name = body.name !== undefined ? body.name.trim() : doc.name;
 			const author = body.author !== undefined ? ((body.author && String(body.author).trim()) || settings.defaultAuthor) : doc.author;
-			const isPrivate = body.private !== undefined ? (body.private ? 1 : 0) : (doc.private ? 1 : 0);
+			const isPrivate = body.private !== undefined ? toPrivate(body.private) : (doc.private ? 1 : 0);
 			if (!isPrivate) {
 				const dup = await db.collection('script').findOne({cid: {$ne: doc.cid}, name: name, private: {$ne: 1}});
 				if (dup) {
@@ -580,7 +597,7 @@ module.exports = function(app, deps) {
 				type: body.mode !== undefined ? normalizeMode(body.mode) : (doc.type || 'PG0.5'),
 				author: author,
 				memo: body.memo !== undefined ? (body.memo || '') : (doc.memo || ''),
-				uuid: body.uuid !== undefined ? String(body.uuid || '') : (doc.uuid || ''),
+				uuid: body.uuid !== undefined ? (String(body.uuid || '') || crypto.randomUUID()) : (doc.uuid || crypto.randomUUID()),
 				private: isPrivate,
 				code: body.code !== undefined ? body.code : doc.code,
 				speed: (body.speed !== undefined && body.speed !== null) ? normalizeSpeed(body.speed) : (normalizeSpeed(doc.speed) !== null ? normalizeSpeed(doc.speed) : settings.defaultSpeed),
@@ -600,9 +617,9 @@ module.exports = function(app, deps) {
 		if (!requireDB(res)) {
 			return;
 		}
-		const password = (req.body && req.body.password) || req.query.password;
+		const password = req.body && req.body.password;
 		if (typeof password !== 'string' || !password) {
-			return apiError(res, 400, 'invalid_request', '"password" (string) is required');
+			return apiError(res, 400, 'invalid_request', '"password" (string) is required in the JSON body');
 		}
 		try {
 			const db = await getDB();

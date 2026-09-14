@@ -17,6 +17,8 @@ exports.maxMaxSteps = 100000000;
 exports.maxCodeLength = 200000;
 exports.maxInputLength = 200000;
 exports.maxOutputLength = 1000000;
+// Response fields (variables, storage, screen.record, ...) are dropped when the JSON would exceed this
+exports.maxResponseLength = 4000000;
 exports.workerMemoryMb = 256;
 
 // Headless screen (lib/screen.pg0 through the API)

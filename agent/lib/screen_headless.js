@@ -39,7 +39,7 @@ function __screenToJson(v, depth) {
 	case TYPE_ARRAY: {
 		const arr = v.array || [];
 		if (arr.some(function(a) { return a && a.name; })) {
-			const obj = {};
+			const obj = Object.create(null);
 			arr.forEach(function(a, i) {
 				obj[(a && a.name) ? a.name : String(i)] = __screenToJson(a && a.v, depth + 1);
 			});

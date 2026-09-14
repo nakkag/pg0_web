@@ -156,7 +156,14 @@ function normalizeRecordFrames(v) {
 }
 
 function normalizeJsonObject(v) {
-	return (v && typeof v === 'object' && !Array.isArray(v)) ? v : null;
+	if (!v || typeof v !== 'object' || Array.isArray(v)) {
+		return null;
+	}
+	const out = Object.create(null);
+	Object.keys(v).forEach(function(k) {
+		out[k] = v[k];
+	});
+	return out;
 }
 
 // Returns an error message for invalid screen options, or null.
@@ -224,6 +231,7 @@ function createRunner(settings) {
 			timeoutMs: clampInt(params.timeout_ms, settings.defaultTimeoutMs, 100, settings.maxTimeoutMs),
 			maxSteps: clampInt(params.max_steps, settings.defaultMaxSteps, 1, settings.maxMaxSteps),
 			maxOutputLength: settings.maxOutputLength,
+			maxResponseLength: settings.maxResponseLength || 4000000,
 			variables: params.variables !== false && params.variables !== 0 && params.variables !== 'false',
 			maxFrames: optionalInt(params.max_frames, 1, settings.maxMaxFrames) !== null ? optionalInt(params.max_frames, 1, settings.maxMaxFrames) : settings.defaultMaxFrames,
 			maxVirtualMs: optionalInt(params.max_virtual_ms, 1, settings.maxMaxVirtualMs),
@@ -269,7 +277,8 @@ function createRunner(settings) {
 					variables: null,
 					screen: null,
 					storage: null,
-					stats: {steps: null, elapsed_ms: opt.timeoutMs, input_lines_used: null, steps_per_frame: null}
+					stats: {steps: null, elapsed_ms: opt.timeoutMs, input_lines_used: null, steps_per_frame: null},
+					truncated: []
 				});
 			}
 

@@ -162,7 +162,7 @@ function valueToJson(v, depth) {
 		const arr = v.array || [];
 		const hasKey = arr.some(function(a) { return a && a.name; });
 		if (hasKey) {
-			const obj = {};
+			const obj = Object.create(null);
 			arr.forEach(function(a, i) {
 				obj[(a && a.name) ? a.name : String(i)] = valueToJson(a && a.v, depth + 1);
 			});
@@ -269,15 +269,13 @@ async function main() {
 	const frameStepsList = [];
 	let firstFrameSteps = null;
 	let maxFrameIndex = 0;
-	const callsByFunction = {};
+	const callsByFunction = Object.create(null);
 	// Profiling: steps per source line and per function of the main program.
-	const profile = opt.profile ? {byLine: {}, byFunction: {}, topLevel: 0} : null;
+	const profile = opt.profile ? {byLine: Object.create(null), byFunction: Object.create(null), topLevel: 0} : null;
 	let bodyNames = null;
-	const eiFunction = {};
-	const pendingArgSteps = {};
 	function functionOf(ei) {
-		if (eiFunction[ei.id] !== undefined) {
-			return eiFunction[ei.id];
+		if (ei.__pfName !== undefined) {
+			return ei.__pfName;
 		}
 		for (let e = ei; e; e = e.parent) {
 			if (bodyNames && bodyNames.has(e.token)) {
@@ -295,20 +293,20 @@ async function main() {
 			profile.topLevel++;
 			return;
 		}
-		let name = eiFunction[ei.id];
+		let name = ei.__pfName;
 		if (name === undefined) {
 			if (ei.token === mainTokens) {
 				// argument expansion of a call: attributed once the body starts
-				pendingArgSteps[ei.id] = (pendingArgSteps[ei.id] || 0) + 1;
+				ei.__pfPending = (ei.__pfPending || 0) + 1;
 				return;
 			}
 			name = functionOf(ei);
-			eiFunction[ei.id] = name;
+			ei.__pfName = name;
 			if (name !== null && bodyNames.has(ei.token)) {
 				const f = profile.byFunction[name] || (profile.byFunction[name] = {calls: 0, steps: 0});
 				f.calls++;
-				f.steps += pendingArgSteps[ei.id] || 0;
-				delete pendingArgSteps[ei.id];
+				f.steps += ei.__pfPending || 0;
+				delete ei.__pfPending;
 			}
 		}
 		if (name === null) {
@@ -319,10 +317,15 @@ async function main() {
 	}
 	let frameSteps = 0;
 	let maxFrameSteps = 0;
-	const storage = {};
+	const storage = Object.create(null);
 	Object.keys(opt.storage || {}).forEach(function(k) {
 		storage[k] = JSON.stringify(jsonToValue(opt.storage[k]));
 	});
+	const hasOwn = Object.prototype.hasOwnProperty;
+	// Names accepted for injected globals: PG0 identifiers only (never __proto__ and the like).
+	function safeGlobalName(name) {
+		return /^[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*$/.test(name) && name !== '__proto__';
+	}
 	let ioLoaded = false;
 	let globalsApplied = null;
 
@@ -337,8 +340,11 @@ async function main() {
 			return;
 		}
 		Object.keys(opt.globals).forEach(function(name) {
+			if (!safeGlobalName(name)) {
+				return;
+			}
 			const v = jsonToValue(opt.globals[name]);
-			if (vi[name]) {
+			if (hasOwn.call(vi, name) && vi[name] && typeof vi[name] === 'object') {
 				delete vi[name].num;
 				delete vi[name].str;
 				delete vi[name].array;
@@ -554,7 +560,9 @@ async function main() {
 				push(call);
 			} else if (recordImageFrames) {
 				screen.pendingCalls = screen.pendingCalls || [];
-				screen.pendingCalls.push(call);
+				if (screen.pendingCalls.length < maxCalls) {
+					screen.pendingCalls.push(call);
+				}
 			}
 			function push(c) {
 				screen.recorded = (screen.recorded || 0) + 1;
@@ -598,7 +606,7 @@ async function main() {
 		return f.toLowerCase();
 	}
 
-	const importedCids = {};
+	const importedCids = Object.create(null);
 	const importStack = [];
 
 	async function importFile(file) {
@@ -613,8 +621,8 @@ async function main() {
 			if (importedCids[cid]) {
 				return 0;
 			}
-			const code = opt.imports ? opt.imports[cid] : undefined;
-			if (code === undefined || code === null) {
+			const code = (opt.imports && Object.prototype.hasOwnProperty.call(opt.imports, cid)) ? opt.imports[cid] : undefined;
+			if (typeof code !== 'string') {
 				importErrors.push(`#import("${file}"): stored script ${cid} was not found`);
 				return -1;
 			}
@@ -705,10 +713,12 @@ async function main() {
 						}
 					});
 				}
-				const initialVars = {};
+				const initialVars = Object.create(null);
 				if (!imported && opt.globals && opt.globalsAt !== 'first_sleep') {
 					Object.keys(opt.globals).forEach(function(name) {
-						initialVars[name] = jsonToValue(opt.globals[name]);
+						if (safeGlobalName(name)) {
+							initialVars[name] = jsonToValue(opt.globals[name]);
+						}
 					});
 					globalsApplied = 'start';
 				}
@@ -823,14 +833,14 @@ async function main() {
 
 	let variables = null;
 	if (opt.variables && mainSci.ei && mainSci.ei.vi) {
-		variables = {};
+		variables = Object.create(null);
 		Object.keys(mainSci.ei.vi).forEach(function(name) {
 			variables[name] = valueToJson(mainSci.ei.vi[name]);
 		});
 	}
 
 	flush(true);
-	parentPort.postMessage({
+	const response = {
 		type: 'done',
 		status: status,
 		output: output,
@@ -874,11 +884,24 @@ async function main() {
 			top_level_steps: profile.topLevel,
 			by_function: profile.byFunction,
 			by_line: profile.byLine
-		} : null
-	});
+		} : null,
+		truncated: []
+	};
+	// Keep the response within the size limit: drop the bulkiest optional fields first.
+	const dropOrder = [['screen', 'record'], ['screen', 'last_drawn_frame'], ['screen', 'frame_steps'], ['storage'], ['variables'], ['result'], ['profile']];
+	for (let d = 0; d < dropOrder.length && JSON.stringify(response).length > opt.maxResponseLength; d++) {
+		const p = dropOrder[d];
+		const holder = p.length === 2 ? response[p[0]] : response;
+		const key = p[p.length - 1];
+		if (holder && holder[key] !== null && holder[key] !== undefined) {
+			holder[key] = null;
+			response.truncated.push(p.join('.'));
+		}
+	}
+	parentPort.postMessage(response);
 
 	function storageToJson() {
-		const out = {};
+		const out = Object.create(null);
 		Object.keys(storage).forEach(function(k) {
 			try {
 				out[k] = valueToJson(JSON.parse(storage[k]));
@@ -903,6 +926,7 @@ main().catch(function(e) {
 		variables: null,
 		screen: null,
 		storage: null,
-		stats: {steps: 0, elapsed_ms: 0, input_lines_used: 0, steps_per_frame: null}
+		stats: {steps: 0, elapsed_ms: 0, input_lines_used: 0, steps_per_frame: null},
+		truncated: []
 	});
 });

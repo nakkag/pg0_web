@@ -145,7 +145,7 @@ function lint(src, lang) {
 	const strict = /^\s*#\s*option\s*\(\s*["']strict["']\s*\)/im.test(src);
 	const tokens = tokenize(src);
 	const warnings = [];
-	const warned = {};
+	const warned = Object.create(null);
 
 	function warn(code, line, name, text) {
 		const key = code + ':' + name + ':' + line;
@@ -157,7 +157,7 @@ function lint(src, lang) {
 	}
 
 	// Pass 1: token index of the first top-level (outside blocks and functions) reference of each name.
-	const firstTopRef = {};
+	const firstTopRef = Object.create(null);
 	{
 		let depth = 0;
 		const kinds = [];
@@ -182,11 +182,11 @@ function lint(src, lang) {
 	}
 
 	// Pass 2: resolve every reference against the scope chain, like the interpreter does.
-	const globalScope = {vars: {}, block: false, parent: null};
+	const globalScope = {vars: Object.create(null), block: false, parent: null};
 	const scopes = [globalScope];
 	const braceKinds = [];
-	const closed = {};
-	const pendingClose = {};
+	const closed = Object.create(null);
+	const pendingClose = Object.create(null);
 	let inFunction = false;
 
 	function current() {
@@ -200,7 +200,7 @@ function lint(src, lang) {
 		}
 		return null;
 	}
-	const declsByName = {};
+	const declsByName = Object.create(null);
 	function declare(scope, name, line) {
 		const v = {name: name, line: line, reads: 0, writes: 0, param: false, scope: scope};
 		scope.vars[name] = v;
@@ -227,7 +227,7 @@ function lint(src, lang) {
 			if (tokens[j] && tokens[j].t === 'id') {
 				j++;
 			}
-			const fnScope = {vars: {}, block: false, parent: globalScope};
+			const fnScope = {vars: Object.create(null), block: false, parent: globalScope};
 			if (tokens[j] && tokens[j].t === 'op' && tokens[j].v === '(') {
 				let depthP = 1;
 				let expectName = true;
@@ -258,7 +258,7 @@ function lint(src, lang) {
 		}
 		if (tk.t === 'op' && tk.v === '{') {
 			if (isBlockBrace(tokens, i)) {
-				scopes.push({vars: {}, block: true, parent: current()});
+				scopes.push({vars: Object.create(null), block: true, parent: current()});
 				const p = tokens[i - 1];
 				braceKinds.push((p && p.t === 'kw' && p.v === 'do') ? 'doblock' : 'block');
 			} else {
@@ -429,7 +429,7 @@ function lint(src, lang) {
 		});
 	});
 	// An "unused" write inside a block that is later read outside is already covered by the scope warnings.
-	const scopeWarned = {};
+	const scopeWarned = Object.create(null);
 	warnings.forEach(function(w) {
 		if (w.code === 'block_local_variable' || w.code === 'split_variable') {
 			scopeWarned[w.name] = true;

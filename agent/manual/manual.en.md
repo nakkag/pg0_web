@@ -45,6 +45,7 @@ Content-Type: application/json
 - Authentication: none by default. If the server operator configured an API key, send `Authorization: Bearer <key>` (or `X-API-Key: <key>`); otherwise the API answers `401`.
 - Errors of the API itself (not of your program) use HTTP status codes 4xx/5xx and the body `{"error": {"code": "...", "message": "..."}}`. Program failures are reported with HTTP `200` and `status` other than `"ok"` (see 2.3).
 - Limits are listed in `GET /api/agent/v1`; typical values: 5 s default timeout (30 s max), 10,000,000 statements, 200,000 characters of code, 1,000,000 characters of output, 4 concurrent runs (`429 too_many_runs` beyond that; the response carries `Retry-After: 1` and `retry_after_ms`, so wait a second and retry).
+- Responses are limited to about 4 MB. Beyond that, fields are replaced by `null` in the order `screen.record`, `screen.last_drawn_frame`, `screen.frame_steps`, `storage`, `variables`, `result`, `profile` until the response fits, and the names of the replaced fields are listed in `truncated` (for example `["screen.record", "variables"]`). Avoid leaving huge arrays in `exit` or in variables; `print` only what you need or lower `max_calls`.
 
 ### 2.2 Endpoints
 
@@ -95,7 +96,7 @@ Request fields:
 | `max_steps` | integer | 10000000 | Maximum executed statements; capped by the server. |
 | `variables` | boolean | true | Include final global variables in the response. |
 | `seed` | number or string | none | Makes `random()` of `lib/math.pg0` reproducible. Equivalent to calling `random(seed)` once before the program starts (see 4.2). |
-| `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs (see 4.5). |
+| `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs (see 4.5). Keys must be valid PG0 variable names (starting with a letter, `_` or a non-ASCII character); anything else is a `400`. |
 | `globals_at` | `"start"` or `"first_sleep"` | `"start"` | When `globals` are applied: before the first statement, or at the first `sleep()` call after the program's own initialization ran (screen programs; see 4.5). |
 | `profile` | boolean | false | Return `profile` with the execution steps per source line and per function, to find out what is expensive. |
 | `storage` | object | `{}` | Initial contents of the key/value store of `lib/io.pg0` (`loadValue`), `{"key": value}`. The final store comes back in the response field `storage`. |
@@ -120,7 +121,7 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `memo` | string | **Revision note.** Shown in the editor and, per version, in the revision history. On creation describe the program; on every update describe what changed (see "Revision history" below). |
 | `private` | 0 or 1 | 1 hides the script from lists (still reachable by `cid`, and the name need not be unique). |
 | `mode` | `"PG0.5"` or `"PG0"` | Mode used by the editor and by `/scripts/{cid}/run`. |
-| `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. |
+| `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. When omitted a random id is assigned and not returned, so choose a hard-to-guess id of your own and send it every time if you want to list your scripts (private ones included) later. |
 | `speed` | 0, 1, 250 or 500 | Execution speed in the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. **Set 0 for programs that use `lib/screen.pg0`**: with a wait, drawing and animation become extremely slow. |
 | `check` | boolean | `true` parses `code` before saving and rejects the request with `422 syntax_error` (details in `error.detail`) when it does not parse. Without it, saving never checks the code, so run `/check` yourself first. |
 
@@ -132,7 +133,7 @@ Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTi
 
 While iterating on a program, save it with `"private": 1` (and optionally a `uuid` of your own) so that trial versions do not appear in the public list of the editor; switch to public with a final `PUT` when it is done.
 
-`GET /api/agent/v1/scripts?q=words&uuid=owner&skip=0&count=30`: `{"scripts": [summary...], "skip", "count"}`. `q` words are matched against name and author.
+`GET /api/agent/v1/scripts?q=words&uuid=owner&skip=0&count=30`: `{"scripts": [summary...], "skip", "count"}`. `q` words (at most the first 10) are matched against name and author.
 
 `POST /api/agent/v1/scripts/{cid}/run`: same body as `/run` without `code`; `mode` defaults to the stored mode.
 
@@ -173,6 +174,7 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `storage` | `null` unless `lib/io.pg0` was imported. Then the final key/value store `{"key": value}` (initialized from the request field `storage`). |
 | `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, `globals_applied` (`"start"`, `"first_sleep"`, `false` when `globals` were given but never applied, `null` without `globals`), and for screen programs `steps_per_frame: {"avg", "max", "max_frame", "first", "avg_after_first"}` (`max_frame` is the index of the heaviest frame; `first` is frame 0, which usually contains the initialization, and `avg_after_first` excludes it; see the performance note in 4.5). |
 | `profile` | `null` unless `profile: true` was requested. Then `{"top_level_steps", "by_function": {"name": {"calls", "steps"}}, "by_line": {"12": steps, ...}}` for the main program (library code is not counted). `steps` of a function are the steps executed inside its own body, including argument passing but not the functions it calls; `by_line` uses 1-based line numbers. |
+| `truncated` | Names of the fields replaced by `null` because the response exceeded about 4 MB (normally `[]`; see 2.1). |
 
 Value conversion to JSON: integers and floats become numbers, strings become strings. An array whose elements all have no key becomes a JSON array; an array with at least one keyed element becomes a JSON object, unkeyed elements using their index as the key (for example `{"x": 1, 7}` becomes `{"x": 1, "1": 7}`).
 

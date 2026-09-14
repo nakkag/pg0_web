@@ -120,7 +120,7 @@
           "globals": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play."
+            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play. Keys must be valid PG0 variable names; others are rejected with 400."
           },
           "storage": {
             "type": "object",
@@ -432,6 +432,13 @@
               }
             },
             "description": "Present when profile was true."
+          },
+          "truncated": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields replaced by null because the response exceeded the size limit (about 4 MB), in the order screen.record, screen.last_drawn_frame, screen.frame_steps, storage, variables, result, profile. Normally empty."
           }
         }
       },
@@ -654,7 +661,7 @@
           },
           "uuid": {
             "type": "string",
-            "description": "Optional owner id used to group scripts in listings."
+            "description": "Optional owner id used to group scripts in listings (GET /scripts?uuid= lists them first, private ones included). When omitted a random id is assigned and not returned."
           },
           "speed": {
             "type": "integer",
@@ -711,7 +718,8 @@
             ]
           },
           "uuid": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional owner id used to group scripts in listings (GET /scripts?uuid= lists them first, private ones included). When omitted a random id is assigned and not returned."
           },
           "speed": {
             "type": "integer",
@@ -797,7 +805,7 @@
           "globals": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play."
+            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play. Keys must be valid PG0 variable names; others are rejected with 400."
           },
           "storage": {
             "type": "object",
@@ -1163,7 +1171,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Space separated words matched against name and author."
+            "description": "Space separated words (at most the first 10) matched against name and author."
           },
           {
             "name": "uuid",
