@@ -363,7 +363,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 
 - `#option("pg0.5")`: run as PG0.5 from this line on.
 - `#option("strict")`: every variable must be declared with `var`.
-- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0` and `lib/screen.pg0` (headless, see 4.5) can be imported; anything else (other files, URLs) fails with "Read error in script or library".
+- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0` and `lib/screen.pg0` (headless, see 4.5) can be imported, as well as stored scripts by their editor URL, `#import("https://pg0.jp/dev/?cid=<cid>")` (see 3.12); anything else fails with "Read error in script or library".
 
 ### 3.11 Pitfalls checklist
 
@@ -389,6 +389,57 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 20. Inside a function, assigning to a name updates the global of that name if it already exists; otherwise the variable is function-local, and one first assigned inside an `if`/`for` block of the function is local to that block. Declare the function's working variables with `var` at the top of the function, and create shared state at the top level before calling the function.
 21. `m = mons[0]` copies the element; changing `m["hp"]` leaves `mons[0]` untouched. Write `mons[0]["hp"] = ...` to modify the element in place.
 22. `int(time())` overflows 32 bits (`time()` is milliseconds since 1970). Take a remainder first, for example `int(time() % 65521)`, or keep the float.
+
+### 3.12 Building one system from several stored scripts
+
+A program can pull in other stored scripts with `#import`, so a large system is split into parts that stay small enough to read, test and update on their own. The directive takes the editor URL of the part (the string only has to contain `cid=<cid>`):
+
+```
+#import("https://pg0.jp/dev/?cid=2f1c9a3e-....")
+```
+
+How it behaves (identical for the API and the web editor):
+
+- The imported script is loaded and its top-level statements run once at the point of the `#import`, before the rest of the importing program. Its **functions** then become callable from the importing program (and from other parts imported later). Its **variables are not visible**: they belong to the part, and only its own functions can use them, so pass data through arguments and return values (`&` for large arrays).
+- Imports nest: a part may import other parts. A script that is imported more than once (directly and through another part) is loaded once. Importing a script that is still being imported (a cycle) is an error.
+- Function name resolution: the importing program's own functions first, then imported parts in import order, then the library functions. So a program can override a function of a part by defining one with the same name.
+- `#import` switches the program to PG0.5, like the library imports. A part must be valid PG0.5 on its own; a syntax or runtime error inside a part fails the import of the main program with "Read error in script or library" and a message that names the part's cid and line.
+- Private scripts can be imported; the cid is all that is needed. Up to 30 stored scripts per run.
+- In the API, `/check`, `/run`, `/scripts/{cid}/run` and `check: true` on save all resolve the imports from the stored scripts at that moment, so a part updated with `PUT` takes effect for every program that imports it the next time it runs.
+
+**Visibility of parts.** Save a part as **public** (`"private": 0`) when it is a reusable component that other systems could use as well (vector math, a menu system, a text box, a sorting helper): give it a descriptive name and a memo that says what it offers. Save a part as **private** (`"private": 1`) when it only makes sense inside its own system (the levels of one game, the screens of one tool): this keeps the public list meaningful. The main program is saved like any other script.
+
+**Workflow.**
+
+1. Write each part with only the functions (and the state they need) of one concern, run it with `/run` and a few test calls appended, and save it (`check: true`, memo describing the interface).
+2. In the main program import the parts by cid and keep only the glue: initialization, the game loop, the screens.
+3. Test the whole system with `/run` (input timelines, `variables`, `profile`), then save the main program with `check: true`.
+4. To change a part, `PUT` the part with a memo; `GET /scripts/{cid}/history` shows the versions. Run the main program again to confirm nothing broke.
+
+Example. Part (public, cid `AAAA`):
+
+```
+#import("lib/math.pg0")
+function vlen(x, y) { return hypot(x, y) }
+function vadd(a, b) { return {a[0] + b[0], a[1] + b[1]} }
+```
+
+Part (private, cid `BBBB`), which uses the first one:
+
+```
+#import("https://pg0.jp/dev/?cid=AAAA")
+function speed(vx, vy) { return vlen(vx, vy) * 2 }
+```
+
+Main program:
+
+```
+#import("https://pg0.jp/dev/?cid=BBBB")
+#import("https://pg0.jp/dev/?cid=AAAA")
+v = vadd({3, 0}, {0, 4})
+print(speed(v[0], v[1]))    // 10
+exit vlen(6, 8)             // 10
+```
 
 ## 4. Built-in functions and libraries
 

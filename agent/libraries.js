@@ -7,6 +7,7 @@ module.exports = {
 		'Function names are case-insensitive (isType, istype and ISTYPE are the same function).',
 		'PG0 mode has integers only and no functions; everything below needs PG0.5 mode (the default).',
 		'Library functions become available after the matching #import line is placed in the program.',
+		'Stored scripts can be imported too: #import("https://pg0.jp/dev/?cid=<cid>") makes their functions available (their variables stay private to the part). See section 3.12 of the manual.',
 		'The screen library (lib/screen.pg0) runs headless through the API: see its notes for the virtual clock, input timelines and frame limits.'
 	],
 	builtin: {

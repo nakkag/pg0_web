@@ -227,6 +227,46 @@ module.exports = function(app, deps) {
 		res.json(libraries);
 	});
 
+	// ---- stored-script imports -----------------------------------------
+	const IMPORT_RE = /^[ \t]*#[ \t]*import[ \t]*\([ \t]*["']([^"']*)["'][ \t]*\)/gm;
+
+	function importCid(file) {
+		const m = String(file).match(/cid *= *([a-zA-Z0-9\-]+)/);
+		return m ? m[1] : null;
+	}
+
+	// Collects the code of every stored script that "code" imports (recursively) as {cid: code | null}.
+	async function resolveImports(code) {
+		const imports = {};
+		if (typeof getDB !== 'function') {
+			return imports;
+		}
+		const queue = [code];
+		let count = 0;
+		while (queue.length) {
+			const src = queue.shift();
+			let m;
+			IMPORT_RE.lastIndex = 0;
+			while ((m = IMPORT_RE.exec(src)) !== null) {
+				const cid = importCid(m[1]);
+				if (!cid || imports[cid] !== undefined) {
+					continue;
+				}
+				if (++count > settings.maxImportScripts) {
+					imports[cid] = null;
+					continue;
+				}
+				const db = await getDB();
+				const doc = await db.collection('script').findOne({cid: cid});
+				imports[cid] = doc ? String(doc.code || '') : null;
+				if (doc && doc.code) {
+					queue.push(doc.code);
+				}
+			}
+		}
+		return imports;
+	}
+
 	// ---- program execution ---------------------------------------------
 	function validateCode(req, res) {
 		const body = req.body || {};
@@ -273,6 +313,7 @@ module.exports = function(app, deps) {
 			return apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
 		}
 		try {
+			params.imports = await resolveImports(params.code);
 			const result = await runner.run(params);
 			res.json(result);
 		} catch (error) {
@@ -292,7 +333,8 @@ module.exports = function(app, deps) {
 		}
 		try {
 			// A step limit of 1 stops execution right after parsing.
-			const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false});
+			const imports = await resolveImports(body.code);
+			const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false, imports: imports});
 			if (result.status === 'error' && result.error && result.error.phase === 'parse') {
 				return res.json({ok: false, mode: result.mode, error: result.error, warnings: []});
 			}
@@ -423,7 +465,8 @@ module.exports = function(app, deps) {
 			apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
 			return false;
 		}
-		const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false});
+		const imports = await resolveImports(body.code);
+		const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false, imports: imports});
 		if (result.status === 'error' && result.error && result.error.phase === 'parse') {
 			apiError(res, 422, 'syntax_error', 'The script has a syntax error and was not saved', {detail: result.error});
 			return false;

@@ -134,8 +134,24 @@ ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
 };
 `;
 
+// execFunction in script_exec.js reuses the loop variable "i" for the token scan inside the
+// loop over imported scripts, so calling any but the first function of an imported script
+// fails. The sandbox loads a corrected copy of that loop; the file on disk is left as is.
+const EXEC_FUNCTION_BUGGY = `			for (let i = 0; i < top.token.length; i++) {
+				if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
+					top.fi[name] = i;
+					const ret = await execNameFunction(scis[i].ei, top, i, param);`;
+const EXEC_FUNCTION_FIXED = `			for (let j = 0; j < top.token.length; j++) {
+				if (top.token[j].type === SYM_FUNCSTART && top.token[j].buf === name) {
+					top.fi[name] = j;
+					const ret = await execNameFunction(scis[i].ei, top, j, param);`;
+
 function readDevFile(rel) {
-	return fs.readFileSync(path.join(DEV_DIR, rel), 'utf8');
+	let src = fs.readFileSync(path.join(DEV_DIR, rel), 'utf8');
+	if (rel === 'pg0/script_exec.js' && src.indexOf(EXEC_FUNCTION_BUGGY) >= 0) {
+		src = src.replace(EXEC_FUNCTION_BUGGY, EXEC_FUNCTION_FIXED);
+	}
+	return src;
 }
 
 function runSource(context, source, filename) {
@@ -598,7 +614,43 @@ async function main() {
 		return f.toLowerCase();
 	}
 
+	const importedCids = {};
+	const importStack = [];
+
 	async function importFile(file) {
+		// Stored scripts: #import("https://pg0.jp/dev/?cid=<cid>") or any string containing cid=<cid>.
+		const cm = String(file).match(/cid *= *([a-zA-Z0-9\-]+)/);
+		if (cm) {
+			const cid = cm[1];
+			if (importStack.indexOf(cid) >= 0) {
+				importErrors.push(`#import("${file}"): circular import of script ${cid}`);
+				return -1;
+			}
+			if (importedCids[cid]) {
+				return 0;
+			}
+			const code = opt.imports ? opt.imports[cid] : undefined;
+			if (code === undefined || code === null) {
+				importErrors.push(`#import("${file}"): stored script ${cid} was not found`);
+				return -1;
+			}
+			importedCids[cid] = true;
+			importStack.push(cid);
+			const _sci = Script.initScriptInfo(code, {extension: true});
+			scis.push(_sci);
+			const before = importErrors.length;
+			const ok = await execScript(_sci, true);
+			importStack.pop();
+			if (_sci.ei) {
+				_sci.ei.imp = true;
+			}
+			if (!ok) {
+				for (let k = before; k < importErrors.length; k++) {
+					importErrors[k] = `in script ${cid}: ` + importErrors[k];
+				}
+			}
+			return ok ? 0 : -1;
+		}
 		const f = normalizeImport(file);
 		if (/\.pg0$/.test(f)) {
 			if (!/^lib\/[a-z0-9_]+\.pg0$/.test(f)) {
@@ -639,7 +691,7 @@ async function main() {
 			screen.loaded = true;
 			return 0;
 		}
-		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0`);
+		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, or a stored script as "https://pg0.jp/dev/?cid=<cid>"`);
 		return -1;
 	}
 
@@ -712,7 +764,7 @@ async function main() {
 					error: async function(error) {
 						ok = false;
 						if (imported) {
-							importErrors.push(`library error: ${error.msg} (${error.src})`);
+							importErrors.push(`runtime error at line ${error.line + 1}: ${error.msg} (${error.src})`);
 						} else if (!execError) {
 							execError = error;
 						}
@@ -723,7 +775,7 @@ async function main() {
 				ok = false;
 				if (imported) {
 					if (!/^#import/i.test(error.src || '')) {
-						importErrors.push(`library error: ${error.msg} (${error.src})`);
+						importErrors.push(`syntax error at line ${error.line + 1}: ${error.msg} (${error.src})`);
 					}
 				} else if (!parseError) {
 					parseError = error;

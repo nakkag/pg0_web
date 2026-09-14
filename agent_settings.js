@@ -27,6 +27,9 @@ exports.defaultRecordedCalls = 2000;
 exports.maxRecordedCalls = 20000;
 exports.maxTimelineEvents = 10000;
 
+// Stored scripts pulled in with #import("...cid=...") per run
+exports.maxImportScripts = 30;
+
 // Script storage
 exports.defaultAuthor = 'AI agent';
 exports.defaultSpeed = 250;

@@ -232,7 +232,8 @@ function createRunner(settings) {
 			storage: normalizeJsonObject(params.storage),
 			globals: normalizeJsonObject(params.globals),
 			globalsAt: params.globals_at === 'first_sleep' ? 'first_sleep' : 'start',
-			profile: !!params.profile
+			profile: !!params.profile,
+			imports: (params.imports && typeof params.imports === 'object') ? params.imports : {}
 		};
 
 		return new Promise(function(resolve) {
