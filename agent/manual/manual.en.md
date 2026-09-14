@@ -92,7 +92,8 @@ Request fields:
 | `max_steps` | integer | 10000000 | Maximum executed statements; capped by the server. |
 | `variables` | boolean | true | Include final global variables in the response. |
 | `seed` | number or string | none | Makes `random()` of `lib/math.pg0` reproducible. Equivalent to calling `random(seed)` once before the program starts (see 4.2). |
-| `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs. |
+| `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs (see 4.5). |
+| `globals_at` | `"start"` or `"first_sleep"` | `"start"` | When `globals` are applied: before the first statement, or at the first `sleep()` call after the program's own initialization ran (screen programs; see 4.5). |
 | `storage` | object | `{}` | Initial contents of the key/value store of `lib/io.pg0` (`loadValue`), `{"key": value}`. The final store comes back in the response field `storage`. |
 | `max_frames` | integer | 10000 | Programs using `lib/screen.pg0`: stop with `status: "frame_limit"` after this many `sleep()` calls (frames). See 4.5. |
 | `max_virtual_ms` | integer | none | Programs using `lib/screen.pg0`: stop with `status: "virtual_time_limit"` when the virtual clock reaches this value. |
@@ -117,10 +118,11 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `mode` | `"PG0.5"` or `"PG0"` | Mode used by the editor and by `/scripts/{cid}/run`. |
 | `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. |
 | `speed` | 0, 1, 250 or 500 | Execution speed in the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. **Set 0 for programs that use `lib/screen.pg0`**: with a wait, drawing and animation become extremely slow. |
+| `check` | boolean | `true` parses `code` before saving and rejects the request with `422 syntax_error` (details in `error.detail`) when it does not parse. Without it, saving never checks the code, so run `/check` yourself first. |
 
 Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC. `url` opens the script in the web editor; `run_url` (`url` + `&run=1`) opens and runs it immediately, which is the link to hand to a person for a game.
 
-`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
+`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed, check}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
 `DELETE /api/agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
 
@@ -163,7 +165,7 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `variables` | Final values of the global variables (`{"name": value}`), converted to JSON. Variables local to blocks and functions are not included. This is the only way to observe values in PG0 mode, which has no `print`. |
 | `screen` | `null` unless `lib/screen.pg0` was imported. Then `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`, see 4.5. |
 | `storage` | `null` unless `lib/io.pg0` was imported. Then the final key/value store `{"key": value}` (initialized from the request field `storage`). |
-| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, and for screen programs `steps_per_frame: {"avg", "max"}` (see the performance note in 4.5). |
+| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, `globals_applied` (`"start"`, `"first_sleep"`, `false` when `globals` were given but never applied, `null` without `globals`), and for screen programs `steps_per_frame: {"avg", "max"}` (see the performance note in 4.5). |
 
 Value conversion to JSON: integers and floats become numbers, strings become strings. An array whose elements all have no key becomes a JSON array; an array with at least one keyed element becomes a JSON object, unkeyed elements using their index as the key (for example `{"x": 1, 7}` becomes `{"x": 1, "1": 7}`).
 
@@ -420,6 +422,29 @@ Function names are case-insensitive. Types: int, float, num (int or float), str,
 
 Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 
+Functions that the library does not have can be written in a few lines. These are verified and can be pasted into a program:
+
+```
+function floor(x) { var n = int(x)
+  if (x < n) { return n - 1 }
+  return n }
+function ceil(x) { var n = int(x)
+  if (x > n) { return n + 1 }
+  return n }
+function round(x) { return floor(x + 0.5) }
+function hypot(x, y) { return sqrt(x * x + y * y) }
+function atan2(y, x) {
+  var pi = 3.141592653589793
+  if (x > 0) { return atan(y / x) }
+  if (x < 0 && y >= 0) { return atan(y / x) + pi }
+  if (x < 0 && y < 0) { return atan(y / x) - pi }
+  if (y > 0) { return pi / 2 }
+  if (y < 0) { return -pi / 2 }
+  return 0
+}
+```
+
+
 ### 4.3 String library: `#import("lib/string.pg0")`
 
 | Function | Description |
@@ -453,6 +478,23 @@ What cannot be verified headless: actual pixels (`rgbToPoint` returns black), ex
 
 **Performance budget per frame.** `stats.steps_per_frame` (`avg` and `max`) counts execution steps between two `sleep()` calls, in the same unit as `stats.steps`. In the browser at speed 0 the interpreter yields to the page every 1000 steps, which costs about 4 ms each, so a frame needs roughly **4.6 ms per 1000 steps plus the `sleep()` time plus drawing**. With `sleep(16)`: about 1000 steps per frame gives around 45 fps, 3000 steps around 30 fps, 10000 steps around 15 fps. Drawing 300 tiles with one `drawRect` each costs a few thousand steps; draw only what changed, or draw static layers once into an image (`createImage`) and blit it with `drawImage`.
 
+**Step cost of common constructs** (measured; one step is roughly one token executed, so a variable, a constant and an operator cost about 1 each):
+
+| Construct | Steps |
+|---|---|
+| `for` loop, per iteration (`i < n`, `i++`) | about 11 |
+| `x = x + 1`, `x += 1`, `x = a[i]`, `x = a["key"]` | about 5 |
+| `x = m[i][j]` | about 7 |
+| `x = a + b * c - d` | about 9 |
+| `if (x > 0) { }` | about 8 |
+| Function call `f()` with no parameters | about 4 plus the body |
+| Each parameter of a call, each default value | about 1 to 2 more |
+| Each `var` declaration inside the function | about 2 |
+| Library call such as `sqrt(x)` or `drawRect(...)` | about 5 plus about 1 per argument and per option element |
+
+Steps count interpreted tokens, not work: copying a large array into a parameter costs few steps but real time, so pass big arrays with `&`. A function call is cheap by itself; its cost comes from the statements inside it, so avoid calling small helpers thousands of times per frame in physics loops and inline the arithmetic instead. Long computations without `sleep()` (for example generating a maze, 70,000 steps) are fine in the browser: the interpreter yields every 1000 steps, the page stays responsive and canvas drawing done before the computation (a "Loading" text) is visible; about 200,000 steps take one second, so keep one-off work under a few seconds or split it over frames. In the API such work counts toward `timeout_ms` and `max_steps`.
+
+
 **Request fields** (`POST /api/agent/v1/run` and `/scripts/{cid}/run`):
 
 | Field | Meaning |
@@ -482,7 +524,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 
 `record` is `null` unless requested. A frame is the span between two `sleep()` calls; `frame` is its index and `ms` the virtual clock at its start.
 
-**Coordinate system and units**: origin at the top-left of the screen, x to the right, y downwards, in the pixel units of `startScreen(width, height)`. With `"fit": 1` (default) the browser scales the screen to the window, but all coordinates, including `inTouch()`, stay in screen pixels. Angles are **radians**, clockwise from the positive x axis. Colors are CSS strings, normally `"#rrggbb"`; the default drawing color is black `"#000"`.
+**Coordinate system and units**: origin at the top-left of the screen, x to the right, y downwards, in the pixel units of `startScreen(width, height)`. With `"fit": 1` (default) the browser scales the screen to the window, but all coordinates, including `inTouch()`, stay in screen pixels. Angles are **radians**, clockwise from the positive x axis. Colors are CSS color strings: `"#rgb"`, `"#rrggbb"`, `"#rrggbbaa"`, `"rgb(255, 0, 0)"`, `"rgba(255, 0, 0, 0.5)"`, `"hsl(120, 100%, 50%)"` and names like `"red"` all work for drawing (`drawLine`, `drawRect`, `drawCircle`, `drawPolyline`, `drawText`, `startScreen`). Exceptions: `drawFill` and `hexToRgb` accept only `"#rrggbb"` or `"#rgb"`, and `rgbToHex` returns `"#rrggbb"`. The default drawing color is black `"#000"`.
 
 **Functions**
 
@@ -501,8 +543,8 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | `drawPolyline(points, option = {})` | `points` is `{{x, y}, {x, y}, ...}`. `option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`. |
 | `drawFill(x, y, color)` | Flood fill from (x, y). Headless: recorded only. |
 | `drawScroll(dx, dy)` | Scrolls the screen; content wraps around. |
-| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. Images live only for the current run: they are not carried over by `globals`/`storage` into a following run (see below). |
-| `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` radians about the image center, `"alpha"` 0.0 to 1.0. Unknown ids are ignored. |
+| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. Only pixels inside the screen area can be captured: a region reaching outside the screen gets transparent pixels there, and areas never drawn are transparent as well (the background color is not part of the pixels). So an image cannot hold more than one screen of content; for a maze larger than the screen keep the data in an array and draw the visible part each frame, or build several screen-sized tiles. Images live only for the current run: they are not carried over by `globals`/`storage` into a following run (see below). |
+| `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` in radians, **clockwise** (positive angles turn the top of the image to the right, because y grows downwards), rotating about the **image center**; `"alpha"` 0.0 to 1.0. Unknown ids are ignored. To rotate about another point P, rotate the image center around P and draw at the new center: with `cx = x + w/2 - px`, `cy = y + h/2 - py`, the new top-left is `(px + cx*cos(a) - cy*sin(a) - w/2, py + cx*sin(a) + cy*cos(a) - h/2)` with the same `angle` `a`. |
 | `drawText(text, x, y, option = {})` | **(x, y) is the top-left of the text**; the baseline is at y + fontsize. `option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`; `fill` 0 draws outlines. Numbers and arrays are converted to text. |
 | `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character, 1 × fontsize otherwise, height = fontsize. |
 | `rgbToPoint(x, y)` | Pixel color `{"r", "g", "b"}` (0 to 255). Headless: always black. |
@@ -516,7 +558,21 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 
 Sound notes: all sounds are square waves mixed together, so `playSound` effects play on top of `playMusic`/`bgm`. Browsers block audio until the first tap or key press on the page; sounds started before that may stay silent or start late, so start the music from the title screen after the first input. Sound is muted when the person turned on the mute button of the screen.
 
-**Continuing a long play across runs.** One run is limited to `max_timeout_ms` of real time. To test a longer session, run with `max_frames`, read `variables` and `storage` from the response, and pass them back as `globals` and `storage` of the next request (drop the values you want to reset). Functions and code stay the same, so the program simply continues from that state. Only variables and the key/value store are carried over: images created with `createImage` are not (image ids stored in variables point to nothing in the next run, and `drawImage` with them is ignored), so a program that relies on images must recreate them at start, for example in an initialization function that checks a flag.
+**Continuing a long play across runs.** One run is limited to `max_timeout_ms` of real time. To test a longer session, run with `max_frames`, read `variables` and `storage` from the response, and pass them back as `globals` and `storage` of the next request. Two things decide whether this works:
+
+- **When the globals are applied.** With the default `globals_at: "start"` they exist before the first statement, so an initialization such as `state = 0` at the top of the program overwrites them, and a `var state` declaration fails with "Duplicate variable declaration". For screen programs use `"globals_at": "first_sleep"`: the program starts normally, runs its initialization (including `createImage`, whose images therefore exist again), and at the **first `sleep()` call** the passed values replace the current values of the named variables. Everything after that call continues from the restored state. The loop counter of the game loop is restored too, so pass exactly the state you want to continue from and drop the rest. `stats.globals_applied` tells whether and when the values were applied (`"start"`, `"first_sleep"`, or `false` when the program never called `sleep()`).
+- **Programs without `sleep()`** (no screen) can only use `globals_at: "start"`. Then guard the initialization with a flag that you pass along with the state, and create each state variable at the top level with `name = name` (reads the existing value, or creates `0` when there is none) so that the assignments inside the `if` block update the globals:
+
+```
+resumed = resumed          // 0 on a fresh run, 1 when passed in globals
+state = state; score = score; maze = maze
+if (!resumed) {
+  state = 0; score = 0
+  maze[] = generateMaze()
+}
+```
+
+Only variables and the key/value store are carried over: images created with `createImage` are not (image ids stored in variables point to nothing in the next run, and `drawImage` with them is ignored), which is another reason to let the initialization run with `globals_at: "first_sleep"`.
 
 **Game-loop template that works both headless and in the browser**
 

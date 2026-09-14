@@ -126,6 +126,15 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Initial key/value store of lib/io.pg0 (loadValue) {key: value}. The final store is returned as \"storage\"."
+          },
+          "globals_at": {
+            "type": "string",
+            "enum": [
+              "start",
+              "first_sleep"
+            ],
+            "default": "start",
+            "description": "When to apply globals: before the first statement, or at the first sleep() call after the program's own initialization (screen programs), which avoids being overwritten by initial assignments and var declarations."
           }
         }
       },
@@ -235,6 +244,22 @@
                   }
                 },
                 "description": "Screen programs: execution steps between two sleep() calls. Browser cost is about 4.6 ms per 1000 steps plus the sleep time."
+              },
+              "globals_applied": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "start",
+                      "first_sleep"
+                    ]
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ],
+                "nullable": true,
+                "description": "When the globals were applied; false if given but never applied (no sleep()); null without globals."
               }
             }
           },
@@ -548,6 +573,11 @@
             ],
             "description": "Execution speed used by the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. Use 0 for programs that draw with lib/screen.pg0.",
             "default": 250
+          },
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "Parse the code before saving; a syntax error rejects the save with 422 syntax_error."
           }
         }
       },
@@ -599,6 +629,11 @@
               500
             ],
             "description": "Execution speed used by the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. Use 0 for programs that draw with lib/screen.pg0."
+          },
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "Parse the code before saving; a syntax error rejects the save with 422 syntax_error."
           }
         }
       },
@@ -675,6 +710,15 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Initial key/value store of lib/io.pg0 (loadValue) {key: value}. The final store is returned as \"storage\"."
+          },
+          "globals_at": {
+            "type": "string",
+            "enum": [
+              "start",
+              "first_sleep"
+            ],
+            "default": "start",
+            "description": "When to apply globals: before the first statement, or at the first sleep() call after the program's own initialization (screen programs), which avoids being overwritten by initial assignments and var declarations."
           }
         }
       },
@@ -1091,6 +1135,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "check was true and the code has a syntax error (error.detail holds message, line, source)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1155,6 +1209,9 @@
           },
           "409": {
             "description": "Name conflict"
+          },
+          "422": {
+            "description": "check was true and the code has a syntax error"
           }
         }
       },

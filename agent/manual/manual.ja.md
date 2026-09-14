@@ -92,7 +92,8 @@ Content-Type: application/json
 | `max_steps` | integer | 10000000 | 実行する文の数の上限。サーバ側の上限で頭打ちになります。 |
 | `variables` | boolean | true | 終了時のグローバル変数をレスポンスに含めるか。 |
 | `seed` | number または string | なし | `lib/math.pg0` の `random()` を再現可能にします。プログラム開始前に `random(seed)` を 1 回呼ぶのと同じです（4.2 参照）。 |
-| `globals` | object | `{}` | グローバル変数の初期値 `{"名前": 値}`。JSON の数値・文字列・配列・オブジェクトはそれぞれ整数/実数・文字列・配列・キー付き配列になります。前回実行の `variables` を渡せば、長いプレイを複数回の実行に分けて続けられます。 |
+| `globals` | object | `{}` | グローバル変数の初期値 `{"名前": 値}`。JSON の数値・文字列・配列・オブジェクトはそれぞれ整数/実数・文字列・配列・キー付き配列になります。前回実行の `variables` を渡せば、長いプレイを複数回の実行に分けて続けられます（4.5 参照）。 |
+| `globals_at` | `"start"` または `"first_sleep"` | `"start"` | `globals` を適用する時点。最初の文より前か、プログラム自身の初期化が終わった最初の `sleep()` の時点か（スクリーンのプログラム向け。4.5 参照）。 |
 | `storage` | object | `{}` | `lib/io.pg0` のキー/値ストア（`loadValue`）の初期内容 `{"キー": 値}`。最終的なストアはレスポンスの `storage` に返ります。 |
 | `max_frames` | integer | 10000 | `lib/screen.pg0` を使うプログラム: `sleep()` の呼び出し（フレーム）がこの回数に達したら `status: "frame_limit"` で停止。4.5 参照。 |
 | `max_virtual_ms` | integer | なし | `lib/screen.pg0` を使うプログラム: 仮想時計がこの値に達したら `status: "virtual_time_limit"` で停止。 |
@@ -117,10 +118,11 @@ Content-Type: application/json
 | `mode` | `"PG0.5"` または `"PG0"` | エディタと `/scripts/{cid}/run` が使うモード。 |
 | `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。 |
 | `speed` | 0, 1, 250, 500 のいずれか | Web エディタでの実行速度。1 文ごとの待ち時間（ミリ秒）で、0 = 待ち無し、1 = 速い、250 = 普通（デフォルト）、500 = 遅い。**`lib/screen.pg0` を使うプログラムは 0 にしてください。** 待ちがあると描画やアニメーションが極端に遅くなります。 |
+| `check` | boolean | `true` にすると保存前に `code` を構文解析し、通らなければ `422 syntax_error`（詳細は `error.detail`）で保存を拒否します。指定しなければ保存時に構文チェックは行われないので、先に `/check` を実行してください。 |
 
 レスポンス `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。`url` は Web エディタでスクリプトを開く URL、`run_url`（`url` + `&run=1`）は開いてすぐ実行する URL で、ゲームを人に渡すときはこちらを使います。
 
-`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
+`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed, check のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
 `DELETE /api/agent/v1/scripts/{cid}`: ボディ `{"password": "..."}`。レスポンス `{"deleted": true, "cid": "..."}`。
 
@@ -163,7 +165,7 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `variables` | グローバル変数の最終値（`{"名前": 値}`）を JSON に変換したもの。ブロックや関数のローカル変数は含みません。`print` のない PG0 モードでは値を観測する唯一の手段です。 |
 | `screen` | `lib/screen.pg0` を import していなければ `null`。import していれば `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`。4.5 参照。 |
 | `storage` | `lib/io.pg0` を import していなければ `null`。import していれば最終的なキー/値ストア `{"キー": 値}`（リクエストの `storage` で初期化）。 |
-| `stats` | `steps`（実行ステップ数。おおむね文や演算子ごとに 1）、`elapsed_ms`、`input_lines_used`、スクリーンのプログラムでは `steps_per_frame: {"avg", "max"}`（4.5 の性能の目安を参照）。 |
+| `stats` | `steps`（実行ステップ数。おおむね文や演算子ごとに 1）、`elapsed_ms`、`input_lines_used`、`globals_applied`（`"start"`、`"first_sleep"`、`globals` を渡したのに適用されなかったときは `false`、`globals` 無しなら `null`）、スクリーンのプログラムでは `steps_per_frame: {"avg", "max"}`（4.5 の性能の目安を参照）。 |
 
 JSON への変換: 整数・実数は数値、文字列は文字列になります。要素にキーが一つも無い配列は JSON 配列、キー付き要素が一つでもある配列は JSON オブジェクトになり、キーの無い要素はインデックスがキーになります（例: `{"x": 1, 7}` は `{"x": 1, "1": 7}`）。
 
@@ -420,6 +422,29 @@ fill(list, 3)       // list は {0, 1, 2}
 
 小数部が 0 の結果は整数で返ります（`sqrt(16)` は `4`）。
 
+ライブラリに無い関数は数行で書けます。以下は動作確認済みで、そのままプログラムに貼り付けて使えます。
+
+```
+function floor(x) { var n = int(x)
+  if (x < n) { return n - 1 }
+  return n }
+function ceil(x) { var n = int(x)
+  if (x > n) { return n + 1 }
+  return n }
+function round(x) { return floor(x + 0.5) }
+function hypot(x, y) { return sqrt(x * x + y * y) }
+function atan2(y, x) {
+  var pi = 3.141592653589793
+  if (x > 0) { return atan(y / x) }
+  if (x < 0 && y >= 0) { return atan(y / x) + pi }
+  if (x < 0 && y < 0) { return atan(y / x) - pi }
+  if (y > 0) { return pi / 2 }
+  if (y < 0) { return -pi / 2 }
+  return 0
+}
+```
+
+
 ### 4.3 文字列ライブラリ: `#import("lib/string.pg0")`
 
 | 関数 | 説明 |
@@ -453,6 +478,23 @@ fill(list, 3)       // list は {0, 1, 2}
 
 **1 フレームあたりの性能の目安。** `stats.steps_per_frame`（`avg` と `max`）は `sleep()` から次の `sleep()` までの実行ステップ数で、`stats.steps` と同じ単位です。ブラウザでは実行速度「待ち無し」でも 1000 ステップごとにページへ制御を戻し、それに約 4ms かかるため、1 フレームには**1000 ステップあたり約 4.6ms + `sleep()` の時間 + 描画時間**が必要です。`sleep(16)` の場合、1 フレーム 1000 ステップで約 45fps、3000 ステップで約 30fps、10000 ステップで約 15fps です。300 枚のタイルを毎フレーム `drawRect` で描くと数千ステップになります。変化した部分だけ描くか、静的なレイヤーは一度 `createImage` で画像にして `drawImage` で貼ってください。
 
+**よく使う構文のステップ数**（実測。1 ステップはおおむね実行したトークン 1 つで、変数・定数・演算子がそれぞれ約 1）:
+
+| 構文 | ステップ数 |
+|---|---|
+| `for` ループ 1 周（`i < n`、`i++` を含む） | 約 11 |
+| `x = x + 1`、`x += 1`、`x = a[i]`、`x = a["key"]` | 約 5 |
+| `x = m[i][j]` | 約 7 |
+| `x = a + b * c - d` | 約 9 |
+| `if (x > 0) { }` | 約 8 |
+| 引数なしの関数呼び出し `f()` | 約 4 + 本体 |
+| 呼び出しの引数 1 つ、デフォルト値 1 つ | それぞれ約 1～2 追加 |
+| 関数内の `var` 宣言 1 つ | 約 2 |
+| `sqrt(x)` や `drawRect(...)` などのライブラリ呼び出し | 約 5 + 引数とオプション要素 1 つにつき約 1 |
+
+ステップ数は解釈したトークン数であり、仕事量ではありません。大きな配列を引数にコピーするのはステップ数は少なくても実時間がかかるので、大きな配列は `&` で渡してください。関数呼び出し自体は軽く、コストは中の文の分です。物理計算のループで小さな補助関数を毎フレーム何千回も呼ぶのは避け、式を直接書いてください。`sleep()` を挟まない長い処理（例: 迷路生成で 70,000 ステップ）はブラウザでも問題ありません。インタプリタは 1000 ステップごとにブラウザへ制御を戻すのでページは固まらず、処理の前に描いた「Loading」などの文字は表示されます。約 200,000 ステップで 1 秒なので、一度きりの処理は数秒以内に収めるか、複数フレームに分けてください。API ではこの処理も `timeout_ms` と `max_steps` に数えられます。
+
+
 **リクエストのフィールド**（`POST /api/agent/v1/run` と `/scripts/{cid}/run`）:
 
 | フィールド | 意味 |
@@ -482,7 +524,7 @@ fill(list, 3)       // list は {0, 1, 2}
 
 `record` は要求しない限り `null` です。フレームは `sleep()` から次の `sleep()` までの区間で、`frame` はその番号、`ms` は区間開始時の仮想時計です。
 
-**座標系と単位**: 原点は画面の左上、x は右、y は下向きで、単位は `startScreen(width, height)` のピクセルです。`"fit": 1`（既定）ではブラウザが画面をウィンドウに合わせて拡大縮小しますが、`inTouch()` を含むすべての座標は画面ピクセルのままです。角度は**ラジアン**で、x 軸の正方向から時計回りです。色は CSS の文字列で通常 `"#rrggbb"`。描画色の既定は黒 `"#000"` です。
+**座標系と単位**: 原点は画面の左上、x は右、y は下向きで、単位は `startScreen(width, height)` のピクセルです。`"fit": 1`（既定）ではブラウザが画面をウィンドウに合わせて拡大縮小しますが、`inTouch()` を含むすべての座標は画面ピクセルのままです。角度は**ラジアン**で、x 軸の正方向から時計回りです。色は CSS の色文字列で、`"#rgb"`、`"#rrggbb"`、`"#rrggbbaa"`、`"rgb(255, 0, 0)"`、`"rgba(255, 0, 0, 0.5)"`、`"hsl(120, 100%, 50%)"`、`"red"` のような色名がすべて描画（`drawLine`、`drawRect`、`drawCircle`、`drawPolyline`、`drawText`、`startScreen`）で使えます。例外は `drawFill` と `hexToRgb` で、`"#rrggbb"` か `"#rgb"` だけを受け付けます。`rgbToHex` は `"#rrggbb"` を返します。描画色の既定は黒 `"#000"` です。
 
 **関数**
 
@@ -501,8 +543,8 @@ fill(list, 3)       // list は {0, 1, 2}
 | `drawPolyline(points, option = {})` | `points` は `{{x, y}, {x, y}, ...}`。`option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`。 |
 | `drawFill(x, y, color)` | (x, y) からの塗りつぶし。ヘッドレスでは記録のみ。 |
 | `drawScroll(dx, dy)` | 画面をスクロール。はみ出た部分は反対側に出る。 |
-| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。画像は現在の実行の間だけ存在し、`globals`/`storage` による継続実行には引き継がれない（下記参照）。 |
-| `drawImage(id, x, y, option = {})` | 画像を左上 (x, y) に描く。`option`: `{"width", "height"}`（両方か無指定）、`"angle"` ラジアン（画像中心で回転）、`"alpha"` 0.0～1.0。未知の ID は無視。 |
+| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。取り込めるのは画面の範囲内のピクセルだけで、画面の外にはみ出した部分は透明になり、一度も描いていない部分も透明（背景色はピクセルに含まれない）。したがって 1 枚の画像に画面 1 面分より多くの内容は入らない。画面より大きい迷路は配列にデータを持って毎フレーム見える部分だけを描くか、画面サイズのタイルを複数枚作る。画像は現在の実行の間だけ存在し、`globals`/`storage` による継続実行には引き継がれない（下記参照）。 |
+| `drawImage(id, x, y, option = {})` | 画像を左上 (x, y) に描く。`option`: `{"width", "height"}`（両方か無指定）、`"angle"` はラジアンで**時計回り**（y が下向きなので、正の角度で画像の上辺が右に傾く）、回転の基準は**画像の中心**。`"alpha"` 0.0～1.0。未知の ID は無視。別の点 P を中心に回すには、画像の中心を P の周りで回してから新しい中心に描く: `cx = x + w/2 - px`、`cy = y + h/2 - py` として、新しい左上は `(px + cx*cos(a) - cy*sin(a) - w/2, py + cx*sin(a) + cy*cos(a) - h/2)`、`angle` は同じ `a`。 |
 | `drawText(text, x, y, option = {})` | **(x, y) は文字の左上**。ベースラインは y + fontsize。`option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`。`fill` 0 で中抜き。数値や配列は文字列に変換される。 |
 | `measureText(text, option = {})` | `{"width": w, "height": h}`（ピクセル）。`option`: `{"fontsize", "fontface", "fontstyle"}`。ヘッドレスでは ASCII 1 文字 0.55 × fontsize、それ以外 1 × fontsize、高さ = fontsize の概算。 |
 | `rgbToPoint(x, y)` | ピクセルの色 `{"r", "g", "b"}`（0～255）。ヘッドレスでは常に黒。 |
@@ -516,7 +558,21 @@ fill(list, 3)       // list は {0, 1, 2}
 
 サウンドの補足: すべて矩形波でミックスされるので、`playSound` の効果音は `playMusic`/`bgm` に重ねて鳴ります。ブラウザはページで最初のタップまたはキー入力があるまで音声をブロックするため、それより前に開始した音は鳴らないか遅れて始まることがあります。曲はタイトル画面で最初の入力があった後に開始してください。画面のミュートボタンが押されている間は鳴りません。
 
-**長いプレイを複数回の実行に分ける。** 1 回の実行は実時間で `max_timeout_ms` までです。長いセッションを試すには、`max_frames` で実行してレスポンスの `variables` と `storage` を読み、次のリクエストの `globals` と `storage` にそのまま渡します（リセットしたい値は除きます）。関数とコードは同じなので、プログラムはその状態から続きを実行します。引き継がれるのは変数とキー/値ストアだけで、`createImage` で作った画像は引き継がれません（変数に入れた画像 ID は次の実行では何も指さず、その ID での `drawImage` は無視されます）。画像に依存するプログラムは、フラグを見て初期化する関数などで開始時に画像を作り直してください。
+**長いプレイを複数回の実行に分ける。** 1 回の実行は実時間で `max_timeout_ms` までです。長いセッションを試すには、`max_frames` で実行してレスポンスの `variables` と `storage` を読み、次のリクエストの `globals` と `storage` に渡します。うまく続くかどうかは次の 2 点で決まります。
+
+- **globals をいつ適用するか。** 既定の `globals_at: "start"` では最初の文より前に値が入るため、プログラム先頭の `state = 0` のような初期化で上書きされ、`var state` の宣言は「変数の宣言が重複しています」で失敗します。スクリーンのプログラムでは `"globals_at": "first_sleep"` を使ってください。プログラムは普通に開始して初期化（`createImage` も含むので画像も作り直される）を実行し、**最初の `sleep()` の時点**で渡した値がその名前の変数の現在値を置き換えます。それ以降は復元した状態から続きます。ゲームループのカウンタも復元されるので、続けたい状態だけを渡し、不要な変数は除いてください。`stats.globals_applied` で適用の有無と時点が分かります（`"start"`、`"first_sleep"`、プログラムが一度も `sleep()` を呼ばなければ `false`）。
+- **`sleep()` の無いプログラム**（スクリーン無し）では `globals_at: "start"` しか使えません。その場合は、状態と一緒に渡すフラグで初期化を囲み、各状態変数を最上位で `名前 = 名前`（既存の値を読む。無ければ `0` で作る）として作っておくと、`if` ブロック内の代入がグローバルを更新します。
+
+```
+resumed = resumed          // 新規実行では 0、globals で渡せば 1
+state = state; score = score; maze = maze
+if (!resumed) {
+  state = 0; score = 0
+  maze[] = generateMaze()
+}
+```
+
+引き継がれるのは変数とキー/値ストアだけで、`createImage` で作った画像は引き継がれません（変数に入れた画像 ID は次の実行では何も指さず、その ID での `drawImage` は無視されます）。これも `globals_at: "first_sleep"` で初期化を実行させる理由の一つです。
 
 **ヘッドレスでもブラウザでも動くゲームループの雛形**
 

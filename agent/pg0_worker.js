@@ -268,6 +268,31 @@ async function main() {
 		storage[k] = JSON.stringify(jsonToValue(opt.storage[k]));
 	});
 	let ioLoaded = false;
+	let globalsApplied = null;
+
+	// Writes the request's "globals" into the top-level scope, keeping existing value objects
+	// (references held by the program stay valid).
+	function applyGlobals(when) {
+		if (globalsApplied || !opt.globals) {
+			return;
+		}
+		const vi = mainSci && mainSci.ei && mainSci.ei.vi;
+		if (!vi) {
+			return;
+		}
+		Object.keys(opt.globals).forEach(function(name) {
+			const v = jsonToValue(opt.globals[name]);
+			if (vi[name]) {
+				delete vi[name].num;
+				delete vi[name].str;
+				delete vi[name].array;
+				Object.assign(vi[name], v);
+			} else {
+				vi[name] = v;
+			}
+		});
+		globalsApplied = when;
+	}
 	const screen = {
 		loaded: false,
 		started: false,
@@ -331,6 +356,9 @@ async function main() {
 			screen.images = [];
 		},
 		sleep: function(ms) {
+			if (opt.globalsAt === 'first_sleep' && screen.frames === 0) {
+				applyGlobals('first_sleep');
+			}
 			screen.virtualMs += ms;
 			screen.frames++;
 			frameStart[screen.frames] = screen.virtualMs;
@@ -531,10 +559,11 @@ async function main() {
 			success: async function(token) {
 				const se = new ScriptExec(scis, sci);
 				const initialVars = {};
-				if (!imported && opt.globals) {
+				if (!imported && opt.globals && opt.globalsAt !== 'first_sleep') {
 					Object.keys(opt.globals).forEach(function(name) {
 						initialVars[name] = jsonToValue(opt.globals[name]);
 					});
+					globalsApplied = 'start';
 				}
 				await se.exec(token, initialVars, {
 					callback: async function(ei) {
@@ -596,7 +625,7 @@ async function main() {
 		}
 		const line = (typeof err.line === 'number' && err.line >= 0) ? err.line : fallbackLine;
 		return {
-			message: err.msg || err.message || String(err),
+			message: String(err.msg || err.message || err).replace(/^\s*:\s*/, ''),
 			line: (typeof line === 'number' && line >= 0) ? line + 1 : null,
 			source: (err.src !== undefined) ? err.src : null
 		};
@@ -679,6 +708,7 @@ async function main() {
 			steps: steps,
 			elapsed_ms: Date.now() - startTime,
 			input_lines_used: inputUsed,
+			globals_applied: opt.globals ? (globalsApplied || false) : null,
 			steps_per_frame: screen.frames > 0 ? {avg: Math.round(steps / screen.frames), max: Math.max(maxFrameSteps, frameSteps)} : null
 		}
 	});

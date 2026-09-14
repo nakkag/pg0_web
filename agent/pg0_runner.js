@@ -217,7 +217,8 @@ function createRunner(settings) {
 			screen: normalizeScreen(params.screen, settings),
 			seed: (params.seed === undefined || params.seed === null || params.seed === '') ? null : String(params.seed),
 			storage: normalizeJsonObject(params.storage),
-			globals: normalizeJsonObject(params.globals)
+			globals: normalizeJsonObject(params.globals),
+			globalsAt: params.globals_at === 'first_sleep' ? 'first_sleep' : 'start'
 		};
 
 		return new Promise(function(resolve) {

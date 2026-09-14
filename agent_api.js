@@ -249,6 +249,10 @@ module.exports = function(app, deps) {
 				return null;
 			}
 		}
+		if (body.globals_at !== undefined && body.globals_at !== null && body.globals_at !== 'start' && body.globals_at !== 'first_sleep') {
+			apiError(res, 400, 'invalid_request', '"globals_at" must be "start" or "first_sleep"');
+			return null;
+		}
 		if (body.seed !== undefined && body.seed !== null && typeof body.seed !== 'number' && typeof body.seed !== 'string') {
 			apiError(res, 400, 'invalid_request', '"seed" must be a number or a string');
 			return null;
@@ -321,6 +325,7 @@ module.exports = function(app, deps) {
 			seed: body.seed,
 			storage: body.storage,
 			globals: body.globals,
+			globals_at: body.globals_at,
 			variables: body.variables
 		});
 	});
@@ -405,12 +410,32 @@ module.exports = function(app, deps) {
 		return body;
 	}
 
+	// With "check": true a script is parsed before it is stored; a syntax error rejects the save.
+	async function checkBeforeSave(body, res) {
+		if (!body.check || typeof body.code !== 'string') {
+			return true;
+		}
+		if (runner.activeCount() >= settings.maxConcurrentRuns) {
+			apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
+			return false;
+		}
+		const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false});
+		if (result.status === 'error' && result.error && result.error.phase === 'parse') {
+			apiError(res, 422, 'syntax_error', 'The script has a syntax error and was not saved', {detail: result.error});
+			return false;
+		}
+		return true;
+	}
+
 	router.post('/scripts', async function(req, res) {
 		if (!requireDB(res)) {
 			return;
 		}
 		const body = validateScriptBody(req, res, true);
 		if (!body) {
+			return;
+		}
+		if (!await checkBeforeSave(body, res)) {
 			return;
 		}
 		const name = body.name.trim();
@@ -477,6 +502,9 @@ module.exports = function(app, deps) {
 		}
 		const body = validateScriptBody(req, res, false);
 		if (!body) {
+			return;
+		}
+		if (!await checkBeforeSave(body, res)) {
 			return;
 		}
 		try {
@@ -577,6 +605,7 @@ module.exports = function(app, deps) {
 				seed: body.seed,
 				storage: body.storage,
 				globals: body.globals,
+				globals_at: body.globals_at,
 				variables: body.variables
 			});
 		} catch (error) {
