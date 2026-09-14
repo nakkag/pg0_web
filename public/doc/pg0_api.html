@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-	<title>PG0 - APIマニュアル (AIエージェント)</title>
+	<title>PG0 - AIでプログラミング</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 	<meta name="color-scheme" content="light dark">
@@ -78,173 +78,134 @@ footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line);
 </head>
 <body>
 <div class="page">
-
 <header class="hero">
 	<span class="lang"><a href="pg0_api_eng.html">English</a></span>
 	<p class="kicker">プログラミング言語 PG0</p>
-	<h1>APIマニュアル (AIエージェント)</h1>
-	<p class="lead">AIエージェントにPG0のプログラムを作らせるための手引きです。人が行うのは「指示」と「確認」だけです。</p>
+	<h1>AIでプログラミング</h1>
+	<p class="lead">AIにお願いして、PG0のプログラムを作ってもらう方法です。むずかしい操作はいりません。AIに「こんなプログラムを作って」とたのむだけです。</p>
 </header>
 
 <nav class="toc">
-	<strong>目次</strong>
+	<strong>もくじ</strong>
 	<ol>
-		<li><a href="#intro">APIでできること</a></li>
-		<li><a href="#need">必要なもの</a></li>
-		<li><a href="#flow">基本の流れ</a></li>
-		<li><a href="#prompt">エージェントへの指示の例</a></li>
-		<li><a href="#save">オンライン保存のルール</a></li>
-		<li><a href="#screen">画面(ゲーム)のプログラム</a></li>
-		<li><a href="#api">APIの概要</a></li>
-		<li><a href="#limits">制限</a></li>
-		<li><a href="#trouble">うまくいかないとき</a></li>
+		<li><a href="#what">どんなことができるの?</a></li>
+		<li><a href="#need">用意するもの</a></li>
+		<li><a href="#flow">使い方(3ステップ)</a></li>
+		<li><a href="#prompt">AIへのお願いの例</a></li>
+		<li><a href="#fix">直してもらうとき</a></li>
+		<li><a href="#rule">名前とパスワードのきまり</a></li>
+		<li><a href="#game">ゲームを作るとき</a></li>
+		<li><a href="#trouble">こまったとき</a></li>
+		<li><a href="#more">もっとくわしく知りたい人へ</a></li>
 	</ol>
 </nav>
 
-<section id="intro">
-	<h2>APIでできること</h2>
-	<p>PG0(Web版)には、AIエージェント向けのHTTP APIがあります。エージェントはこのAPIを通じて次のことができます。</p>
+<section id="what">
+	<h2>どんなことができるの?</h2>
+	<p>PG0には、AIがプログラムを作るための「入り口(API)」があります。AIはこの入り口を使って、次のことができます。</p>
 	<div class="cards">
-		<div class="card"><h3>書く・確かめる</h3><p>PG0 / PG0.5のプログラムを書き、構文チェックと実行で動作を確かめます。</p></div>
-		<div class="card"><h3>保存する</h3><p>オンラインに保存し、このエディタで開けるURLを返します。修正の履歴も残ります。</p></div>
-		<div class="card"><h3>ゲームも試せる</h3><p>画面描画ライブラリを使うゲームも、キーやタッチの操作を与えて動きを検証できます。</p></div>
+		<div class="card"><h3>プログラムを作る</h3><p>あなたのお願いどおりに、PG0のプログラムを書きます。</p></div>
+		<div class="card"><h3>ちゃんと動くかためす</h3><p>作ったプログラムを自分で動かして、まちがいがあれば直します。</p></div>
+		<div class="card"><h3>オンラインに保存する</h3><p>できあがったプログラムを保存して、開くためのURL(リンク)を教えてくれます。</p></div>
 	</div>
-	<p>エージェント自身が読む詳細な仕様(APIの使い方、言語仕様、ライブラリ)は次のURLにあります。エージェントには、最初にこのマニュアルを読むように伝えてください。</p>
-	<dl class="links">
-		<dt>エージェント用マニュアル</dt>
-		<dd><a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a>(日本語) / <a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a>(英語)</dd>
-		<dt>機械可読の定義</dt>
-		<dd><a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a>(OpenAPI) / <a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a>(関数一覧) / <a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>(索引と制限値)</dd>
-		<dt>エージェント向けの入口</dt>
-		<dd><a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a></dd>
-	</dl>
+	<p>あなたは、AIが教えてくれたURLを開くだけで、このエディタでプログラムを動かしたり、中身を見たり、自分で書きかえたりできます。</p>
 </section>
 
 <section id="need">
-	<h2>必要なもの</h2>
+	<h2>用意するもの</h2>
 	<ul>
-		<li><strong>Webにアクセスできる(HTTPリクエストを送れる)AIエージェント。</strong> 例: Claude Code、Web検索やコード実行ができるチャットAI、独自に作ったエージェント。</li>
-		<li><strong>APIキーは不要です。</strong> 誰でも使えます。</li>
-		<li><strong>保存用のパスワード。</strong> 後で更新・削除するために使います。エージェントに決めさせるか、指示で与えます。</li>
+		<li><strong>インターネットを見られるAI。</strong> たとえば Claude Code や、Webを調べられるチャットAIです。AIがインターネットのページを読めることが必要です。</li>
+		<li><strong>パスワードにする言葉。</strong> あとでプログラムを直してもらうときに使います。わすれないようにメモしておきましょう。</li>
 	</ul>
+	<div class="note"><strong>お金や登録はいりません</strong>PG0の入り口(API)は、だれでも無料で使えます。</div>
 </section>
 
 <section id="flow">
-	<h2>基本の流れ</h2>
+	<h2>使い方(3ステップ)</h2>
 	<ol class="steps">
-		<li>エージェントがマニュアル(上記URL)を読み、言語仕様とライブラリを把握する</li>
-		<li>プログラムを書き、<code>/check</code> で構文チェックする(典型的な間違いは警告として返る)</li>
-		<li><code>/run</code> で実行し、出力・戻り値・変数の値を見て動作を確かめる</li>
-		<li>期待どおりになるまで 2〜3 を繰り返す</li>
-		<li><code>/scripts</code> にオンライン保存する(名前、作者、パスワード、メモ)</li>
-		<li>人はエージェントが伝えるURLを開き、エディタで動かして確認する</li>
-		<li>修正を頼むと、エージェントは同じスクリプトを更新し、変更内容をメモ(変更履歴)に残す</li>
+		<li><strong>AIにお願いする。</strong> 下の「お願いの例」をコピーして、作りたいものに書きかえて、AIに送ります。</li>
+		<li><strong>AIが作って、ためして、保存する。</strong> AIはPG0の説明書を読んでからプログラムを書き、動かしてたしかめ、オンラインに保存します。おわるとURLを教えてくれます。</li>
+		<li><strong>URLを開いて動かす。</strong> エディタが開くので、▶ボタンで実行します。気に入らないところがあれば、AIに直してもらいます(<a href="#fix">直してもらうとき</a>)。</li>
 	</ol>
-	<p>保存したプログラムは、エディタの「オンラインを開く」から名前や作者で検索して開くこともできます。</p>
+	<p>保存したプログラムは、エディタのメニューの「オンラインを開く」から、名前で探して開くこともできます。</p>
 </section>
 
 <section id="prompt">
-	<h2>エージェントへの指示の例</h2>
-	<p>最初にマニュアルのURLを読むように伝えるのが確実です。そのままコピーして使えます。</p>
+	<h2>AIへのお願いの例</h2>
+	<p>お願いの文には、かならず<strong>PG0の説明書のURL</strong>を入れてください。AIはこの説明書を読んで、PG0の書き方を知ります。「(  )」の中は自分で書きかえます。</p>
 
 	<h3>ふつうのプログラム</h3>
-<pre class="prompt" data-label="指示の例"><code>PG0.5でプログラムを作ってください。まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで
-言語仕様とAPIの使い方を把握し、/check と /run で動作を確認してから、/scripts にオンライン保存してください。
-内容: 1から100までの素数を表示する。
-保存時の名前は「素数の表示」、作者は「(あなたの名前)」、パスワードは「(任意の文字列)」、公開で。
-最後に、エディタで開くURLを教えてください。</code></pre>
+<pre class="prompt" data-label="お願いの例"><code>PG0.5でプログラムを作ってください。
+まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで、PG0の書き方と使い方を覚えてください。
+作ってほしいもの: 1から100までの数のうち、素数だけを表示する。
+できたら動かしてたしかめてから、オンラインに保存してください。
+名前は「素数さがし」、作者は「(あなたの名前)」、パスワードは「(自分で決めた言葉)」にしてください。
+最後に、開くためのURLを教えてください。</code></pre>
 
 	<h3>ゲーム</h3>
-<pre class="prompt" data-label="指示の例"><code>PG0.5の画面描画ライブラリ(lib/screen.pg0)を使って、タッチで操作するブロック崩しを作ってください。
-https://pg0.jp/api/agent/v1/manual?lang=ja を読み、ヘッドレス実行でゲームのロジックを確かめてください。
-画面のプログラムなので実行速度は「待ち無し」(speed: 0)で保存し、開いてすぐ実行できるURL(run_url)を教えてください。</code></pre>
+<pre class="prompt" data-label="お願いの例"><code>PG0.5で、画面をタッチしてあそぶブロックくずしを作ってください。
+まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで、PG0の書き方と画面の使い方を覚えてください。
+できたらオンラインに保存してください。実行速度は「待ち無し」にしてください。
+名前は「ブロックくずし」、作者は「(あなたの名前)」、パスワードは「(自分で決めた言葉)」です。
+最後に、開いてすぐあそべるURLを教えてください。</code></pre>
 
-	<h3>保存済みのプログラムを直す</h3>
-	<p>cid(スクリプトのID)とパスワードを伝えます。cidはURLの <code>?cid=</code> 以降の文字列です。</p>
-<pre class="prompt" data-label="指示の例"><code>cid が xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx のスクリプトを取得して、
-ボールの速度をステージごとに10%ずつ速くするように直してください。パスワードは「(保存時の文字列)」です。
-更新するときは、変更内容をメモに書いてください。</code></pre>
-
-	<h3>学習用にPG0モードで</h3>
-	<p>機能の少ないPG0(整数のみ、関数なし)で作らせることもできます。</p>
-<pre class="prompt" data-label="指示の例"><code>PG0モード(整数のみ、関数なし)で、while文だけを使って九九の表を作るプログラムを作ってください。
-結果は変数に残し、/run の variables で確認してください。</code></pre>
+	<h3>クイズや計算</h3>
+<pre class="prompt" data-label="お願いの例"><code>PG0.5で、九九のクイズを出すプログラムを作ってください。
+まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んでください。
+ランダムに問題を出して、答えを入力すると正解かどうか表示してください。10問で終わりにしてください。
+できたらオンラインに保存して、名前は「九九クイズ」、作者は「(あなたの名前)」、パスワードは「(自分で決めた言葉)」にして、URLを教えてください。</code></pre>
 </section>
 
-<section id="save">
-	<h2>オンライン保存のルール</h2>
-	<ul>
-		<li><strong>名前</strong>は公開スクリプトの中で重複できません。同じ名前があると保存に失敗します(非公開なら重複できます)。</li>
-		<li><strong>パスワード</strong>は更新と削除に必要です。エディタで保存したときと同じ扱いなので、エージェントが保存したものを人がエディタで更新することも、その逆もできます。大文字小文字は区別せず、前後の空白は無視されます。</li>
-		<li><strong>メモ</strong>はバージョンごとに残り、エディタの「変更履歴」に表示されます。作成時は内容を、更新時は変更点を書くようエージェントに指示してください。</li>
-		<li><strong>公開スクリプト</strong>は誰でも見られます。個人情報などは入れないでください。</li>
-	</ul>
-	<div class="note"><strong>エージェントが返す2種類のURL</strong><code>url</code> はエディタで開くURL、<code>run_url</code> は開いてすぐ実行するURLです。ゲームを人に渡すときは <code>run_url</code> が便利です。</div>
-	<div class="note"><strong>パスワードについて</strong>強い保護ではありません。大事な情報を守る用途には使わないでください。</div>
+<section id="fix">
+	<h2>直してもらうとき</h2>
+	<p>保存したプログラムを直してもらうには、AIに<strong>プログラムのID</strong>と<strong>パスワード</strong>を伝えます。IDは、URLの <code>cid=</code> のうしろにある長い文字列です。</p>
+<pre class="prompt" data-label="お願いの例"><code>IDが (URLのcid=のうしろの文字列) のプログラムを直してください。パスワードは「(自分で決めた言葉)」です。
+ボールがだんだん速くなるようにしてください。
+直したら、なにを変えたかをメモに書いて保存してください。</code></pre>
+	<p>直した内容は「変更履歴」に残ります。前のほうがよかったときは、エディタのメニューの「変更履歴」から前のプログラムを開けます。</p>
 </section>
 
-<section id="screen">
-	<h2>画面(ゲーム)のプログラム</h2>
+<section id="rule">
+	<h2>名前とパスワードのきまり</h2>
 	<ul>
-		<li>画面描画ライブラリ(<code>lib/screen.pg0</code>)を使うプログラムは、APIでは画面を出さずに実行されます(ヘッドレス実行)。描画の呼び出しが記録され、キーやタッチの操作を時刻付きで与えてゲームの動きを確かめられます。</li>
-		<li>見た目(レイアウトや色)はAPIでは確認できません。人がエディタで開いて確認してください。</li>
-		<li>実行速度は<strong>「待ち無し」(speed: 0)</strong>で保存させてください。他の速度では1文ごとに待ちが入り、画面のプログラムは極端に遅くなります。</li>
-		<li>サウンドは、ブラウザの制限により最初のタップやキー入力の後でないと鳴らないことがあります。</li>
+		<li><strong>名前は、ほかの人と同じにできません。</strong> 同じ名前のプログラムがすでにあると保存できないので、AIに別の名前にしてもらいます。</li>
+		<li><strong>パスワードは、直すときと消すときに必要です。</strong> 大文字と小文字はどちらでもかまいません。わすれると直せなくなるので、メモしておきましょう。</li>
+		<li><strong>保存したプログラムは、みんなが見られます。</strong> 本名や住所、電話番号などは入れないでください。</li>
+		<li>だれにも見せたくないときは、AIに「非公開で保存して」とお願いします。非公開でも、URLを知っている人は開けます。</li>
 	</ul>
 </section>
 
-<section id="api">
-	<h2>APIの概要</h2>
-	<p>すべて <code>https://pg0.jp/api/agent/v1</code> の下にあり、リクエストとレスポンスはJSONです。詳細はエージェント用マニュアルにあります。</p>
-	<div class="table-wrap">
-	<table>
-		<tr><th>メソッド</th><th>パス</th><th>内容</th></tr>
-		<tr><td>GET</td><td><code>/manual?lang=ja|en</code></td><td>マニュアル(Markdown)</td></tr>
-		<tr><td>GET</td><td><code>/openapi.json</code></td><td>OpenAPI定義</td></tr>
-		<tr><td>GET</td><td><code>/libraries</code></td><td>関数一覧</td></tr>
-		<tr><td>POST</td><td><code>/check</code></td><td>構文チェック(警告付き)</td></tr>
-		<tr><td>POST</td><td><code>/run</code></td><td>実行(出力、戻り値、変数、画面の記録を返す)</td></tr>
-		<tr><td>GET</td><td><code>/scripts</code></td><td>保存済みスクリプトの一覧・検索</td></tr>
-		<tr><td>POST</td><td><code>/scripts</code></td><td>新規保存</td></tr>
-		<tr><td>GET</td><td><code>/scripts/{cid}</code></td><td>取得(コード込み)</td></tr>
-		<tr><td>PUT</td><td><code>/scripts/{cid}</code></td><td>更新(パスワード必要)</td></tr>
-		<tr><td>DELETE</td><td><code>/scripts/{cid}</code></td><td>削除(パスワード必要)</td></tr>
-		<tr><td>POST</td><td><code>/scripts/{cid}/run</code></td><td>保存済みスクリプトの実行</td></tr>
-		<tr><td>GET</td><td><code>/scripts/{cid}/history</code></td><td>変更履歴</td></tr>
-	</table>
-	</div>
-	<h3>動作確認の例(curl)</h3>
-<pre><code>curl -H &quot;Content-Type: application/json&quot; \
-     -d &#x27;{&quot;code&quot;:&quot;#import(\&quot;lib/io.pg0\&quot;)\nfor (i = 1; i &lt;= 3; i++) { println(i * i) }&quot;}&#x27; \
-     https://pg0.jp/api/agent/v1/run
-
-{&quot;status&quot;:&quot;ok&quot;,&quot;output&quot;:&quot;1\n4\n9\n&quot;, ...}</code></pre>
-</section>
-
-<section id="limits">
-	<h2>制限</h2>
+<section id="game">
+	<h2>ゲームを作るとき</h2>
 	<ul>
-		<li>1回の実行は標準5秒(最大30秒)。実行文数やメモリにも上限があります。長い処理は分割するか、ゲームならフレーム数の上限(<code>max_frames</code>)で区切ります。</li>
-		<li>同時に実行できる数には上限があり、超えると少し待ってから再試行するよう応答します(429)。</li>
-		<li>実際の値は <a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a> の <code>limits</code> に載っています。</li>
-		<li>ライブラリの読み込み(<code>#import</code>)は <code>lib/math.pg0</code>、<code>lib/string.pg0</code>、<code>lib/io.pg0</code>、<code>lib/screen.pg0</code> のみです。URLや他のファイルは読み込めません。</li>
+		<li>AIはゲームの中身(点数の計算やキャラクターの動き)はためせますが、<strong>画面の見た目は見られません。</strong> 色や文字の位置がおかしいときは、あなたがAIに「文字がはみ出している」「ボールが小さすぎる」のように伝えてください。</li>
+		<li>ゲームは<strong>実行速度を「待ち無し」</strong>で保存してもらいます。ほかの速度だと、動きがとてもおそくなります。</li>
+		<li>音が出るゲームは、画面を一度タッチ(またはキーをおす)してから音が鳴りはじめます。</li>
 	</ul>
 </section>
 
 <section id="trouble">
-	<h2>うまくいかないとき</h2>
+	<h2>こまったとき</h2>
 	<div class="table-wrap">
 	<table>
-		<tr><th>症状</th><th>対処</th></tr>
-		<tr><td>保存で「名前が重複」(409)</td><td>別の名前にするか、非公開(<code>private: 1</code>)で保存させる。</td></tr>
-		<tr><td>更新や削除で「パスワード不一致」(401)</td><td>保存時のパスワードを伝える。</td></tr>
-		<tr><td>実行結果が <code>status: "timeout"</code></td><td>無限ループか処理が重すぎる。画面のプログラムなら <code>max_frames</code> を指定させる。</td></tr>
-		<tr><td>「スクリプトまたはライブラリの読み込みに失敗しました」</td><td>対応していない <code>#import</code> を使っている。</td></tr>
-		<tr><td>言語仕様の勘違い(<code>if</code> の波括弧、ブロック内の変数、文字列の演算など)</td><td>マニュアルの「注意点チェックリスト」を読むよう伝える。</td></tr>
+		<tr><th>こんなとき</th><th>どうする?</th></tr>
+		<tr><td>AIが「PG0が分からない」と言う</td><td>お願いの文に説明書のURL(https://pg0.jp/api/agent/v1/manual?lang=ja)が入っているかたしかめて、「まずこのページを読んで」と伝えます。</td></tr>
+		<tr><td>「同じ名前があって保存できない」と言われた</td><td>別の名前にしてもらいます。</td></tr>
+		<tr><td>「パスワードがちがう」と言われた</td><td>保存したときのパスワードを伝えます。</td></tr>
+		<tr><td>プログラムが止まらない、おわらない</td><td>AIに「無限ループになっていないか調べて直して」と伝えます。</td></tr>
+		<tr><td>動くけれど、思っていたのとちがう</td><td>どこがちがうかを、なるべく具体的にAIに伝えます。「10回で終わってほしい」「文字を大きく」など。</td></tr>
 	</table>
 	</div>
 </section>
 
+<section id="more">
+	<h2>もっとくわしく知りたい人へ</h2>
+	<p>AIが読む説明書は、人が読んでもかまいません。PG0の書き方や、AI用の入り口(API)の細かい使い方が書いてあります。</p>
+	<ul>
+		<li><a href="https://pg0.jp/api/agent/v1/manual?lang=ja">AI用の説明書(日本語)</a> / <a href="https://pg0.jp/api/agent/v1/manual?lang=en">英語</a></li>
+		<li><a href="pg0.5.html">PG0.5の言語仕様</a> / <a href="pg0.5_lib.html">ライブラリリファレンス</a></li>
+	</ul>
+</section>
 <footer>Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.<br>WEB SITE: <a href="https://nakka.com/">https://nakka.com/</a> / E-MAIL: nakka@nakka.com</footer>
 </div>
 </body>
