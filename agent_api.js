@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const express = require('express');
 
 const settings = require('./agent_settings.js');
-const {createRunner, normalizeMode} = require('./agent/pg0_runner.js');
+const {createRunner, normalizeMode, validateScreen} = require('./agent/pg0_runner.js');
 const libraries = require('./agent/libraries.js');
 const {lint} = require('./agent/lint.js');
 
@@ -238,8 +238,9 @@ module.exports = function(app, deps) {
 			apiError(res, 413, 'code_too_large', `"code" exceeds ${settings.maxCodeLength} characters`);
 			return null;
 		}
-		if (body.screen !== undefined && body.screen !== null && (typeof body.screen !== 'object' || Array.isArray(body.screen))) {
-			apiError(res, 400, 'invalid_request', '"screen" must be an object ({"touch": [...], "keys": [...], "record": true})');
+		const screenError = validateScreen(body.screen, settings);
+		if (screenError) {
+			apiError(res, 400, 'invalid_request', screenError);
 			return null;
 		}
 		for (const key of ['storage', 'globals']) {
@@ -553,6 +554,10 @@ module.exports = function(app, deps) {
 			return;
 		}
 		const body = req.body || {};
+		const screenError = validateScreen(body.screen, settings);
+		if (screenError) {
+			return apiError(res, 400, 'invalid_request', screenError);
+		}
 		try {
 			const db = await getDB();
 			const doc = await db.collection('script').findOne({cid: req.params.cid});

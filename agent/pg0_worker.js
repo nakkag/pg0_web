@@ -260,6 +260,7 @@ async function main() {
 	const maxCalls = screenOpt.max_calls;
 	const recordFrames = screenOpt.record_frames || null;
 	const recordFunctions = screenOpt.record_functions ? screenOpt.record_functions.map(function(f) { return String(f).toLowerCase(); }) : null;
+	const recordImageFrames = !!screenOpt.record_image_frames;
 	let frameSteps = 0;
 	let maxFrameSteps = 0;
 	const storage = {};
@@ -289,8 +290,13 @@ async function main() {
 	// Timeline entries are evaluated in the given order; an entry applies from its
 	// virtual time (ms) or frame index on. Pulse entries (tap/hold) are active for a
 	// number of frames starting at the first frame in which they became due.
+	// Virtual time at which each frame started, to compare frame-based and ms-based entries.
+	const frameStart = [0];
 	function entryDue(e) {
 		return (e.frame !== undefined) ? screen.frames >= e.frame : screen.virtualMs >= e.ms;
+	}
+	function dueTime(e) {
+		return (e.frame !== undefined) ? frameStart[e.frame] : e.ms;
 	}
 	function activatePulses(list) {
 		list.forEach(function(e) {
@@ -302,11 +308,14 @@ async function main() {
 	function pulseActive(e) {
 		return e.frames !== undefined && e.startFrame !== undefined && screen.frames < e.startFrame + e.frames;
 	}
+	// The state entry that became due last wins, whatever the order in the request.
 	function timelineState(list) {
 		let cur = null;
+		let curTime = -1;
 		list.forEach(function(e) {
-			if (e.frames === undefined && entryDue(e)) {
+			if (e.frames === undefined && entryDue(e) && dueTime(e) >= curTime) {
 				cur = e;
+				curTime = dueTime(e);
 			}
 		});
 		return cur;
@@ -324,7 +333,10 @@ async function main() {
 		sleep: function(ms) {
 			screen.virtualMs += ms;
 			screen.frames++;
+			frameStart[screen.frames] = screen.virtualMs;
 			screen.currentFrame = null;
+			screen.pendingCalls = [];
+			screen.frameForced = false;
 			if (frameSteps > maxFrameSteps) {
 				maxFrameSteps = frameSteps;
 			}
@@ -401,22 +413,34 @@ async function main() {
 			if (!recordCalls) {
 				return;
 			}
-			if (recordFrames && (screen.frames < recordFrames.from || screen.frames > recordFrames.to)) {
-				return;
+			const call = {fn: name, args: args};
+			const inRange = !recordFrames || (screen.frames >= recordFrames.from && screen.frames <= recordFrames.to);
+			const fnOk = !recordFunctions || recordFunctions.indexOf(name.toLowerCase()) >= 0;
+			// A frame that creates an image is recorded completely (with the calls before createImage)
+			// so that the image can be reproduced even outside record_frames / record_functions.
+			if (recordImageFrames && name.toLowerCase() === 'createimage' && !screen.frameForced) {
+				screen.frameForced = true;
+				(screen.pendingCalls || []).forEach(function(c) { push(c); });
+				screen.pendingCalls = [];
 			}
-			if (recordFunctions && recordFunctions.indexOf(name.toLowerCase()) < 0) {
-				return;
+			if (screen.frameForced || (inRange && fnOk)) {
+				push(call);
+			} else if (recordImageFrames) {
+				screen.pendingCalls = screen.pendingCalls || [];
+				screen.pendingCalls.push(call);
 			}
-			screen.recorded = (screen.recorded || 0) + 1;
-			if (screen.recorded > maxCalls) {
-				screen.recordTruncated = true;
-				return;
+			function push(c) {
+				screen.recorded = (screen.recorded || 0) + 1;
+				if (screen.recorded > maxCalls) {
+					screen.recordTruncated = true;
+					return;
+				}
+				if (!screen.currentFrame) {
+					screen.currentFrame = {frame: screen.frames, ms: screen.virtualMs, calls: []};
+					screen.record.push(screen.currentFrame);
+				}
+				screen.currentFrame.calls.push(c);
 			}
-			if (!screen.currentFrame) {
-				screen.currentFrame = {frame: screen.frames, ms: screen.virtualMs, calls: []};
-				screen.record.push(screen.currentFrame);
-			}
-			screen.currentFrame.calls.push({fn: name, args: args});
 		}
 	};
 

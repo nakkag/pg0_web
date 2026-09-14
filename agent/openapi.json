@@ -684,7 +684,7 @@
         "properties": {
           "touch": {
             "type": "array",
-            "description": "Pointer timeline in chronological order. State entries: {ms | frame, x, y, touch (default 1), button (0 left, 1 middle, 2 right)} apply from their virtual time / frame index on. Short form: {ms | frame, tap: {x, y}, frames (default 1)} touches for that many frames.",
+            "description": "Pointer timeline (order does not matter; the entry that became due last applies). State entries: {ms | frame, x, y, touch (default 1), button (0 left, 1 middle, 2 right)} apply from their virtual time / frame index on. Short form: {ms | frame, tap: {x, y}, frames (default 1)} touches for that many frames.",
             "items": {
               "type": "object",
               "properties": {
@@ -735,7 +735,7 @@
           },
           "keys": {
             "type": "array",
-            "description": "Keyboard timeline in chronological order. State entries: {ms | frame, keys: [...]} list the held keys (KeyboardEvent.key names) from then on; [] releases all. Short forms: {ms | frame, tap: key | [keys]} presses for one frame, {ms | frame, hold: key | [keys], frames: n} for n frames; taps/holds are added on top of the held keys.",
+            "description": "Keyboard timeline (order does not matter; the entry that became due last applies). State entries: {ms | frame, keys: [...]} list the held keys (KeyboardEvent.key names) from then on; [] releases all. Short forms: {ms | frame, tap: key | [keys]} presses for one frame, {ms | frame, hold: key | [keys], frames: n} for n frames; taps/holds are added on top of the held keys.",
             "items": {
               "type": "object",
               "properties": {
@@ -812,6 +812,11 @@
               "type": "string"
             },
             "description": "Record only these functions (case-insensitive)."
+          },
+          "record_image_frames": {
+            "type": "boolean",
+            "default": false,
+            "description": "Record every frame that calls createImage completely, even outside record_frames and regardless of record_functions, so images can be reproduced from a partial recording."
           }
         }
       }

@@ -53,51 +53,90 @@ function toKeyList(v) {
 
 // Timeline entries: {ms | frame, ...}. Key entries hold "keys" (state) or "tap"/"hold" (pulse for
 // "frames" frames, default 1). Touch entries hold x/y/touch/button (state) or "tap" (pulse).
-function normalizeTimeline(list, kind) {
+// Returns {entries} or {error} describing the first invalid entry.
+function normalizeTimeline(list, kind, field) {
+	if (list === undefined || list === null) {
+		return {entries: []};
+	}
 	if (!Array.isArray(list)) {
-		return [];
+		return {error: `"${field}" must be an array of timeline entries`};
 	}
 	const out = [];
-	list.forEach(function(e) {
-		if (!e || typeof e !== 'object') {
-			return;
+	for (let idx = 0; idx < list.length; idx++) {
+		const e = list[idx];
+		const where = `"${field}[${idx}]"`;
+		if (!e || typeof e !== 'object' || Array.isArray(e)) {
+			return {error: `${where} must be an object`};
 		}
 		const entry = {};
-		if (e.frame !== undefined && e.frame !== null) {
-			const frame = parseInt(e.frame, 10);
-			if (isNaN(frame) || frame < 0) {
-				return;
+		const hasMs = e.ms !== undefined && e.ms !== null;
+		const hasFrame = e.frame !== undefined && e.frame !== null;
+		if (hasMs === hasFrame) {
+			return {error: `${where} needs exactly one of "ms" (virtual milliseconds) or "frame" (frame index)`};
+		}
+		if (hasFrame) {
+			const frame = Number(e.frame);
+			if (!Number.isInteger(frame) || frame < 0) {
+				return {error: `${where}.frame must be a non-negative integer`};
 			}
 			entry.frame = frame;
 		} else {
 			const ms = Number(e.ms);
 			if (!isFinite(ms) || ms < 0) {
-				return;
+				return {error: `${where}.ms must be a non-negative number`};
 			}
 			entry.ms = ms;
 		}
-		const pulse = (e.tap !== undefined && e.tap !== null) || (e.hold !== undefined && e.hold !== null);
+		const hasTap = e.tap !== undefined && e.tap !== null;
+		const hasHold = e.hold !== undefined && e.hold !== null;
+		if (hasTap && hasHold) {
+			return {error: `${where} may have "tap" or "hold", not both`};
+		}
+		const pulse = hasTap || hasHold;
 		if (pulse) {
-			let frames = parseInt(e.frames, 10);
-			if (isNaN(frames) || frames < 1) {
-				frames = 1;
+			const frames = e.frames === undefined ? 1 : Number(e.frames);
+			if (!Number.isInteger(frames) || frames < 1) {
+				return {error: `${where}.frames must be a positive integer`};
 			}
 			entry.frames = frames;
+		} else if (e.frames !== undefined) {
+			return {error: `${where}.frames is only valid together with "tap" or "hold"`};
 		}
 		if (kind === 'touch') {
-			const tap = (e.tap && typeof e.tap === 'object') ? e.tap : e;
-			entry.x = Number(tap.x) || 0;
-			entry.y = Number(tap.y) || 0;
+			if (hasHold) {
+				return {error: `${where}: touch entries use "tap", not "hold"`};
+			}
+			const src = (hasTap && typeof e.tap === 'object') ? e.tap : e;
+			if (hasTap && typeof e.tap !== 'object') {
+				return {error: `${where}.tap must be {"x": number, "y": number}`};
+			}
+			if (src.x === undefined || src.y === undefined || !isFinite(Number(src.x)) || !isFinite(Number(src.y))) {
+				return {error: `${where} needs numeric "x" and "y"`};
+			}
+			entry.x = Number(src.x);
+			entry.y = Number(src.y);
 			entry.button = Number(e.button) || 0;
 			if (!pulse) {
 				entry.touch = (e.touch === undefined ? 1 : (e.touch ? 1 : 0));
 			}
 		} else {
-			entry.keys = pulse ? toKeyList(e.tap !== undefined && e.tap !== null ? e.tap : e.hold) : (Array.isArray(e.keys) ? e.keys.map(String) : toKeyList(e.key));
+			if (pulse) {
+				entry.keys = toKeyList(hasTap ? e.tap : e.hold);
+				if (entry.keys.length === 0) {
+					return {error: `${where}: "tap"/"hold" needs a key name or an array of key names`};
+				}
+			} else if (e.keys !== undefined || e.key !== undefined) {
+				if (e.keys !== undefined && !Array.isArray(e.keys)) {
+					return {error: `${where}.keys must be an array of key names`};
+				}
+				entry.keys = e.keys !== undefined ? e.keys.map(String) : toKeyList(e.key);
+			} else {
+				return {error: `${where} needs "keys" (held keys), "tap" or "hold"`};
+			}
 		}
 		out.push(entry);
-	});
-	return out;
+	}
+	return {entries: out};
 }
 
 function normalizeRecordFrames(v) {
@@ -113,15 +152,42 @@ function normalizeJsonObject(v) {
 	return (v && typeof v === 'object' && !Array.isArray(v)) ? v : null;
 }
 
+// Returns an error message for invalid screen options, or null.
+function validateScreen(screen, settings) {
+	if (screen === undefined || screen === null) {
+		return null;
+	}
+	if (typeof screen !== 'object' || Array.isArray(screen)) {
+		return '"screen" must be an object ({"touch": [...], "keys": [...], "record": true})';
+	}
+	for (const [field, kind] of [['touch', 'touch'], ['keys', 'keys']]) {
+		const r = normalizeTimeline(screen[field], kind, 'screen.' + field);
+		if (r.error) {
+			return r.error;
+		}
+		if (r.entries.length > settings.maxTimelineEvents) {
+			return `"screen.${field}" has more than ${settings.maxTimelineEvents} entries`;
+		}
+	}
+	if (screen.record_frames !== undefined && screen.record_frames !== null && (typeof screen.record_frames !== 'object' || Array.isArray(screen.record_frames))) {
+		return '"screen.record_frames" must be {"from": n, "to": m}';
+	}
+	if (screen.record_functions !== undefined && screen.record_functions !== null && !Array.isArray(screen.record_functions)) {
+		return '"screen.record_functions" must be an array of function names';
+	}
+	return null;
+}
+
 function normalizeScreen(screen, settings) {
 	screen = (screen && typeof screen === 'object') ? screen : {};
 	return {
-		touch: normalizeTimeline(screen.touch, 'touch').slice(0, settings.maxTimelineEvents),
-		keys: normalizeTimeline(screen.keys, 'keys').slice(0, settings.maxTimelineEvents),
+		touch: (normalizeTimeline(screen.touch, 'touch', 'screen.touch').entries || []).slice(0, settings.maxTimelineEvents),
+		keys: (normalizeTimeline(screen.keys, 'keys', 'screen.keys').entries || []).slice(0, settings.maxTimelineEvents),
 		record: !!screen.record,
 		max_calls: optionalInt(screen.max_calls, 1, settings.maxRecordedCalls) || settings.defaultRecordedCalls,
 		record_frames: normalizeRecordFrames(screen.record_frames),
-		record_functions: Array.isArray(screen.record_functions) && screen.record_functions.length ? screen.record_functions.map(String) : null
+		record_functions: Array.isArray(screen.record_functions) && screen.record_functions.length ? screen.record_functions.map(String) : null,
+		record_image_frames: !!screen.record_image_frames
 	};
 }
 
@@ -225,4 +291,4 @@ function createRunner(settings) {
 	};
 }
 
-module.exports = {createRunner: createRunner, normalizeMode: normalizeMode};
+module.exports = {createRunner: createRunner, normalizeMode: normalizeMode, validateScreen: validateScreen};

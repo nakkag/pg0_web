@@ -465,8 +465,9 @@ fill(list, 3)       // list は {0, 1, 2}
 | `screen.max_calls` | 記録する呼び出しの上限（デフォルト 2000）。超えると `record_truncated` が `true` になります。`calls` は数え続けます。 |
 | `screen.record_frames` | `{"from": 300, "to": 320}` でそのフレーム範囲（両端含む）だけを記録します。後半の場面を安く取れます。 |
 | `screen.record_functions` | `["drawText", "drawImage"]` でその関数だけを記録します（大文字小文字を区別しない）。 |
+| `screen.record_image_frames` | `true` にすると、`createImage` を呼んだフレームは `record_frames` の範囲外でも、また `record_functions` に関係なく、そのフレームの先頭からの全呼び出しを記録します。部分的な記録を再生するときに画像を再現できます。 |
 
-タッチの要素も簡易表記 `{"ms": 500, "tap": {"x": 330, "y": 300}}`（1 フレームだけタッチ。`"frames": n` で複数フレーム）と `"ms"` の代わりの `"frame"` を使えます。タイムラインの要素は指定した順に評価されるので、時系列順に並べてください。
+タッチの要素も簡易表記 `{"ms": 500, "tap": {"x": 330, "y": 300}}`（1 フレームだけタッチ。`"frames": n` で複数フレーム）と `"ms"` の代わりの `"frame"` を使えます。要素の順序は問いません。各時点では最後に到達した状態要素が有効になり、tap/hold はそれぞれの時刻で評価されます。各要素は `ms` か `frame` のどちらか一方を必ず持ち、タッチは数値の `x`/`y`、キーは `keys`、`tap`、`hold` のいずれかが必要です。満たさない場合は `400 invalid_request` で該当要素を示して拒否します（例: `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`）。
 
 **レスポンスの `screen`**（ライブラリを import した場合に存在）:
 
@@ -500,7 +501,7 @@ fill(list, 3)       // list は {0, 1, 2}
 | `drawPolyline(points, option = {})` | `points` は `{{x, y}, {x, y}, ...}`。`option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`。 |
 | `drawFill(x, y, color)` | (x, y) からの塗りつぶし。ヘッドレスでは記録のみ。 |
 | `drawScroll(dx, dy)` | 画面をスクロール。はみ出た部分は反対側に出る。 |
-| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。 |
+| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。画像は現在の実行の間だけ存在し、`globals`/`storage` による継続実行には引き継がれない（下記参照）。 |
 | `drawImage(id, x, y, option = {})` | 画像を左上 (x, y) に描く。`option`: `{"width", "height"}`（両方か無指定）、`"angle"` ラジアン（画像中心で回転）、`"alpha"` 0.0～1.0。未知の ID は無視。 |
 | `drawText(text, x, y, option = {})` | **(x, y) は文字の左上**。ベースラインは y + fontsize。`option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`。`fill` 0 で中抜き。数値や配列は文字列に変換される。 |
 | `measureText(text, option = {})` | `{"width": w, "height": h}`（ピクセル）。`option`: `{"fontsize", "fontface", "fontstyle"}`。ヘッドレスでは ASCII 1 文字 0.55 × fontsize、それ以外 1 × fontsize、高さ = fontsize の概算。 |
@@ -515,7 +516,7 @@ fill(list, 3)       // list は {0, 1, 2}
 
 サウンドの補足: すべて矩形波でミックスされるので、`playSound` の効果音は `playMusic`/`bgm` に重ねて鳴ります。ブラウザはページで最初のタップまたはキー入力があるまで音声をブロックするため、それより前に開始した音は鳴らないか遅れて始まることがあります。曲はタイトル画面で最初の入力があった後に開始してください。画面のミュートボタンが押されている間は鳴りません。
 
-**長いプレイを複数回の実行に分ける。** 1 回の実行は実時間で `max_timeout_ms` までです。長いセッションを試すには、`max_frames` で実行してレスポンスの `variables` と `storage` を読み、次のリクエストの `globals` と `storage` にそのまま渡します（リセットしたい値は除きます）。関数とコードは同じなので、プログラムはその状態から続きを実行します。
+**長いプレイを複数回の実行に分ける。** 1 回の実行は実時間で `max_timeout_ms` までです。長いセッションを試すには、`max_frames` で実行してレスポンスの `variables` と `storage` を読み、次のリクエストの `globals` と `storage` にそのまま渡します（リセットしたい値は除きます）。関数とコードは同じなので、プログラムはその状態から続きを実行します。引き継がれるのは変数とキー/値ストアだけで、`createImage` で作った画像は引き継がれません（変数に入れた画像 ID は次の実行では何も指さず、その ID での `drawImage` は無視されます）。画像に依存するプログラムは、フラグを見て初期化する関数などで開始時に画像を作り直してください。
 
 **ヘッドレスでもブラウザでも動くゲームループの雛形**
 

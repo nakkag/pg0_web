@@ -465,8 +465,9 @@ What cannot be verified headless: actual pixels (`rgbToPoint` returns black), ex
 | `screen.max_calls` | Cap on recorded calls (default 2000). Beyond it `record_truncated` becomes `true`; `calls` keeps counting. |
 | `screen.record_frames` | `{"from": 300, "to": 320}` records only these frames (inclusive), so a late scene can be captured cheaply. |
 | `screen.record_functions` | `["drawText", "drawImage"]` records only these functions (case-insensitive). |
+| `screen.record_image_frames` | `true` records every frame in which `createImage` is called completely (all calls of that frame, from its start), even outside `record_frames` and regardless of `record_functions`, so that the images can be reproduced when replaying a partial recording. |
 
-Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. Timeline entries are evaluated in the order given; list them chronologically.
+Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. The order of the entries does not matter: at any moment the state entry that became due last applies, and taps/holds are evaluated by their own time. Every entry must have exactly one of `ms` or `frame`, numeric `x`/`y` for touch, and `keys`, `tap` or `hold` for keys; otherwise the request is rejected with `400 invalid_request` naming the entry, for example `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`.
 
 **Response field `screen`** (present when the library was imported):
 
@@ -500,7 +501,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | `drawPolyline(points, option = {})` | `points` is `{{x, y}, {x, y}, ...}`. `option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`. |
 | `drawFill(x, y, color)` | Flood fill from (x, y). Headless: recorded only. |
 | `drawScroll(dx, dy)` | Scrolls the screen; content wraps around. |
-| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. |
+| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. Images live only for the current run: they are not carried over by `globals`/`storage` into a following run (see below). |
 | `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` radians about the image center, `"alpha"` 0.0 to 1.0. Unknown ids are ignored. |
 | `drawText(text, x, y, option = {})` | **(x, y) is the top-left of the text**; the baseline is at y + fontsize. `option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`; `fill` 0 draws outlines. Numbers and arrays are converted to text. |
 | `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character, 1 × fontsize otherwise, height = fontsize. |
@@ -515,7 +516,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 
 Sound notes: all sounds are square waves mixed together, so `playSound` effects play on top of `playMusic`/`bgm`. Browsers block audio until the first tap or key press on the page; sounds started before that may stay silent or start late, so start the music from the title screen after the first input. Sound is muted when the person turned on the mute button of the screen.
 
-**Continuing a long play across runs.** One run is limited to `max_timeout_ms` of real time. To test a longer session, run with `max_frames`, read `variables` and `storage` from the response, and pass them back as `globals` and `storage` of the next request (drop the values you want to reset). Functions and code stay the same, so the program simply continues from that state.
+**Continuing a long play across runs.** One run is limited to `max_timeout_ms` of real time. To test a longer session, run with `max_frames`, read `variables` and `storage` from the response, and pass them back as `globals` and `storage` of the next request (drop the values you want to reset). Functions and code stay the same, so the program simply continues from that state. Only variables and the key/value store are carried over: images created with `createImage` are not (image ids stored in variables point to nothing in the next run, and `drawImage` with them is ignored), so a program that relies on images must recreate them at start, for example in an initialization function that checks a flag.
 
 **Game-loop template that works both headless and in the browser**
 
