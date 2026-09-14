@@ -75,6 +75,7 @@ module.exports = {
 			available: true,
 			functions: [
 				{name: 'println', signature: 'println(value: any) -> int', summary: 'Writes value followed by a newline.'},
+			{name: 'wait', signature: 'wait(ms: int) -> int', summary: 'Pauses the program for ms milliseconds in the web editor. Through the API it does not wait at all: the total is returned as stats.waited_ms. Does not need lib/screen.pg0 and does not count as a frame.'},
 				{name: 'saveValue', signature: 'saveValue(key: str, value: any) -> int', summary: 'Stores a value under key. In the API the store lives only for the current run.'},
 				{name: 'loadValue', signature: 'loadValue(key: str) -> any', summary: 'Reads a stored value; integer 0 when the key does not exist.'},
 				{name: 'removeValue', signature: 'removeValue(key: str) -> int', summary: 'Removes a stored value.'},

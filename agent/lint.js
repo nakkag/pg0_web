@@ -9,6 +9,31 @@ const COMPOUND = ['+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', 
 const IDENT_START = /[A-Za-z_-￿]/;
 const IDENT_CHAR = /[A-Za-z0-9_-￿]/;
 
+// Names of the standard and library functions (lower-case; PG0 function names are case-insensitive).
+const LIBRARY_FUNCTIONS = (function() {
+	const names = new Set();
+	(function collect(node) {
+		if (!node || typeof node !== 'object') {
+			return;
+		}
+		if (Array.isArray(node)) {
+			node.forEach(collect);
+			return;
+		}
+		if (Array.isArray(node.functions)) {
+			node.functions.forEach(function(f) {
+				if (f && f.name) {
+					names.add(String(f.name).toLowerCase());
+				}
+			});
+		}
+		Object.keys(node).forEach(function(key) {
+			collect(node[key]);
+		});
+	})(require('./libraries.js'));
+	return names;
+})();
+
 const MESSAGES = {
 	en: {
 		block_local_variable: function(name, declLine) {
@@ -25,6 +50,12 @@ const MESSAGES = {
 		},
 		undeclared_variable: function(name) {
 			return `#option("strict") is set but "${name}" is not declared with var in this scope or an enclosing one; the program will stop with "Undefined variable" when this line runs.`;
+		},
+		global_overwrite: function(name, fn, globalLine) {
+			return `Function "${fn}" assigns "${name}" without var, so it overwrites the top-level variable "${name}" (line ${globalLine}). If "${name}" is meant to be local to the function, declare it with "var ${name}" first.`;
+		},
+		builtin_shadow: function(name) {
+			return `Function "${name}" has the same name as a standard or library function, which becomes unusable in this program (function names are case-insensitive). Choose another name.`;
 		}
 	},
 	ja: {
@@ -42,6 +73,12 @@ const MESSAGES = {
 		},
 		undeclared_variable: function(name) {
 			return `#option("strict") が指定されていますが、"${name}" はこのスコープにも外側のスコープにも var で宣言されていません。この行の実行時に「変数が定義されていません」で停止します。`;
+		},
+		global_overwrite: function(name, fn, globalLine) {
+			return `関数 "${fn}" は "${name}" に var 無しで代入しているため、最上位の変数 "${name}"（${globalLine} 行目）を書き換えます。関数内だけで使う変数なら、先に "var ${name}" と宣言してください。`;
+		},
+		builtin_shadow: function(name) {
+			return `関数 "${name}" は標準関数またはライブラリ関数と同じ名前です（関数名は大文字小文字を区別しません）。このプログラムでは元の関数が使えなくなるので、別の名前にしてください。`;
 		}
 	}
 };
@@ -188,6 +225,48 @@ function lint(src, lang) {
 	const closed = Object.create(null);
 	const pendingClose = Object.create(null);
 	let inFunction = false;
+	let functionName = '';
+	// Names assigned in a for(...) header outside of functions (top-level loop counters).
+	const topLoopCounters = Object.create(null);
+	{
+		let fnDepth = 0;
+		const braces = [];
+		for (let i = 0; i < tokens.length; i++) {
+			const tk = tokens[i];
+			if (tk.t === 'kw' && tk.v === 'function') {
+				let j = i + 1;
+				while (j < tokens.length && !(tokens[j].t === 'op' && tokens[j].v === '{')) {
+					j++;
+				}
+				braces.push('fn');
+				fnDepth++;
+				i = j;
+			} else if (tk.t === 'op' && tk.v === '{') {
+				braces.push('brace');
+			} else if (tk.t === 'op' && tk.v === '}') {
+				if (braces.pop() === 'fn') {
+					fnDepth--;
+				}
+			} else if (fnDepth === 0 && tk.t === 'kw' && tk.v === 'for' && tokens[i + 1] && tokens[i + 1].v === '(' && tokens[i + 2] && tokens[i + 2].t === 'id' && tokens[i + 3] && tokens[i + 3].t === 'op' && tokens[i + 3].v === '=') {
+				topLoopCounters[tokens[i + 2].v] = true;
+			}
+		}
+	}
+	// Whether the assignment starting after token index k (the "=") reads "name" on its right-hand side.
+	function rhsReads(k, name) {
+		for (let j = k + 1; j < tokens.length; j++) {
+			const p = tokens[j];
+			if (p.t === 'nl' || (p.t === 'op' && p.v === ';')) {
+				return false;
+			}
+			if (p.t === 'id' && p.v === name) {
+				return true;
+			}
+		}
+		return false;
+	}
+	// Names already referenced inside the current function body.
+	let seenInFunction = Object.create(null);
 
 	function current() {
 		return scopes[scopes.length - 1];
@@ -224,7 +303,13 @@ function lint(src, lang) {
 		const tk = tokens[i];
 		if (tk.t === 'kw' && tk.v === 'function') {
 			let j = i + 1;
+			functionName = '';
+			seenInFunction = Object.create(null);
 			if (tokens[j] && tokens[j].t === 'id') {
+				functionName = tokens[j].v;
+				if (LIBRARY_FUNCTIONS.has(functionName.toLowerCase())) {
+					warn('builtin_shadow', tokens[j].line, functionName, msg.builtin_shadow(functionName));
+				}
 				j++;
 			}
 			const fnScope = {vars: Object.create(null), block: false, parent: globalScope};
@@ -381,6 +466,17 @@ function lint(src, lang) {
 		}
 		const name = tk.v;
 		let v = lookup(name);
+		if (inFunction) {
+			const firstInFunction = !seenInFunction[name];
+			seenInFunction[name] = true;
+			// A plain assignment as the first use of a top-level variable inside a function is usually
+			// a forgotten var (typically a loop counter) and silently overwrites the global.
+			const globalVar = v ? (globalScope.vars[name] === v ? v : null) : (firstTopRef[name] !== undefined ? {line: tokens[firstTopRef[name]].line} : null);
+			const inForHeader = prev && prev.t === 'op' && prev.v === '(' && tokens[i - 2] && tokens[i - 2].t === 'kw' && tokens[i - 2].v === 'for';
+			if (firstInFunction && write && !read && globalVar && (inForHeader || topLoopCounters[name]) && !rhsReads(k, name)) {
+				warn('global_overwrite', tk.line, name, msg.global_overwrite(name, functionName || '(anonymous)', globalVar.line + 1));
+			}
+		}
 		if (strict && (!v || !v.declared) && !(v && globalScope.vars[name] === v && v.declared)) {
 			// In strict mode every variable must come from a var declaration (or be a parameter).
 			if (!v || !v.declared) {

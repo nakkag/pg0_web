@@ -80,6 +80,8 @@ Response: `{"ok": true, "mode": "PG0.5", "error": null, "warnings": [...]}` or `
 - `split_variable`: a variable that is never created at the top level is written in one block or function and read in another (in any textual order); the two are different variables. Create it at the top level before both.
 - `unused_variable`: a variable inside a function or block is assigned but never read.
 - `keyed_initializer`: a bare variable inside an array initializer (`{x, y}`) becomes a keyed element, not a list element (see 3.5). Write `{x + 0, y + 0}` for a list.
+- `global_overwrite`: a function assigns a loop counter such as `for (i = 0; ...)` without `var` while a variable of the same name exists at the top level; the function clobbers the global `i` and breaks the caller's loop. Declare function-local variables with `var i` (assignments that deliberately update global state are not reported).
+- `builtin_shadow`: a function is defined with the name of a standard or library function (names are case-insensitive), which makes the original unusable.
 - `undeclared_variable`: the program has `#option("strict")` and a variable is used without a `var` declaration in its scope or an enclosing one (parameters count as declared). The interpreter reports this only when the line runs; the check reports it before.
 
 #### POST /api/agent/v1/run
@@ -99,6 +101,7 @@ Request fields:
 | `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs (see 4.5). Keys must be valid PG0 variable names (starting with a letter, `_` or a non-ASCII character); anything else is a `400`. |
 | `globals_at` | `"start"` or `"first_sleep"` | `"start"` | When `globals` are applied: before the first statement, or at the first `sleep()` call after the program's own initialization ran (screen programs; see 4.5). |
 | `profile` | boolean | false | Return `profile` with the execution steps per source line and per function, to find out what is expensive. |
+| `sources` | object | `{}` | Additional source files `{"util.pg0": "code", ...}` that the program (and other sources) can pull in with `#import("util.pg0")` (`.pg0` may be omitted; also accepted by `/check`). Lets a multi-file program be tested without saving; see 3.12. At most 30 entries of 200,000 characters each. |
 | `storage` | object | `{}` | Initial contents of the key/value store of `lib/io.pg0` (`loadValue`), `{"key": value}`. The final store comes back in the response field `storage`. |
 | `max_frames` | integer | 10000 | Programs using `lib/screen.pg0`: stop with `status: "frame_limit"` after this many `sleep()` calls (frames). See 4.5. |
 | `max_virtual_ms` | integer | none | Programs using `lib/screen.pg0`: stop with `status: "virtual_time_limit"` when the virtual clock reaches this value. |
@@ -172,7 +175,7 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `variables` | Final values of the global variables (`{"name": value}`), converted to JSON. Variables local to blocks and functions are not included. This is the only way to observe values in PG0 mode, which has no `print`. |
 | `screen` | `null` unless `lib/screen.pg0` was imported. Then `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`, see 4.5. |
 | `storage` | `null` unless `lib/io.pg0` was imported. Then the final key/value store `{"key": value}` (initialized from the request field `storage`). |
-| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, `globals_applied` (`"start"`, `"first_sleep"`, `false` when `globals` were given but never applied, `null` without `globals`), and for screen programs `steps_per_frame: {"avg", "max", "max_frame", "first", "avg_after_first"}` (`max_frame` is the index of the heaviest frame; `first` is frame 0, which usually contains the initialization, and `avg_after_first` excludes it; see the performance note in 4.5). |
+| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, `waited_ms` (total requested by `wait()`; the API never actually waits), `globals_applied` (`"start"`, `"first_sleep"`, `false` when `globals` were given but never applied, `null` without `globals`), and for screen programs `steps_per_frame: {"avg", "max", "max_frame", "first", "avg_after_first"}` (`max_frame` is the index of the heaviest frame; `first` is frame 0, which usually contains the initialization, and `avg_after_first` excludes it; see the performance note in 4.5). |
 | `profile` | `null` unless `profile: true` was requested. Then `{"top_level_steps", "by_function": {"name": {"calls", "steps"}}, "by_line": {"12": steps, ...}}` for the main program (library code is not counted). `steps` of a function are the steps executed inside its own body, including argument passing but not the functions it calls; `by_line` uses 1-based line numbers. |
 | `truncated` | Names of the fields replaced by `null` because the response exceeded about 4 MB (normally `[]`; see 2.1). |
 
@@ -391,10 +394,16 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 20. Inside a function, assigning to a name updates the global of that name if it already exists; otherwise the variable is function-local, and one first assigned inside an `if`/`for` block of the function is local to that block. Declare the function's working variables with `var` at the top of the function, and create shared state at the top level before calling the function.
 21. `m = mons[0]` copies the element; changing `m["hp"]` leaves `mons[0]` untouched. Write `mons[0]["hp"] = ...` to modify the element in place.
 22. `int(time())` overflows 32 bits (`time()` is milliseconds since 1970). Take a remainder first, for example `int(time() % 65521)`, or keep the float.
+23. `continue` inside a `switch` acts on the enclosing loop (as in C), and `return` works inside a `switch`.
+24. A `&` reference parameter also accepts an array element such as `a[i][j]` (the element itself is referenced), which is handy for writing into nested elements recursively.
+25. Inside an array initializer, `{}` (an empty array) and unary-minus expressions such as `-1` are keyless elements (only the bare variables of item 17 become keyed).
+26. Variable names are case-sensitive but array keys are not (`b["K"]` and `b["k"]` are the same element), so a program that manages values by variable name in an array cannot tell `A` from `a`.
 
-### 3.12 Building one system from several stored scripts
+### 3.12 Building one system from several sources
 
-A program can pull in other stored scripts with `#import`, so a large system is split into parts that stay small enough to read, test and update on their own. The directive takes the editor URL of the part (the string only has to contain `cid=<cid>`):
+**Testing without saving (`sources`).** Add `"sources": {"util.pg0": "...", "parser.pg0": "..."}` to a `/run` or `/check` request and the program, as well as every source, can pull them in with `#import("util.pg0")` (the name is the map key as is; `.pg0` may be omitted). `#import` is resolved in the order `sources` keys, stored scripts (`cid=`), libraries (`lib/*.pg0`). A syntax error inside a source is reported in `error.message` as `in source util.pg0: ...`. The web editor has no `sources`, so once the parts are done, store them as scripts and switch to the `cid` imports below. Imports of URLs such as `http://.../x.pg0` are not available through the API.
+
+**Importing stored scripts (`cid`).** A program can pull in other stored scripts with `#import`, so a large system is split into parts that stay small enough to read, test and update on their own. The directive takes the editor URL of the part (the string only has to contain `cid=<cid>`):
 
 ```
 #import("https://pg0.jp/dev/?cid=2f1c9a3e-....")
@@ -505,6 +514,7 @@ Formatting a float with a fixed number of decimals (floats print with 16 decimal
 | Function | Description |
 |---|---|
 | `println(v)` | Like `print` followed by a newline. |
+| `wait(ms: int)` | In the web editor pauses for `ms` milliseconds (the stop button interrupts it). Through the API it does not wait; the total is returned as `stats.waited_ms`. Needs no `lib/screen.pg0` and does not count as a frame. Use it for the "execution speed" of console programs. |
 | `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | Key/value store. In the API it exists only during the current run (in the browser it persists): the request field `storage` fills it before the program starts (for example a saved game to test "continue"), and the response field `storage` returns its final contents. `loadValue` of a missing key returns `0`. |
 | `get_clipboard()`, `set_clipboard(s)` | Run-local clipboard string (empty at start). `set_clipboard` returns 1. |
 

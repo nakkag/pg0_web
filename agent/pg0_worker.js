@@ -81,6 +81,29 @@ ScriptExec.lib['println'] = async function(ei, param, ret) {
 	__host.print(str + '\\n');
 	return 0;
 };
+// wait(ms): no real waiting through the API; the total is returned as stats.waited_ms.
+ScriptExec.lib['wait'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	let time = 0;
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		time = parseInt(ScriptExec.stringToNumber(pg0_string.arrayToString(param[0].v.array)));
+		break;
+	case TYPE_STRING:
+		time = parseInt(ScriptExec.stringToNumber(param[0].v.str));
+		break;
+	default:
+		time = parseInt(param[0].v.num);
+		break;
+	}
+	if (!isNaN(time) && time > 0) {
+		__host.wait(time);
+	}
+	return 0;
+};
+
 const __ioStore = __host.storage;
 function __ioKey(param) {
 	if (param[0].v.type === TYPE_ARRAY) {
@@ -256,7 +279,11 @@ async function main(opt) {
 		}
 	}
 
+	let waitedMs = 0;
 	const host = {
+		wait: function(ms) {
+			waitedMs += ms;
+		},
 		print: function(str) {
 			if (outputLength + str.length > maxOutput) {
 				str = str.substring(0, Math.max(0, maxOutput - outputLength));
@@ -628,6 +655,22 @@ async function main(opt) {
 
 	const scis = [];
 
+	// Key of the request "sources" map that an #import string refers to, or null.
+	function sourceKey(file) {
+		if (!opt.sources) {
+			return null;
+		}
+		const f = String(file).trim().replace(/\\/g, '/').replace(/^(\.\/)+/, '');
+		const hasOwnKey = Object.prototype.hasOwnProperty;
+		if (hasOwnKey.call(opt.sources, f)) {
+			return f;
+		}
+		if (hasOwnKey.call(opt.sources, f + '.pg0')) {
+			return f + '.pg0';
+		}
+		return null;
+	}
+
 	function normalizeImport(file) {
 		let f = String(file).trim().replace(/\\/g, '/');
 		f = f.replace(/[?#].*$/, '');
@@ -639,39 +682,49 @@ async function main(opt) {
 	const importedCids = Object.create(null);
 	const importStack = [];
 
+	// Runs the code of a stored script or of a request "sources" entry as an imported part.
+	async function importPart(file, key, code) {
+		if (importStack.indexOf(key) >= 0) {
+			importErrors.push(`#import("${file}"): circular import of ${key}`);
+			return -1;
+		}
+		if (importedCids[key]) {
+			return 0;
+		}
+		importedCids[key] = true;
+		importStack.push(key);
+		const _sci = Script.initScriptInfo(code, {extension: true});
+		scis.push(_sci);
+		const before = importErrors.length;
+		const ok = await execScript(_sci, true);
+		importStack.pop();
+		if (_sci.ei) {
+			_sci.ei.imp = true;
+		}
+		if (!ok) {
+			for (let k = before; k < importErrors.length; k++) {
+				importErrors[k] = `in ${key}: ` + importErrors[k];
+			}
+		}
+		return ok ? 0 : -1;
+	}
+
 	async function importFile(file) {
+		// Request "sources": #import("name") where name is a key of the sources map.
+		const sourceName = sourceKey(file);
+		if (sourceName !== null) {
+			return importPart(file, 'source ' + sourceName, opt.sources[sourceName]);
+		}
 		// Stored scripts: #import("https://pg0.jp/dev/?cid=<cid>") or any string containing cid=<cid>.
 		const cm = String(file).match(/cid *= *([a-zA-Z0-9\-]+)/);
 		if (cm) {
 			const cid = cm[1];
-			if (importStack.indexOf(cid) >= 0) {
-				importErrors.push(`#import("${file}"): circular import of script ${cid}`);
-				return -1;
-			}
-			if (importedCids[cid]) {
-				return 0;
-			}
 			const code = (opt.imports && Object.prototype.hasOwnProperty.call(opt.imports, cid)) ? opt.imports[cid] : undefined;
 			if (typeof code !== 'string') {
 				importErrors.push(`#import("${file}"): stored script ${cid} was not found`);
 				return -1;
 			}
-			importedCids[cid] = true;
-			importStack.push(cid);
-			const _sci = Script.initScriptInfo(code, {extension: true});
-			scis.push(_sci);
-			const before = importErrors.length;
-			const ok = await execScript(_sci, true);
-			importStack.pop();
-			if (_sci.ei) {
-				_sci.ei.imp = true;
-			}
-			if (!ok) {
-				for (let k = before; k < importErrors.length; k++) {
-					importErrors[k] = `in script ${cid}: ` + importErrors[k];
-				}
-			}
-			return ok ? 0 : -1;
+			return importPart(file, 'script ' + cid, code);
 		}
 		const f = normalizeImport(file);
 		if (/\.pg0$/.test(f)) {
@@ -713,7 +766,7 @@ async function main(opt) {
 			screen.loaded = true;
 			return 0;
 		}
-		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, or a stored script as "https://pg0.jp/dev/?cid=<cid>"`);
+		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, a stored script as "https://pg0.jp/dev/?cid=<cid>", or a name of the request "sources" map`);
 		return -1;
 	}
 
@@ -905,6 +958,7 @@ async function main(opt) {
 			steps: steps,
 			elapsed_ms: Date.now() - startTime,
 			input_lines_used: inputUsed,
+			waited_ms: waitedMs,
 			globals_applied: opt.globals ? (globalsApplied || false) : null,
 			steps_per_frame: screen.frames > 0 ? {
 				avg: Math.round(steps / screen.frames),

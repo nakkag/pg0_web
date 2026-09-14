@@ -140,6 +140,13 @@
             "type": "boolean",
             "default": false,
             "description": "Return execution steps per source line and per function (response field profile)."
+          },
+          "sources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Additional source files {\"util.pg0\": code}; the program and the sources import them with #import(\"util.pg0\") (.pg0 may be omitted). At most 30 entries of 200,000 characters each."
           }
         }
       },
@@ -276,6 +283,10 @@
                 ],
                 "nullable": true,
                 "description": "When the globals were applied; false if given but never applied (no sleep()); null without globals."
+              },
+              "waited_ms": {
+                "type": "integer",
+                "description": "Total milliseconds requested by wait(); the API does not actually wait."
               }
             }
           },
@@ -466,6 +477,13 @@
               "ja"
             ],
             "default": "en"
+          },
+          "sources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Additional source files {\"util.pg0\": code}; the program and the sources import them with #import(\"util.pg0\") (.pg0 may be omitted). At most 30 entries of 200,000 characters each."
           }
         }
       },
@@ -510,7 +528,9 @@
                     "split_variable",
                     "unused_variable",
                     "keyed_initializer",
-                    "undeclared_variable"
+                    "undeclared_variable",
+                    "global_overwrite",
+                    "builtin_shadow"
                   ]
                 },
                 "line": {

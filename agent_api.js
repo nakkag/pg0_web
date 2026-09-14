@@ -245,12 +245,19 @@ module.exports = function(app, deps) {
 	}
 
 	// Collects the code of every stored script that "code" imports (recursively) as {cid: code | null}.
-	async function resolveImports(code) {
+	async function resolveImports(code, sources) {
 		const imports = Object.create(null);
 		if (typeof getDB !== 'function') {
 			return imports;
 		}
 		const queue = [code];
+		if (sources && typeof sources === 'object') {
+			Object.keys(sources).forEach(function(name) {
+				if (typeof sources[name] === 'string') {
+					queue.push(sources[name]);
+				}
+			});
+		}
 		let count = 0;
 		while (queue.length) {
 			const src = queue.shift();
@@ -305,6 +312,31 @@ module.exports = function(app, deps) {
 				return null;
 			}
 		}
+		if (body.sources !== undefined && body.sources !== null) {
+			if (typeof body.sources !== 'object' || Array.isArray(body.sources)) {
+				apiError(res, 400, 'invalid_request', '"sources" must be an object of {"name.pg0": "code"}');
+				return null;
+			}
+			const names = Object.keys(body.sources);
+			if (names.length > settings.maxImportScripts) {
+				apiError(res, 400, 'invalid_request', `"sources" may contain at most ${settings.maxImportScripts} entries`);
+				return null;
+			}
+			for (const name of names) {
+				if (!/^[^\x00-\x1f"'\\]{1,100}$/.test(name) || name === '__proto__') {
+					apiError(res, 400, 'invalid_request', `"sources" name "${name}" is not a valid file name (1-100 characters, no quotes or backslashes)`);
+					return null;
+				}
+				if (typeof body.sources[name] !== 'string') {
+					apiError(res, 400, 'invalid_request', `"sources"["${name}"] must be a string of PG0 code`);
+					return null;
+				}
+				if (body.sources[name].length > settings.maxCodeLength) {
+					apiError(res, 400, 'invalid_request', `"sources"["${name}"] is longer than ${settings.maxCodeLength} characters`);
+					return null;
+				}
+			}
+		}
 		if (body.globals_at !== undefined && body.globals_at !== null && body.globals_at !== 'start' && body.globals_at !== 'first_sleep') {
 			apiError(res, 400, 'invalid_request', '"globals_at" must be "start" or "first_sleep"');
 			return null;
@@ -343,7 +375,7 @@ module.exports = function(app, deps) {
 			return;
 		}
 		try {
-			params.imports = await resolveImports(params.code);
+			params.imports = await resolveImports(params.code, params.sources);
 			const result = await runner.run(params);
 			res.json(result);
 		} catch (error) {
@@ -362,8 +394,8 @@ module.exports = function(app, deps) {
 		}
 		try {
 			// A step limit of 1 stops execution right after parsing.
-			const imports = await resolveImports(body.code);
-			const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false, imports: imports});
+			const imports = await resolveImports(body.code, body.sources);
+			const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false, imports: imports, sources: body.sources});
 			if (result.status === 'error' && result.error && result.error.phase === 'parse') {
 				return res.json({ok: false, mode: result.mode, error: result.error, warnings: []});
 			}
@@ -397,6 +429,7 @@ module.exports = function(app, deps) {
 			screen: body.screen,
 			seed: body.seed,
 			storage: body.storage,
+			sources: body.sources,
 			globals: body.globals,
 			globals_at: body.globals_at,
 			profile: body.profile,

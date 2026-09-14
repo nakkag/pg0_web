@@ -222,6 +222,20 @@ function normalizeMode(mode) {
 	return m === 'PG0' ? 'PG0' : 'PG0.5';
 }
 
+// {name: code} of the request "sources" as a null-prototype map of strings (null when absent).
+function normalizeSources(v) {
+	if (!v || typeof v !== 'object' || Array.isArray(v)) {
+		return null;
+	}
+	const out = Object.create(null);
+	Object.keys(v).forEach(function(k) {
+		if (typeof v[k] === 'string') {
+			out[k] = v[k];
+		}
+	});
+	return out;
+}
+
 function createRunner(settings) {
 	let active = 0;
 
@@ -244,7 +258,8 @@ function createRunner(settings) {
 			globals: normalizeJsonObject(params.globals),
 			globalsAt: params.globals_at === 'first_sleep' ? 'first_sleep' : 'start',
 			profile: !!params.profile,
-			imports: (params.imports && typeof params.imports === 'object') ? params.imports : {}
+			imports: (params.imports && typeof params.imports === 'object') ? params.imports : {},
+			sources: normalizeSources(params.sources)
 		};
 
 		return new Promise(function(resolve) {
