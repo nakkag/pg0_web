@@ -86,6 +86,9 @@ Content-Type: application/json
 | `timeout_ms` | integer | 5000 | 実行時間の上限。サーバ側の上限（30000）で頭打ちになります。 |
 | `max_steps` | integer | 10000000 | 実行する文の数の上限。サーバ側の上限で頭打ちになります。 |
 | `variables` | boolean | true | 終了時のグローバル変数をレスポンスに含めるか。 |
+| `max_frames` | integer | 10000 | `lib/screen.pg0` を使うプログラム: `sleep()` の呼び出し（フレーム）がこの回数に達したら `status: "frame_limit"` で停止。4.5 参照。 |
+| `max_virtual_ms` | integer | なし | `lib/screen.pg0` を使うプログラム: 仮想時計がこの値に達したら `status: "virtual_time_limit"` で停止。 |
+| `screen` | object | `{}` | `lib/screen.pg0` を使うプログラム: `{"touch": [...], "keys": [...], "record": true, "max_calls": 2000}`。入力のタイムラインと描画呼び出しの記録。4.5 参照。 |
 
 レスポンスのフィールドは 2.3 を参照してください。
 
@@ -123,7 +126,7 @@ Content-Type: application/json
 
 | フィールド | 意味 |
 |---|---|
-| `status` | `"ok"`: 正常終了。`"error"`: 構文エラーまたは実行時エラー（`error` 参照）。`"timeout"`: 時間制限。`"step_limit"`: 文数制限。`"memory_limit"`: メモリ制限。制限に達する前の出力はそのまま返ります。 |
+| `status` | `"ok"`: 正常終了。`"error"`: 構文エラーまたは実行時エラー（`error` 参照）。`"timeout"`: 時間制限。`"step_limit"`: 文数制限。`"memory_limit"`: メモリ制限。`"frame_limit"` / `"virtual_time_limit"`: スクリーンのプログラムが `max_frames` / `max_virtual_ms` で停止（無限ループのゲームでは正常な停止。`error` は `null`）。制限に達する前の出力はそのまま返ります。 |
 | `mode` | 実際に使われたモード。 |
 | `output` | `print()` / `println()` が書いた内容すべて（順序どおり）。`print` は改行を付けません。 |
 | `output_truncated` | 出力上限で切り詰められた場合 `true`。 |
@@ -132,6 +135,7 @@ Content-Type: application/json
 | `result_type` | `"integer"`, `"float"`, `"string"`, `"array"` または `null`。 |
 | `error` | `null` または `{"message", "line", "source", "phase"}`。`line` は `code` 内の 1 始まりの行番号。`phase` は `"parse"` か `"runtime"`。 |
 | `variables` | グローバル変数の最終値（`{"名前": 値}`）を JSON に変換したもの。ブロックや関数のローカル変数は含みません。`print` のない PG0 モードでは値を観測する唯一の手段です。 |
+| `screen` | `lib/screen.pg0` を import していなければ `null`。import していれば `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`。4.5 参照。 |
 | `stats` | `steps`（実行した文の数）、`elapsed_ms`、`input_lines_used`。 |
 
 JSON への変換: 整数・実数は数値、文字列は文字列になります。要素にキーが一つも無い配列は JSON 配列、キー付き要素が一つでもある配列は JSON オブジェクトになり、キーの無い要素はインデックスがキーになります（例: `{"x": 1, 7}` は `{"x": 1, "1": 7}`）。
@@ -323,7 +327,7 @@ fill(list, 3)       // list は {0, 1, 2}
 
 - `#option("pg0.5")`: この行以降を PG0.5 として動作させます。
 - `#option("strict")`: すべての変数に `var` による宣言を必須にします。
-- `#import("lib/math.pg0")`: ライブラリを読み込みます（4 章参照）。import すると PG0.5 として動作します。API で読み込めるのは `lib/math.pg0`、`lib/string.pg0`、`lib/io.pg0` だけです。それ以外（`lib/screen.pg0` や URL を含む）は「スクリプトまたはライブラリの読み込みに失敗しました」というエラーになります。
+- `#import("lib/math.pg0")`: ライブラリを読み込みます（4 章参照）。import すると PG0.5 として動作します。API で読み込めるのは `lib/math.pg0`、`lib/string.pg0`、`lib/io.pg0`、`lib/screen.pg0`（ヘッドレス。4.5 参照）です。それ以外（他のファイル、URL）は「スクリプトまたはライブラリの読み込みに失敗しました」というエラーになります。
 
 ### 3.11 注意点チェックリスト
 
@@ -344,6 +348,7 @@ fill(list, 3)       // list は {0, 1, 2}
 15. 指数リテラル、ブロックコメント、波括弧なしの `else`、三項演算子、文字列の添字はありません。
 16. `{}` の中で初めて代入した変数はそのブロックのローカルで、ブロックの後には残りません。合計値、結果配列、フラグなどはループや `if` の前に最上位で作っておきます（`total = 0`）。
 17. 裸の変数を並べた `{x, y}` はキー `"x"`、`"y"` 付きの要素になります。ただのリストにしたいときは `{x + 0, y + 0}` と書きます。
+18. スクリーンのプログラムでは、ループ 1 周につき `sleep()` を 1 回呼びます（API ではフレームの区切り、ブラウザでは唯一の待ち）。角度はラジアンで、`drawText(x, y)` の (x, y) は文字の左上です。
 
 ## 4. 標準関数とライブラリ
 
@@ -402,9 +407,104 @@ fill(list, 3)       // list は {0, 1, 2}
 | `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | キー/値ストア。API では現在の実行の間だけ有効（ブラウザでは永続化）。存在しないキーの `loadValue` は `0`。 |
 | `get_clipboard()`, `set_clipboard(s)` | 実行内だけのクリップボード文字列（初期値は空）。`set_clipboard` は 1 を返す。 |
 
-### 4.5 画面描画ライブラリ: `#import("lib/screen.pg0")`（API では使用不可）
+### 4.5 画面描画ライブラリ: `#import("lib/screen.pg0")`（API ではヘッドレス）
 
-描画、キーボード、マウス、サウンド、`sleep`、`time`、`timeString` は Web ブラウザが必要です。API 経由で import するとエラーになります。これらを使うプログラムも `POST /api/agent/v1/scripts` で保存でき、人がレスポンスの `url` から Web エディタで実行できます。**このようなプログラムは `"speed": 0`（待ち無し）で保存してください。** それ以外の実行速度ではエディタが 1 文ごとに待ち（デフォルト 250 ミリ秒）を入れるため、画面を描画で覆うようなスクリーンのプログラムは極端に遅くなるか、止まっているように見えます。参考の関数名: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound（詳細は `/doc/pg0.5_lib.html`）。
+ブラウザではこのライブラリはページを覆うキャンバスを開き、描画・キーボード・ポインタ・サウンドを提供します。API では**ヘッドレス**で動作します。関数のシグネチャは同じですが、次のように振る舞います。
+
+- 描画・サウンド関数は何も描かず、`screen.calls` に回数だけ数えられます。`"screen": {"record": true}` を付けるとフレームごとに `screen.record` に記録されます。
+- `sleep(ms)` は待ちません。**仮想時計**を `ms` だけ進め、**フレーム**を 1 つ数えます。
+- `time()` は仮想時計（開始時刻 + 仮想ミリ秒）を返し、呼ぶたびに 1 ミリ秒進めます。`time()` を待つビジーループも終了します。
+- `inTouch()` と `inKey()` はリクエストの `screen.touch` / `screen.keys` タイムラインから状態を返します（指定がなければ何も押されていない状態）。
+- `sleep()` が `max_frames` 回（デフォルト 10000）に達すると `status: "frame_limit"`、仮想時計が `max_virtual_ms` に達すると `status: "virtual_time_limit"` で停止します。無限ループのゲームではこれが正常な停止で、`variables` と `screen` が返り、`error` は `null` です。
+
+ヘッドレスで確認できないもの: 実際のピクセル（`rgbToPoint` は黒を返す）、正確な文字サイズ（`measureText` は概算）、実際のフレームレートと見た目。これらは `POST /api/agent/v1/scripts` に `"speed": 0` で保存し、人が `url` から開いて確認します。
+
+**リクエストのフィールド**（`POST /api/agent/v1/run` と `/scripts/{cid}/run`）:
+
+| フィールド | 意味 |
+|---|---|
+| `max_frames` | `sleep()` の呼び出し回数がこの値に達したら停止。デフォルト 10000。サーバの上限は `GET /api/agent/v1` に載っています。 |
+| `max_virtual_ms` | 仮想時計がこのミリ秒に達したら停止。デフォルトは無制限。 |
+| `screen.touch` | ポインタのタイムライン: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`。各要素はその仮想時刻から次の要素までの状態。`touch` の既定は 1、`button` の既定は 0。 |
+| `screen.keys` | キーボードのタイムライン: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`。各要素はその仮想時刻以降に押されているキーの一覧。`[]` で全て離します。 |
+| `screen.record` | `true` で描画呼び出しを返します。 |
+| `screen.max_calls` | 記録する呼び出しの上限（デフォルト 2000）。超えると `record_truncated` が `true` になります。`calls` は数え続けます。 |
+
+**レスポンスの `screen`**（ライブラリを import した場合に存在）:
+
+```json
+{"started": true, "width": 320, "height": 240, "background": "#000000", "fit": 1,
+ "frames": 100, "virtual_ms": 1600, "calls": 401, "images": 0,
+ "record": [{"frame": 0, "ms": 0, "calls": [{"fn": "startScreen", "args": [320, 240, {"color": "#000000"}]},
+                                            {"fn": "drawCircle", "args": [20, 20, 10, {"color": "#ffcc00", "fill": 1}]}]},
+            {"frame": 1, "ms": 16, "calls": []}],
+ "record_truncated": false}
+```
+
+`record` は要求しない限り `null` です。フレームは `sleep()` から次の `sleep()` までの区間で、`frame` はその番号、`ms` は区間開始時の仮想時計です。
+
+**座標系と単位**: 原点は画面の左上、x は右、y は下向きで、単位は `startScreen(width, height)` のピクセルです。`"fit": 1`（既定）ではブラウザが画面をウィンドウに合わせて拡大縮小しますが、`inTouch()` を含むすべての座標は画面ピクセルのままです。角度は**ラジアン**で、x 軸の正方向から時計回りです。色は CSS の文字列で通常 `"#rrggbb"`。描画色の既定は黒 `"#000"` です。
+
+**関数**
+
+| 関数 | 説明 |
+|---|---|
+| `startScreen(width, height, option = {})` | 画面を開く。`option`: `{"color": 背景色, "fit": 1}`。最初に 1 回呼ぶ。 |
+| `sleep(ms)` | ブラウザ: 待つ。ヘッドレス: 仮想時計を進めてフレームを終える。ゲームループ 1 周に 1 回。 |
+| `time()` | 1970-01-01 UTC からのミリ秒（実数）。ヘッドレスでは仮想。 |
+| `timeString(ms, format = "")` | 時刻の書式化。`YYYY MM DD hh mm ss`（ゼロ埋め）または `M D h m s`。`format` 省略時はロケールの日時。 |
+| `startOffscreen()` / `endOffscreen()` | ダブルバッファ。バッファに描いてから表示する。ちらつき防止のため各フレームの描画を挟む。 |
+| `startMask(option = {})` / `endMask()` | マスクモード。描いた領域だけが残る。`{"destination": "out"}` で描いた領域が透明になる。 |
+| `clearRect(x, y, width, height)` | 矩形を透明にする（背景色が見える）。 |
+| `drawLine(x1, y1, x2, y2, option = {})` | `option`: `{"width": 1, "color": "#000"}`。 |
+| `drawRect(x, y, width, height, option = {})` | 左上が (x, y)。`option`: `{"width": 1, "color": "#000", "fill": 0}`。`fill` 1 で塗りつぶし、0 で枠線。 |
+| `drawCircle(x, y, radiusX, option = {})` | 中心 (x, y)。`option`: `{"radius_y": radiusX, "rotation": 0, "start": 0, "end": 6.2832, "color": "#000", "width": 1, "fill": 0, "close": 0}`。`start`/`end`（ラジアン）で円弧。`close` 1 で枠線描画時に弧の両端を結ぶ。 |
+| `drawPolyline(points, option = {})` | `points` は `{{x, y}, {x, y}, ...}`。`option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`。 |
+| `drawFill(x, y, color)` | (x, y) からの塗りつぶし。ヘッドレスでは記録のみ。 |
+| `drawScroll(dx, dy)` | 画面をスクロール。はみ出た部分は反対側に出る。 |
+| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。 |
+| `drawImage(id, x, y, option = {})` | 画像を左上 (x, y) に描く。`option`: `{"width", "height"}`（両方か無指定）、`"angle"` ラジアン（画像中心で回転）、`"alpha"` 0.0～1.0。未知の ID は無視。 |
+| `drawText(text, x, y, option = {})` | **(x, y) は文字の左上**。ベースラインは y + fontsize。`option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`。`fill` 0 で中抜き。数値や配列は文字列に変換される。 |
+| `measureText(text, option = {})` | `{"width": w, "height": h}`（ピクセル）。`option`: `{"fontsize", "fontface", "fontstyle"}`。ヘッドレスでは ASCII 1 文字 0.55 × fontsize、それ以外 1 × fontsize、高さ = fontsize の概算。 |
+| `rgbToPoint(x, y)` | ピクセルの色 `{"r", "g", "b"}`（0～255）。ヘッドレスでは常に黒。 |
+| `rgbToHex(rgb)` / `hexToRgb(hex)` | `{"r", "g", "b"}` と `"#rrggbb"` の相互変換。 |
+| `inTouch()` | `{"x", "y", "touch": 0/1, "button": 0 左/1 中/2 右, "pos": {{x, y}, ...}}`。`touch` が 0 のとき `x`/`y` は最後の位置。`pos` は全タッチ点（マルチタッチ）。 |
+| `inKey(key = なし)` | 引数なし: 押されているキー名の配列（JavaScript の `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`）。文字列: 押されていれば 1（大文字小文字を区別しない）。配列: 全て押されていれば 1。配列内の名前は小文字で書く（`{"arrowleft", "a"}`）。ブラウザでは最後のキー押下から 1 秒後にキーを押したままでも一覧が空になるので、毎フレーム読んで処理する。 |
+| `playSound(note, start, duration, volume = 1)` | 矩形波。`note`: 周波数（Hz）か `"C4"`、`"F#5"` のような音名。`start`: 開始までの遅延（ミリ秒）、`duration`: 長さ（ミリ秒）。 |
+| `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` を順に再生。`{"start": ms}` で位置を戻す（和音）、`{"volume": v}` で以降の音量。`option`: `{"repeat": 1}`。 |
+| `stopSound()` | 全てのサウンドを停止。 |
+
+**ヘッドレスでもブラウザでも動くゲームループの雛形**
+
+```
+#import("lib/screen.pg0")
+startScreen(320, 240, {"color": "#000000"})
+x = 160; y = 120; score = 0
+while (1) {
+  t = inTouch()
+  if (t["touch"]) { x = t["x"]; y = t["y"]; score++ }
+  if (inKey("ArrowLeft")) { x -= 4 }
+  if (inKey("ArrowRight")) { x += 4 }
+  startOffscreen()
+  drawRect(0, 0, 320, 240, {"color": "#000000", "fill": 1})
+  drawCircle(x, y, 10, {"color": "#ffcc00", "fill": 1})
+  drawText("score " + score, 4, 4, {"color": "#ffffff", "fontsize": 16})
+  endOffscreen()
+  sleep(16)
+}
+```
+
+シナリオを付けて実行します。
+
+```json
+{"code": "...上のプログラム...",
+ "max_frames": 300,
+ "screen": {"touch": [{"ms": 500, "x": 50, "y": 60}, {"ms": 600, "x": 50, "y": 60, "touch": 0}],
+            "keys": [{"ms": 1000, "keys": ["ArrowRight"]}, {"ms": 1500, "keys": []}],
+            "record": true, "max_calls": 50}}
+```
+
+期待される結果: `status` は `"frame_limit"`、`screen.frames` は 300、`variables.score` は 6（ポインタは仮想時刻 500～599 ミリ秒の間押されており、512, 528, ..., 592 ミリ秒から始まるフレームがそれを見る）、`variables.x` は 50 + 4 × 31 = 174（ArrowRight は 1000～1499 ミリ秒の間押されており、1008～1488 ミリ秒から始まる 31 フレーム分）、`screen.record` には最初の 50 呼び出しが座標付きで入ります。
 
 ## 5. 例
 
@@ -447,12 +547,20 @@ POST /api/agent/v1/scripts
 
 `201` レスポンスに `"url": "https://<host>/dev/?cid=<cid>"` が含まれるので、その URL を人に渡します。`&run=1` を付けると開いたときに自動実行されます。
 
-### 5.5 スクリーンのプログラムを保存する（Web エディタでのみ実行可能）
+### 5.5 スクリーンのプログラムをテストして保存する
+
+下の跳ねるボールのプログラムは `lib/screen.pg0` を import しています。`/run` ではヘッドレスで実行され（4.5 参照）、`max_frames` で無限ループを止め、`variables` でボールの最終位置が分かります。
+
+```json
+{"code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}",
+ "max_frames": 100, "screen": {"record": true, "max_calls": 10}}
+```
+
+レスポンス（抜粋）: `"status": "frame_limit"`、`"variables": {"x": 302, "y": 220, "dx": -3, "dy": 2}`、`"screen": {"frames": 100, "virtual_ms": 1600, "calls": 401, "record": [...], "record_truncated": true}`。
+
+人に渡すときは `"speed": 0` で保存します。
 
 ```http
 POST /api/agent/v1/scripts
-{"name": "跳ねるボール", "author": "AI agent", "password": "s3cret", "speed": 0,
- "code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}"}
+{"name": "跳ねるボール", "author": "AI agent", "password": "s3cret", "speed": 0, "code": "...同じコード..."}
 ```
-
-ここでは `"speed": 0` が必須です。このプログラムは `lib/screen.pg0` を import しているため `/run` では実行できません。

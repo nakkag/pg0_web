@@ -30,6 +30,50 @@ function normalizeInput(input) {
 	return String(input).replace(/\r\n/g, '\n').split('\n');
 }
 
+function optionalInt(value, min, max) {
+	if (value === undefined || value === null || value === '') {
+		return null;
+	}
+	const n = parseInt(value, 10);
+	if (isNaN(n)) {
+		return null;
+	}
+	return Math.min(Math.max(n, min), max);
+}
+
+function normalizeTimeline(list, kind) {
+	if (!Array.isArray(list)) {
+		return [];
+	}
+	const out = [];
+	list.forEach(function(e) {
+		if (!e || typeof e !== 'object') {
+			return;
+		}
+		const ms = Number(e.ms);
+		if (!isFinite(ms) || ms < 0) {
+			return;
+		}
+		if (kind === 'touch') {
+			out.push({ms: ms, x: Number(e.x) || 0, y: Number(e.y) || 0, touch: (e.touch === undefined ? 1 : (e.touch ? 1 : 0)), button: Number(e.button) || 0});
+		} else {
+			const keys = Array.isArray(e.keys) ? e.keys.map(String) : (e.key !== undefined ? [String(e.key)] : []);
+			out.push({ms: ms, keys: keys});
+		}
+	});
+	return out;
+}
+
+function normalizeScreen(screen, settings) {
+	screen = (screen && typeof screen === 'object') ? screen : {};
+	return {
+		touch: normalizeTimeline(screen.touch, 'touch').slice(0, settings.maxTimelineEvents),
+		keys: normalizeTimeline(screen.keys, 'keys').slice(0, settings.maxTimelineEvents),
+		record: !!screen.record,
+		max_calls: optionalInt(screen.max_calls, 1, settings.maxRecordedCalls) || settings.defaultRecordedCalls
+	};
+}
+
 function normalizeMode(mode) {
 	if (typeof mode !== 'string') {
 		return 'PG0.5';
@@ -50,7 +94,10 @@ function createRunner(settings) {
 			timeoutMs: clampInt(params.timeout_ms, settings.defaultTimeoutMs, 100, settings.maxTimeoutMs),
 			maxSteps: clampInt(params.max_steps, settings.defaultMaxSteps, 1, settings.maxMaxSteps),
 			maxOutputLength: settings.maxOutputLength,
-			variables: params.variables !== false && params.variables !== 0 && params.variables !== 'false'
+			variables: params.variables !== false && params.variables !== 0 && params.variables !== 'false',
+			maxFrames: optionalInt(params.max_frames, 1, settings.maxMaxFrames) !== null ? optionalInt(params.max_frames, 1, settings.maxMaxFrames) : settings.defaultMaxFrames,
+			maxVirtualMs: optionalInt(params.max_virtual_ms, 1, settings.maxMaxVirtualMs),
+			screen: normalizeScreen(params.screen, settings)
 		};
 
 		return new Promise(function(resolve) {
@@ -84,6 +131,7 @@ function createRunner(settings) {
 					result_type: null,
 					error: {message: message, line: null, source: null, phase: 'runtime'},
 					variables: null,
+					screen: null,
 					stats: {steps: null, elapsed_ms: opt.timeoutMs, input_lines_used: null}
 				});
 			}

@@ -22,8 +22,10 @@ const ALLOWED_JS_LIBS = {
 	'lib/math.js': 'file',
 	'lib/string.js': 'file',
 	'lib/io.js': 'server-io',
-	'lib/screen.js': 'unavailable'
+	'lib/screen.js': 'headless-screen'
 };
+
+const HEADLESS_SCREEN_FILE = path.join(__dirname, 'lib', 'screen_headless.js');
 
 // print / error / input are always available (defined by the editor in the browser).
 const BASE_LIB_SOURCE = `
@@ -230,11 +232,119 @@ async function main() {
 		}
 	};
 
+	// Headless screen: virtual clock, input timelines and optional call recording.
+	const screenOpt = opt.screen || {};
+	const touchTimeline = (screenOpt.touch || []).slice().sort(function(a, b) { return a.ms - b.ms; });
+	const keyTimeline = (screenOpt.keys || []).slice().sort(function(a, b) { return a.ms - b.ms; });
+	const recordCalls = !!screenOpt.record;
+	const maxCalls = screenOpt.max_calls;
+	const screen = {
+		loaded: false,
+		started: false,
+		width: 0,
+		height: 0,
+		background: null,
+		fit: 1,
+		offscreen: 0,
+		frames: 0,
+		virtualMs: 0,
+		baseTime: Date.now(),
+		calls: 0,
+		images: [],
+		record: [],
+		recordTruncated: false,
+		currentFrame: null
+	};
+	let pendingStop = null;
+
+	function timelineState(list, ms) {
+		let cur = null;
+		for (let i = 0; i < list.length && list[i].ms <= ms; i++) {
+			cur = list[i];
+		}
+		return cur;
+	}
+
+	const screenHost = {
+		start: function(w, h, color, fit) {
+			screen.started = true;
+			screen.width = w;
+			screen.height = h;
+			screen.background = color;
+			screen.fit = fit;
+			screen.images = [];
+		},
+		sleep: function(ms) {
+			screen.virtualMs += ms;
+			screen.frames++;
+			screen.currentFrame = null;
+			if (opt.maxFrames !== null && screen.frames >= opt.maxFrames) {
+				pendingStop = 'frame_limit';
+			}
+			if (opt.maxVirtualMs !== null && screen.virtualMs >= opt.maxVirtualMs) {
+				pendingStop = 'virtual_time_limit';
+			}
+		},
+		time: function() {
+			// Advances by one millisecond per call so that busy-wait loops on time() terminate.
+			screen.virtualMs += 1;
+			if (opt.maxVirtualMs !== null && screen.virtualMs >= opt.maxVirtualMs) {
+				pendingStop = 'virtual_time_limit';
+			}
+			return screen.baseTime + screen.virtualMs;
+		},
+		offscreen: function(flag) {
+			screen.offscreen = flag;
+		},
+		createImage: function(w, h, id) {
+			if (id >= 0 && id < screen.images.length) {
+				screen.images[id] = {width: w, height: h};
+				return id;
+			}
+			screen.images.push({width: w, height: h});
+			return screen.images.length - 1;
+		},
+		hasImage: function(id) {
+			return id >= 0 && id < screen.images.length;
+		},
+		pixel: function() {
+			return [0, 0, 0];
+		},
+		touch: function() {
+			const t = timelineState(touchTimeline, screen.virtualMs);
+			if (!t) {
+				return {x: 0, y: 0, touch: 0, button: 0, pos: []};
+			}
+			const touching = t.touch ? 1 : 0;
+			return {x: t.x, y: t.y, touch: touching, button: touching ? (t.button || 0) : 0, pos: touching ? [{x: t.x, y: t.y}] : []};
+		},
+		keys: function() {
+			const k = timelineState(keyTimeline, screen.virtualMs);
+			return k ? k.keys.slice() : [];
+		},
+		record: function(name, args) {
+			screen.calls++;
+			if (!recordCalls) {
+				return;
+			}
+			if (screen.calls > maxCalls) {
+				screen.recordTruncated = true;
+				return;
+			}
+			if (!screen.currentFrame) {
+				screen.currentFrame = {frame: screen.frames, ms: screen.virtualMs, calls: []};
+				screen.record.push(screen.currentFrame);
+			}
+			screen.currentFrame.calls.push({fn: name, args: args});
+		}
+	};
+
 	const sandbox = {
 		navigator: {language: opt.lang === 'ja' ? 'ja' : 'en'},
 		console: {log: function() {}, error: function() {}, warn: function() {}},
 		__host: host
 	};
+	host.screen = screenHost;
 	const context = vm.createContext(sandbox);
 	INTERPRETER_FILES.forEach(function(f) {
 		runSource(context, readDevFile(f), f);
@@ -286,9 +396,10 @@ async function main() {
 			runSource(context, SERVER_IO_SOURCE, 'server_io.js');
 			return 0;
 		}
-		if (kind === 'unavailable') {
-			importErrors.push(`#import("${file}"): the screen library (lib/screen.pg0) is not available in the API; it needs a web browser`);
-			return -1;
+		if (kind === 'headless-screen') {
+			runSource(context, fs.readFileSync(HEADLESS_SCREEN_FILE, 'utf8'), 'screen_headless.js');
+			screen.loaded = true;
+			return 0;
 		}
 		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0`);
 		return -1;
@@ -316,6 +427,10 @@ async function main() {
 							if (tk && tk.line >= 0) {
 								lastLine = tk.line;
 							}
+						}
+						if (pendingStop) {
+							stopReason = pendingStop;
+							return 1;
 						}
 						if (steps > maxSteps) {
 							stopReason = 'step_limit';
@@ -384,6 +499,9 @@ async function main() {
 			status = 'error';
 			error = formatError(execError, lastLine);
 			error.phase = 'runtime';
+		} else if (stopReason === 'frame_limit' || stopReason === 'virtual_time_limit') {
+			// Expected stop of an endless game loop; not reported as an error.
+			status = stopReason;
 		} else if (stopReason) {
 			status = stopReason;
 			error = {
@@ -425,6 +543,19 @@ async function main() {
 		result_type: (status === 'ok' && hasResult && resultValue) ? typeName(resultValue) : null,
 		error: error,
 		variables: variables,
+		screen: screen.loaded ? {
+			started: screen.started,
+			width: screen.width,
+			height: screen.height,
+			background: screen.background,
+			fit: screen.fit,
+			frames: screen.frames,
+			virtual_ms: screen.virtualMs,
+			calls: screen.calls,
+			images: screen.images.length,
+			record: recordCalls ? screen.record : null,
+			record_truncated: screen.recordTruncated
+		} : null,
 		stats: {
 			steps: steps,
 			elapsed_ms: Date.now() - startTime,
@@ -444,6 +575,7 @@ main().catch(function(e) {
 		result_type: null,
 		error: {message: (e && e.message) ? e.message : String(e), line: null, source: null, phase: 'internal'},
 		variables: null,
+		screen: null,
 		stats: {steps: 0, elapsed_ms: 0, input_lines_used: 0}
 	});
 });

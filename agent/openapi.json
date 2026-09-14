@@ -92,6 +92,19 @@
             "type": "boolean",
             "default": true,
             "description": "Include the final values of global variables in the response."
+          },
+          "max_frames": {
+            "type": "integer",
+            "default": 10000,
+            "description": "Headless screen: stop with status \"frame_limit\" after this many sleep() calls (frames). Capped by the server."
+          },
+          "max_virtual_ms": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Headless screen: stop with status \"virtual_time_limit\" when the virtual clock (advanced by sleep()) reaches this many milliseconds. Default: no limit."
+          },
+          "screen": {
+            "$ref": "#/components/schemas/ScreenOptions"
           }
         }
       },
@@ -105,7 +118,9 @@
               "error",
               "timeout",
               "step_limit",
-              "memory_limit"
+              "memory_limit",
+              "frame_limit",
+              "virtual_time_limit"
             ]
           },
           "mode": {
@@ -186,6 +201,80 @@
               "input_lines_used": {
                 "type": "integer",
                 "nullable": true
+              }
+            }
+          },
+          "screen": {
+            "type": "object",
+            "nullable": true,
+            "description": "Present when lib/screen.pg0 was imported.",
+            "properties": {
+              "started": {
+                "type": "boolean",
+                "description": "startScreen was called."
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "background": {
+                "type": "string",
+                "nullable": true
+              },
+              "fit": {
+                "type": "integer"
+              },
+              "frames": {
+                "type": "integer",
+                "description": "Number of sleep() calls."
+              },
+              "virtual_ms": {
+                "type": "integer",
+                "description": "Virtual clock at the end."
+              },
+              "calls": {
+                "type": "integer",
+                "description": "Number of drawing/sound calls."
+              },
+              "images": {
+                "type": "integer",
+                "description": "Images created with createImage."
+              },
+              "record": {
+                "type": "array",
+                "nullable": true,
+                "description": "When screen.record was requested: frames with their calls.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "frame": {
+                      "type": "integer"
+                    },
+                    "ms": {
+                      "type": "integer"
+                    },
+                    "calls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "fn": {
+                            "type": "string"
+                          },
+                          "args": {
+                            "type": "array",
+                            "items": {}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "record_truncated": {
+                "type": "boolean"
               }
             }
           }
@@ -470,6 +559,92 @@
           },
           "variables": {
             "type": "boolean"
+          },
+          "max_frames": {
+            "type": "integer",
+            "default": 10000,
+            "description": "Headless screen: stop with status \"frame_limit\" after this many sleep() calls (frames). Capped by the server."
+          },
+          "max_virtual_ms": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Headless screen: stop with status \"virtual_time_limit\" when the virtual clock (advanced by sleep()) reaches this many milliseconds. Default: no limit."
+          },
+          "screen": {
+            "$ref": "#/components/schemas/ScreenOptions"
+          }
+        }
+      },
+      "ScreenOptions": {
+        "type": "object",
+        "description": "Options for programs that import lib/screen.pg0 (headless mode).",
+        "properties": {
+          "touch": {
+            "type": "array",
+            "description": "Pointer timeline. Each entry is the state from its virtual time (ms) on: {ms, x, y, touch (default 1), button (0 left, 1 middle, 2 right)}.",
+            "items": {
+              "type": "object",
+              "required": [
+                "ms"
+              ],
+              "properties": {
+                "ms": {
+                  "type": "number"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "touch": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "button": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    1,
+                    2
+                  ]
+                }
+              }
+            }
+          },
+          "keys": {
+            "type": "array",
+            "description": "Keyboard timeline. Each entry lists the keys held from its virtual time on (KeyboardEvent.key names); an empty list releases all keys.",
+            "items": {
+              "type": "object",
+              "required": [
+                "ms"
+              ],
+              "properties": {
+                "ms": {
+                  "type": "number"
+                },
+                "keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "record": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return the drawing calls grouped by frame in screen.record."
+          },
+          "max_calls": {
+            "type": "integer",
+            "default": 2000,
+            "description": "Maximum number of recorded calls (capped by the server); further calls set record_truncated."
           }
         }
       }

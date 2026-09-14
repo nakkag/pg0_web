@@ -86,6 +86,9 @@ Request fields:
 | `timeout_ms` | integer | 5000 | Time limit; capped by the server (30000). |
 | `max_steps` | integer | 10000000 | Maximum executed statements; capped by the server. |
 | `variables` | boolean | true | Include final global variables in the response. |
+| `max_frames` | integer | 10000 | Programs using `lib/screen.pg0`: stop with `status: "frame_limit"` after this many `sleep()` calls (frames). See 4.5. |
+| `max_virtual_ms` | integer | none | Programs using `lib/screen.pg0`: stop with `status: "virtual_time_limit"` when the virtual clock reaches this value. |
+| `screen` | object | `{}` | Programs using `lib/screen.pg0`: `{"touch": [...], "keys": [...], "record": true, "max_calls": 2000}`; input timelines and call recording, see 4.5. |
 
 Response fields are described in 2.3.
 
@@ -123,7 +126,7 @@ Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTi
 
 | Field | Meaning |
 |---|---|
-| `status` | `"ok"`: finished. `"error"`: parse or runtime error (see `error`). `"timeout"`: time limit reached. `"step_limit"`: statement limit reached. `"memory_limit"`: memory limit reached. Output produced before a limit is still returned. |
+| `status` | `"ok"`: finished. `"error"`: parse or runtime error (see `error`). `"timeout"`: time limit reached. `"step_limit"`: statement limit reached. `"memory_limit"`: memory limit reached. `"frame_limit"` / `"virtual_time_limit"`: a screen program was stopped by `max_frames` / `max_virtual_ms` (expected for endless game loops; `error` stays `null`). Output produced before a limit is still returned. |
 | `mode` | Mode actually used. |
 | `output` | Everything written by `print()` / `println()`, in order. `print` adds no newline. |
 | `output_truncated` | `true` when the output limit cut the text. |
@@ -132,6 +135,7 @@ Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTi
 | `result_type` | `"integer"`, `"float"`, `"string"`, `"array"` or `null`. |
 | `error` | `null` or `{"message", "line", "source", "phase"}`. `line` is 1-based and refers to `code`; `phase` is `"parse"` or `"runtime"`. |
 | `variables` | Final values of the global variables (`{"name": value}`), converted to JSON. Variables local to blocks and functions are not included. This is the only way to observe values in PG0 mode, which has no `print`. |
+| `screen` | `null` unless `lib/screen.pg0` was imported. Then `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`, see 4.5. |
 | `stats` | `steps` (statements executed), `elapsed_ms`, `input_lines_used`. |
 
 Value conversion to JSON: integers and floats become numbers, strings become strings. An array whose elements all have no key becomes a JSON array; an array with at least one keyed element becomes a JSON object, unkeyed elements using their index as the key (for example `{"x": 1, 7}` becomes `{"x": 1, "1": 7}`).
@@ -323,7 +327,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 
 - `#option("pg0.5")`: run as PG0.5 from this line on.
 - `#option("strict")`: every variable must be declared with `var`.
-- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API only `lib/math.pg0`, `lib/string.pg0` and `lib/io.pg0` can be imported; anything else (including `lib/screen.pg0` and URLs) fails with "Read error in script or library".
+- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0` and `lib/screen.pg0` (headless, see 4.5) can be imported; anything else (other files, URLs) fails with "Read error in script or library".
 
 ### 3.11 Pitfalls checklist
 
@@ -344,6 +348,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 15. No exponent literals, no block comments, no `else` without braces, no ternary operator, no string indexing.
 16. A variable first assigned inside `{}` is local to that block and vanishes afterwards. Create accumulators, result arrays and flags at the top level (`total = 0`) before the loop or `if` that fills them.
 17. `{x, y}` with bare variables creates keyed elements `"x"` and `"y"`; write `{x + 0, y + 0}` for a plain list.
+18. Screen programs: call `sleep()` once per loop iteration (it is the frame boundary in the API and the only pause in the browser), use radians for angles, and remember that `drawText(x, y)` places the top-left of the text at (x, y).
 
 ## 4. Built-in functions and libraries
 
@@ -402,9 +407,104 @@ Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 | `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | Key/value store. In the API it exists only during the current run (in the browser it persists). `loadValue` of a missing key returns `0`. |
 | `get_clipboard()`, `set_clipboard(s)` | Run-local clipboard string (empty at start). `set_clipboard` returns 1. |
 
-### 4.5 Screen library: `#import("lib/screen.pg0")` (not available in the API)
+### 4.5 Screen library: `#import("lib/screen.pg0")` (headless in the API)
 
-Graphics, keyboard, mouse, sound, `sleep`, `time` and `timeString` need a web browser. Importing it through the API fails. Programs that use it can still be stored with `POST /api/agent/v1/scripts` and run by a person in the web editor at the returned `url`. **Store such programs with `"speed": 0` (no wait)**: the editor otherwise pauses after every statement (250 ms by default), which makes a screen program that covers the page with drawing crawl or appear frozen. Function names for reference: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound (see `/doc/pg0.5_lib_eng.html`).
+In the browser this library opens a canvas that covers the page and provides drawing, keyboard, pointer and sound. Through the API it runs **headless**: the program executes with the same function signatures, but
+
+- drawing and sound functions draw nothing; they are counted in `screen.calls` and, with `"screen": {"record": true}`, recorded per frame in `screen.record`;
+- `sleep(ms)` does not wait: it advances a **virtual clock** by `ms` and counts one **frame**;
+- `time()` returns the virtual clock (start time + virtual ms) and advances it by 1 ms per call, so busy-wait loops on `time()` terminate;
+- `inTouch()` and `inKey()` answer from the `screen.touch` and `screen.keys` timelines of the request (nothing pressed by default);
+- the run stops with `status: "frame_limit"` after `max_frames` frames (default 10000) or `status: "virtual_time_limit"` when the virtual clock reaches `max_virtual_ms`. These are normal stops for endless game loops: `variables` and `screen` are returned and `error` is `null`.
+
+What cannot be verified headless: actual pixels (`rgbToPoint` returns black), exact text metrics (`measureText` is an approximation), real frame rate and appearance. Store the program (`POST /api/agent/v1/scripts` with `"speed": 0`) and let a person open the returned `url` for that.
+
+**Request fields** (`POST /api/agent/v1/run` and `/scripts/{cid}/run`):
+
+| Field | Meaning |
+|---|---|
+| `max_frames` | Stop after this many `sleep()` calls. Default 10000, server maximum in `GET /api/agent/v1`. |
+| `max_virtual_ms` | Stop when the virtual clock reaches this many ms. Default none. |
+| `screen.touch` | Pointer timeline: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`. Each entry is the state from its virtual time until the next entry. `touch` defaults to 1, `button` to 0. |
+| `screen.keys` | Keyboard timeline: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`. Each entry lists the keys held from its virtual time on; `[]` releases all keys. |
+| `screen.record` | `true` returns the drawing calls. |
+| `screen.max_calls` | Cap on recorded calls (default 2000). Beyond it `record_truncated` becomes `true`; `calls` keeps counting. |
+
+**Response field `screen`** (present when the library was imported):
+
+```json
+{"started": true, "width": 320, "height": 240, "background": "#000000", "fit": 1,
+ "frames": 100, "virtual_ms": 1600, "calls": 401, "images": 0,
+ "record": [{"frame": 0, "ms": 0, "calls": [{"fn": "startScreen", "args": [320, 240, {"color": "#000000"}]},
+                                            {"fn": "drawCircle", "args": [20, 20, 10, {"color": "#ffcc00", "fill": 1}]}]},
+            {"frame": 1, "ms": 16, "calls": []}],
+ "record_truncated": false}
+```
+
+`record` is `null` unless requested. A frame is the span between two `sleep()` calls; `frame` is its index and `ms` the virtual clock at its start.
+
+**Coordinate system and units**: origin at the top-left of the screen, x to the right, y downwards, in the pixel units of `startScreen(width, height)`. With `"fit": 1` (default) the browser scales the screen to the window, but all coordinates, including `inTouch()`, stay in screen pixels. Angles are **radians**, clockwise from the positive x axis. Colors are CSS strings, normally `"#rrggbb"`; the default drawing color is black `"#000"`.
+
+**Functions**
+
+| Function | Description |
+|---|---|
+| `startScreen(width, height, option = {})` | Opens the screen. `option`: `{"color": background, "fit": 1}`. Call it once at the start. |
+| `sleep(ms)` | Browser: pause. Headless: advance the virtual clock, end the frame. One call per game-loop iteration. |
+| `time()` | Milliseconds since 1970-01-01 UTC as a float. Headless: virtual. |
+| `timeString(ms, format = "")` | Formats a time; `YYYY MM DD hh mm ss` (zero padded) or `M D h m s`. Without `format`: locale date and time. |
+| `startOffscreen()` / `endOffscreen()` | Double buffering: draw to a buffer, then show it. Use around each frame's drawing to avoid flicker. |
+| `startMask(option = {})` / `endMask()` | Mask mode: only drawn areas stay visible; `{"destination": "out"}` makes drawn areas transparent instead. |
+| `clearRect(x, y, width, height)` | Makes the rectangle transparent (background color shows). |
+| `drawLine(x1, y1, x2, y2, option = {})` | `option`: `{"width": 1, "color": "#000"}`. |
+| `drawRect(x, y, width, height, option = {})` | Top-left at (x, y). `option`: `{"width": 1, "color": "#000", "fill": 0}`; `fill` 1 fills, 0 outlines. |
+| `drawCircle(x, y, radiusX, option = {})` | Center (x, y). `option`: `{"radius_y": radiusX, "rotation": 0, "start": 0, "end": 6.2832, "color": "#000", "width": 1, "fill": 0, "close": 0}`. `start`/`end` in radians make an arc; `close` 1 joins the arc ends when outlining. |
+| `drawPolyline(points, option = {})` | `points` is `{{x, y}, {x, y}, ...}`. `option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`. |
+| `drawFill(x, y, color)` | Flood fill from (x, y). Headless: recorded only. |
+| `drawScroll(dx, dy)` | Scrolls the screen; content wraps around. |
+| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. |
+| `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` radians about the image center, `"alpha"` 0.0 to 1.0. Unknown ids are ignored. |
+| `drawText(text, x, y, option = {})` | **(x, y) is the top-left of the text**; the baseline is at y + fontsize. `option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`; `fill` 0 draws outlines. Numbers and arrays are converted to text. |
+| `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character, 1 × fontsize otherwise, height = fontsize. |
+| `rgbToPoint(x, y)` | Pixel color `{"r", "g", "b"}` (0 to 255). Headless: always black. |
+| `rgbToHex(rgb)` / `hexToRgb(hex)` | Convert between `{"r", "g", "b"}` and `"#rrggbb"`. |
+| `inTouch()` | `{"x", "y", "touch": 0/1, "button": 0 left/1 middle/2 right, "pos": {{x, y}, ...}}`. When `touch` is 0, `x`/`y` keep the last position. `pos` holds all touch points (multi-touch). |
+| `inKey(key = none)` | No argument: array of held key names (JavaScript `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`). String: 1 if held (case-insensitive). Array: 1 only if all are held; names in the array must be lower case (`{"arrowleft", "a"}`). Browser: the held list is cleared 1 s after the last key press even if the key stays down, so poll and act every frame. |
+| `playSound(note, start, duration, volume = 1)` | Square wave. `note`: Hz or a name like `"C4"`, `"F#5"`. `start`: delay in ms, `duration`: length in ms. |
+| `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` in sequence; `{"start": ms}` resets the position (chords), `{"volume": v}` sets the volume for following notes. `option`: `{"repeat": 1}`. |
+| `stopSound()` | Stops all sounds. |
+
+**Game-loop template that works both headless and in the browser**
+
+```
+#import("lib/screen.pg0")
+startScreen(320, 240, {"color": "#000000"})
+x = 160; y = 120; score = 0
+while (1) {
+  t = inTouch()
+  if (t["touch"]) { x = t["x"]; y = t["y"]; score++ }
+  if (inKey("ArrowLeft")) { x -= 4 }
+  if (inKey("ArrowRight")) { x += 4 }
+  startOffscreen()
+  drawRect(0, 0, 320, 240, {"color": "#000000", "fill": 1})
+  drawCircle(x, y, 10, {"color": "#ffcc00", "fill": 1})
+  drawText("score " + score, 4, 4, {"color": "#ffffff", "fontsize": 16})
+  endOffscreen()
+  sleep(16)
+}
+```
+
+Run it with a scenario:
+
+```json
+{"code": "...the program above...",
+ "max_frames": 300,
+ "screen": {"touch": [{"ms": 500, "x": 50, "y": 60}, {"ms": 600, "x": 50, "y": 60, "touch": 0}],
+            "keys": [{"ms": 1000, "keys": ["ArrowRight"]}, {"ms": 1500, "keys": []}],
+            "record": true, "max_calls": 50}}
+```
+
+Expected: `status` `"frame_limit"`, `screen.frames` 300, `variables.score` 6 (the pointer is down for virtual ms 500 to 599; the frames starting at 512, 528, ..., 592 see it), `variables.x` 50 + 4 × 31 = 174 (ArrowRight is held from 1000 to 1499 ms, which covers the 31 frames starting at 1008 to 1488), and `screen.record` showing the first 50 calls with their coordinates.
 
 ## 5. Examples
 
@@ -447,12 +547,20 @@ POST /api/agent/v1/scripts
 
 The `201` response contains `"url": "https://<host>/dev/?cid=<cid>"`; give that URL to the person. Append `&run=1` to run it on open.
 
-### 5.5 Storing a screen program (runs only in the web editor)
+### 5.5 Testing and storing a screen program
+
+The bouncing-ball program below imports `lib/screen.pg0`. Through `/run` it executes headless (see 4.5): `max_frames` stops the endless loop, and `variables` shows where the ball ended up.
+
+```json
+{"code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}",
+ "max_frames": 100, "screen": {"record": true, "max_calls": 10}}
+```
+
+Response (abbreviated): `"status": "frame_limit"`, `"variables": {"x": 302, "y": 220, "dx": -3, "dy": 2}`, `"screen": {"frames": 100, "virtual_ms": 1600, "calls": 401, "record": [...], "record_truncated": true}`.
+
+Store it for a person with `"speed": 0`:
 
 ```http
 POST /api/agent/v1/scripts
-{"name": "Bouncing ball", "author": "AI agent", "password": "s3cret", "speed": 0,
- "code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}"}
+{"name": "Bouncing ball", "author": "AI agent", "password": "s3cret", "speed": 0, "code": "...the same code..."}
 ```
-
-`"speed": 0` is essential here; the program cannot be run through `/run` because it imports `lib/screen.pg0`.

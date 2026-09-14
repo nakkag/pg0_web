@@ -181,7 +181,12 @@ module.exports = function(app, deps) {
 				max_code_length: settings.maxCodeLength,
 				max_input_length: settings.maxInputLength,
 				max_output_length: settings.maxOutputLength,
-				max_concurrent_runs: settings.maxConcurrentRuns
+				max_concurrent_runs: settings.maxConcurrentRuns,
+				default_max_frames: settings.defaultMaxFrames,
+				max_max_frames: settings.maxMaxFrames,
+				max_max_virtual_ms: settings.maxMaxVirtualMs,
+				default_recorded_calls: settings.defaultRecordedCalls,
+				max_recorded_calls: settings.maxRecordedCalls
 			}
 		});
 	});
@@ -229,6 +234,10 @@ module.exports = function(app, deps) {
 		}
 		if (body.code.length > settings.maxCodeLength) {
 			apiError(res, 413, 'code_too_large', `"code" exceeds ${settings.maxCodeLength} characters`);
+			return null;
+		}
+		if (body.screen !== undefined && body.screen !== null && (typeof body.screen !== 'object' || Array.isArray(body.screen))) {
+			apiError(res, 400, 'invalid_request', '"screen" must be an object ({"touch": [...], "keys": [...], "record": true})');
 			return null;
 		}
 		if (body.input !== undefined && body.input !== null) {
@@ -287,6 +296,9 @@ module.exports = function(app, deps) {
 			lang: body.lang,
 			timeout_ms: body.timeout_ms,
 			max_steps: body.max_steps,
+			max_frames: body.max_frames,
+			max_virtual_ms: body.max_virtual_ms,
+			screen: body.screen,
 			variables: body.variables
 		});
 	});
@@ -533,6 +545,9 @@ module.exports = function(app, deps) {
 				lang: body.lang,
 				timeout_ms: body.timeout_ms,
 				max_steps: body.max_steps,
+				max_frames: body.max_frames,
+				max_virtual_ms: body.max_virtual_ms,
+				screen: body.screen,
 				variables: body.variables
 			});
 		} catch (error) {

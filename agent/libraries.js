@@ -7,7 +7,7 @@ module.exports = {
 		'Function names are case-insensitive (isType, istype and ISTYPE are the same function).',
 		'PG0 mode has integers only and no functions; everything below needs PG0.5 mode (the default).',
 		'Library functions become available after the matching #import line is placed in the program.',
-		'The screen library (lib/screen.pg0) needs a web browser and cannot be imported through the API.'
+		'The screen library (lib/screen.pg0) runs headless through the API: see its notes for the virtual clock, input timelines and frame limits.'
 	],
 	builtin: {
 		import: null,
@@ -77,13 +77,44 @@ module.exports = {
 		{
 			id: 'screen',
 			import: '#import("lib/screen.pg0")',
-			available: false,
-			reason: 'Needs a web browser (canvas, keyboard, mouse, sound). Importing it through the API fails with "Read error in script or library". Programs that use it can still be stored with POST /api/agent/v1/scripts (set "speed": 0, no wait, so drawing is not slowed down) and run in the web editor.',
+			available: true,
+			mode: 'headless',
+			notes: [
+				'Through the API the library runs headless: nothing is drawn, drawing calls are counted (and recorded when "screen": {"record": true} is sent), sleep() advances a virtual clock without waiting, time() returns the virtual clock, inTouch()/inKey() answer from the "screen".touch / "screen".keys timelines of the request.',
+				'The run stops with status "frame_limit" after max_frames calls of sleep() (default 10000) or "virtual_time_limit" when the virtual clock reaches max_virtual_ms; variables are still returned.',
+				'Coordinates: origin top-left, x to the right, y downwards, in screen pixels of startScreen(width, height). Touch coordinates are always in these units, also with "fit" scaling.',
+				'Angles (drawCircle start/end/rotation, drawImage angle) are radians. Colors are CSS color strings, usually "#rrggbb".',
+				'Store screen programs with "speed": 0 (no wait) so that the web editor does not pause after every statement.'
+			],
 			functions: [
-				'startScreen', 'sleep', 'time', 'timeString', 'startOffscreen', 'endOffscreen', 'startMask', 'endMask', 'clearRect',
-				'drawLine', 'drawRect', 'drawCircle', 'drawPolyline', 'drawFill', 'drawScroll', 'createImage', 'drawImage', 'drawText',
-				'measureText', 'rgbToPoint', 'rgbToHex', 'hexToRgb', 'inTouch', 'inKey', 'playSound', 'playMusic', 'stopSound'
-			].map(function(n) { return {name: n}; })
+				{name: 'startScreen', signature: 'startScreen(width: int, height: int, option: arr = {}) -> int', summary: 'Opens the screen. option: {"color": background color string, "fit": 1 (default) scales the screen to the browser window, 0 shows it at 1:1}.'},
+				{name: 'sleep', signature: 'sleep(ms: num) -> int', summary: 'Waits ms milliseconds (browser). Headless: advances the virtual clock and counts one frame. Call it once per game-loop iteration.'},
+				{name: 'time', signature: 'time() -> float', summary: 'Milliseconds since 1970-01-01 UTC (returned as float). Headless: virtual clock, advanced by 1 ms per call.'},
+				{name: 'timeString', signature: 'timeString(ms: num, format: str = "") -> str', summary: 'Formats a time; format uses YYYY MM DD hh mm ss (or M D h m s without zero padding). Without format: locale date and time.'},
+				{name: 'startOffscreen', signature: 'startOffscreen() -> int', summary: 'Following drawing goes to an offscreen buffer (double buffering).'},
+				{name: 'endOffscreen', signature: 'endOffscreen() -> int', summary: 'Copies the offscreen buffer to the screen.'},
+				{name: 'startMask', signature: 'startMask(option: arr = {}) -> int', summary: 'Starts mask mode: only drawn areas stay visible. {"destination": "out"} makes drawn areas transparent instead.'},
+				{name: 'endMask', signature: 'endMask() -> int', summary: 'Ends mask mode.'},
+				{name: 'clearRect', signature: 'clearRect(x: num, y: num, width: num, height: num) -> int', summary: 'Makes the rectangle transparent (shows the background color).'},
+				{name: 'drawLine', signature: 'drawLine(x1: num, y1: num, x2: num, y2: num, option: arr = {}) -> int', summary: 'Line. option: {"width": 1, "color": "#000"}.'},
+				{name: 'drawRect', signature: 'drawRect(x: num, y: num, width: num, height: num, option: arr = {}) -> int', summary: 'Rectangle with top-left (x, y). option: {"width": 1, "color": "#000", "fill": 0}. fill 1 fills with color, otherwise outlines.'},
+				{name: 'drawCircle', signature: 'drawCircle(x: num, y: num, radiusX: num, option: arr = {}) -> int', summary: 'Circle/ellipse/arc with center (x, y). option: {"radius_y": radiusX, "rotation": 0, "start": 0, "end": 2*pi, "color": "#000", "width": 1, "fill": 0, "close": 0}. start/end/rotation in radians, clockwise from the positive x axis. close 1 joins the arc ends when outlining.'},
+				{name: 'drawPolyline', signature: 'drawPolyline(points: arr, option: arr = {}) -> int', summary: 'Connected lines through {{x, y}, {x, y}, ...}. option: {"width": 1, "color": "#000", "fill": 0, "close": 0}.'},
+				{name: 'drawFill', signature: 'drawFill(x: num, y: num, color: str) -> int', summary: 'Flood fill starting at (x, y). Headless: recorded only.'},
+				{name: 'drawScroll', signature: 'drawScroll(dx: num, dy: num) -> int', summary: 'Scrolls the whole screen; pixels leaving one edge reappear at the opposite edge.'},
+				{name: 'createImage', signature: 'createImage(x: num, y: num, width: num, height: num, option: arr = {}) -> int', summary: 'Copies a screen region into an image and returns its id (0, 1, 2, ...). {"id": n} replaces image n and returns n.'},
+				{name: 'drawImage', signature: 'drawImage(id: int, x: num, y: num, option: arr = {}) -> int', summary: 'Draws image id with top-left (x, y). option: {"width", "height" (give both or neither), "angle": radians, rotates about the image center, "alpha": 0.0..1.0}. Unknown ids are ignored.'},
+				{name: 'drawText', signature: 'drawText(text: str, x: num, y: num, option: arr = {}) -> int', summary: 'Text with (x, y) = top-left of the text box: the baseline is drawn at y + fontsize. option: {"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"|"bold"|"italic"|"oblique", "fill": 1, "width": 1}. fill 0 draws outlined text with line width "width". Numbers and arrays are converted to text.'},
+				{name: 'measureText', signature: 'measureText(text: str, option: arr = {}) -> arr', summary: 'Returns {"width": w, "height": h} in pixels. option: {"fontsize": 30, "fontface", "fontstyle"}. Headless: approximation (0.55 * fontsize per ASCII character, 1 * fontsize per other character, height = fontsize).'},
+				{name: 'rgbToPoint', signature: 'rgbToPoint(x: num, y: num) -> arr', summary: 'Color of the pixel at (x, y) as {"r": 0..255, "g": 0..255, "b": 0..255}. Headless: always {0, 0, 0}.'},
+				{name: 'rgbToHex', signature: 'rgbToHex(rgb: arr) -> str', summary: '{"r", "g", "b"} (or {r, g, b} positional) to "#rrggbb".'},
+				{name: 'hexToRgb', signature: 'hexToRgb(hex: str) -> arr', summary: '"#rrggbb" or "#rgb" to {"r", "g", "b"}.'},
+				{name: 'inTouch', signature: 'inTouch() -> arr', summary: 'Current pointer state {"x", "y", "touch": 0|1, "button": 0 left|1 middle|2 right, "pos": {{x, y}, ...}}. When touch is 0, x/y hold the last position. Headless: from the "screen".touch timeline (pos has one entry while touching).'},
+				{name: 'inKey', signature: 'inKey(key: str | arr = none) -> arr | int', summary: 'No argument: array of held key names (KeyboardEvent.key values such as "ArrowLeft", "a", " ", "Enter"). String: 1 if that key is held (case-insensitive). Array: 1 only if all listed keys are held; names in the array must be written in lower case ("arrowleft"). Browser: the held list is cleared 1 second after the last key press even if keys stay down. Headless: from the "screen".keys timeline.'},
+				{name: 'playSound', signature: 'playSound(note: num | str, start: num, duration: num, volume: num = 1) -> int', summary: 'Square wave tone. note: frequency in Hz or a name like "C4", "F#5". start: delay in ms before the tone, duration: length in ms. Headless: recorded only.'},
+				{name: 'playMusic', signature: 'playMusic(notes: arr, option: arr = {}) -> int', summary: 'Plays {{note, length_ms, volume?}, ...} in sequence. {"start": ms} resets the position (for chords), {"volume": v} sets the volume for following notes. option: {"repeat": 1}. Headless: recorded only.'},
+				{name: 'stopSound', signature: 'stopSound() -> int', summary: 'Stops all sounds.'}
+			]
 		}
 	]
 };

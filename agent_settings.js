@@ -19,6 +19,14 @@ exports.maxInputLength = 200000;
 exports.maxOutputLength = 1000000;
 exports.workerMemoryMb = 256;
 
+// Headless screen (lib/screen.pg0 through the API)
+exports.defaultMaxFrames = 10000;
+exports.maxMaxFrames = 1000000;
+exports.maxMaxVirtualMs = 86400000;
+exports.defaultRecordedCalls = 2000;
+exports.maxRecordedCalls = 20000;
+exports.maxTimelineEvents = 10000;
+
 // Script storage
 exports.defaultAuthor = 'AI agent';
 exports.defaultSpeed = 250;
