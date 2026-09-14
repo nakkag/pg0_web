@@ -1,7 +1,7 @@
 "use strict";
 // AI agent API for PG0 / PG0.5.
 // Mounted from server.js:  require('./agent_api.js')(app, {getDB, addHistory, logger});
-// Endpoints live under /agent/v1 and are documented in agent/manual/*.md (served at /agent/v1/manual).
+// Endpoints live under /api/agent/v1 and are documented in agent/manual/*.md (served at /api/agent/v1/manual).
 
 const fs = require('fs');
 const path = require('path');
@@ -589,11 +589,9 @@ module.exports = function(app, deps) {
 		apiError(res, 500, 'internal_error', 'Internal Server Error');
 	});
 
-	// /api/agent/v1 is an alias so that a reverse proxy which only forwards /api/ reaches the API too.
-	app.use('/agent/v1', router);
 	app.use('/api/agent/v1', router);
 	// express.json() runs before this router, so its parse errors are caught here at app level.
-	app.use(['/agent', '/api/agent'], function(err, req, res, next) {
+	app.use('/api/agent', function(err, req, res, next) {
 		if (err && err.type === 'entity.parse.failed') {
 			return apiError(res, 400, 'invalid_json', 'Request body is not valid JSON');
 		}
@@ -601,9 +599,6 @@ module.exports = function(app, deps) {
 			return apiError(res, 413, 'request_too_large', 'Request body is too large');
 		}
 		next(err);
-	});
-	app.get('/agent', function(req, res) {
-		res.redirect('/agent/v1');
 	});
 	app.get('/api/agent', function(req, res) {
 		res.redirect('/api/agent/v1');
@@ -617,11 +612,11 @@ module.exports = function(app, deps) {
 			'',
 			'## AI agent API',
 			'',
-			`- [API index (JSON)](${b}/agent/v1) (alias: ${b}/api/agent/v1)`,
-			`- [Manual, English (Markdown)](${b}/agent/v1/manual?lang=en): API usage, language specification, library reference`,
-			`- [Manual, Japanese (Markdown)](${b}/agent/v1/manual?lang=ja)`,
-			`- [OpenAPI 3](${b}/agent/v1/openapi.json)`,
-			`- [Libraries (JSON)](${b}/agent/v1/libraries)`,
+			`- [API index (JSON)](${b}/api/agent/v1)`,
+			`- [Manual, English (Markdown)](${b}/api/agent/v1/manual?lang=en): API usage, language specification, library reference`,
+			`- [Manual, Japanese (Markdown)](${b}/api/agent/v1/manual?lang=ja)`,
+			`- [OpenAPI 3](${b}/api/agent/v1/openapi.json)`,
+			`- [Libraries (JSON)](${b}/api/agent/v1/libraries)`,
 			'',
 			'## Language documentation (HTML)',
 			'',
@@ -632,6 +627,6 @@ module.exports = function(app, deps) {
 		].join('\n'));
 	});
 
-	logger.info('Agent API mounted at /agent/v1 and /api/agent/v1');
+	logger.info('Agent API mounted at /api/agent/v1');
 	return router;
 };

@@ -1,21 +1,21 @@
 # PG0 エージェントAPI マニュアル
 
-このマニュアルは、PG0 Webサービスの HTTP API を通じて **PG0** / **PG0.5** のプログラムを作成・構文チェック・実行・保存する AI エージェント（および人間）向けに書かれています。API の使い方、言語仕様の全体、ライブラリリファレンスをこの1冊に収めています。英語版は `GET /agent/v1/manual?lang=en` です。
+このマニュアルは、PG0 Webサービスの HTTP API を通じて **PG0** / **PG0.5** のプログラムを作成・構文チェック・実行・保存する AI エージェント（および人間）向けに書かれています。API の使い方、言語仕様の全体、ライブラリリファレンスをこの1冊に収めています。英語版は `GET /api/agent/v1/manual?lang=en` です。
 
-- API インデックス (JSON): `GET /agent/v1`
-- OpenAPI 3 定義: `GET /agent/v1/openapi.json`
-- 機械可読の関数一覧: `GET /agent/v1/libraries`
+- API インデックス (JSON): `GET /api/agent/v1`
+- OpenAPI 3 定義: `GET /api/agent/v1/openapi.json`
+- 機械可読の関数一覧: `GET /api/agent/v1/libraries`
 - 元の HTML ドキュメント: `/doc/pg0.html`, `/doc/pg0.5.html`, `/doc/pg0.5_lib.html`
 
 ## 1. クイックスタート
 
 1. プログラムを書きます。課題で PG0 が明示されていない限り **PG0.5**（デフォルト）を使います。
-2. `POST /agent/v1/run` に `{"code": "..."}` を送ります。
+2. `POST /api/agent/v1/run` に `{"code": "..."}` を送ります。
 3. レスポンスの `status`, `output`, `result`, `variables`, `error` を読み、必要ならプログラムを直して再実行します。
-4. 必要なら `POST /agent/v1/scripts` で保存します。レスポンスの `url` を開くと Web エディタでそのプログラムが開きます。
+4. 必要なら `POST /api/agent/v1/scripts` で保存します。レスポンスの `url` を開くと Web エディタでそのプログラムが開きます。
 
 ```http
-POST /agent/v1/run
+POST /api/agent/v1/run
 Content-Type: application/json
 
 {"code": "#import(\"lib/io.pg0\")\nfunction fact(n) {\n  if (n <= 1) { return 1 }\n  return n * fact(n - 1)\n}\nprintln(fact(5))\nexit fact(6)"}
@@ -40,32 +40,32 @@ Content-Type: application/json
 
 ### 2.1 共通事項
 
-- ベースパス: Web エディタと同じホストの `/agent/v1`。`/api/agent/v1` も同じ動作のエイリアスです。https://pg0.jp では `https://pg0.jp/api/agent/v1` を使ってください。インデックスのレスポンスの `base_url` に使用中のプレフィックスが入ります。
+- ベースパス: Web エディタと同じホストの `/api/agent/v1`（https://pg0.jp では `https://pg0.jp/api/agent/v1`）。インデックスのレスポンスにも `base_url` として入っています。
 - リクエスト・レスポンスとも JSON（`Content-Type: application/json`、UTF-8）。リクエストボディは 1MB まで。
 - 認証: デフォルトでは不要。サーバ管理者が API キーを設定している場合は `Authorization: Bearer <key>`（または `X-API-Key: <key>`）を付けます。無い場合は `401` になります。
 - API 自体のエラー（プログラムのエラーではない）は HTTP 4xx/5xx と `{"error": {"code": "...", "message": "..."}}` で返します。プログラムの失敗は HTTP `200` で、`status` が `"ok"` 以外になります（2.3 参照）。
-- 制限値は `GET /agent/v1` に載っています。標準値: タイムアウト 5 秒（最大 30 秒）、実行文数 10,000,000、コード 200,000 文字、出力 1,000,000 文字、同時実行 4（超えると `429 too_many_runs`。1 秒ほど待って再試行）。
+- 制限値は `GET /api/agent/v1` に載っています。標準値: タイムアウト 5 秒（最大 30 秒）、実行文数 10,000,000、コード 200,000 文字、出力 1,000,000 文字、同時実行 4（超えると `429 too_many_runs`。1 秒ほど待って再試行）。
 
 ### 2.2 エンドポイント
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| GET | `/agent/v1` | インデックス: エンドポイント一覧、マニュアル URL、制限値 |
-| GET | `/agent/v1/manual?lang=ja\|en` | このマニュアル (Markdown) |
-| GET | `/agent/v1/openapi.json` | OpenAPI 3 定義 |
-| GET | `/agent/v1/libraries` | 関数一覧 (JSON) |
-| POST | `/agent/v1/check` | 構文チェックのみ |
-| POST | `/agent/v1/run` | プログラムの実行 |
-| GET | `/agent/v1/scripts` | 保存済みスクリプトの一覧・検索 |
-| POST | `/agent/v1/scripts` | スクリプトの新規保存 |
-| GET | `/agent/v1/scripts/{cid}` | 保存済みスクリプトの取得（コード込み） |
-| PUT | `/agent/v1/scripts/{cid}` | 保存済みスクリプトの更新 |
-| DELETE | `/agent/v1/scripts/{cid}` | 保存済みスクリプトの削除 |
-| POST | `/agent/v1/scripts/{cid}/run` | 保存済みスクリプトの実行 |
-| GET | `/agent/v1/scripts/{cid}/history` | 保存済みスクリプトの履歴一覧 |
-| GET | `/agent/v1/scripts/{cid}/history/{time}` | 履歴の 1 バージョン取得 |
+| GET | `/api/agent/v1` | インデックス: エンドポイント一覧、マニュアル URL、制限値 |
+| GET | `/api/agent/v1/manual?lang=ja\|en` | このマニュアル (Markdown) |
+| GET | `/api/agent/v1/openapi.json` | OpenAPI 3 定義 |
+| GET | `/api/agent/v1/libraries` | 関数一覧 (JSON) |
+| POST | `/api/agent/v1/check` | 構文チェックのみ |
+| POST | `/api/agent/v1/run` | プログラムの実行 |
+| GET | `/api/agent/v1/scripts` | 保存済みスクリプトの一覧・検索 |
+| POST | `/api/agent/v1/scripts` | スクリプトの新規保存 |
+| GET | `/api/agent/v1/scripts/{cid}` | 保存済みスクリプトの取得（コード込み） |
+| PUT | `/api/agent/v1/scripts/{cid}` | 保存済みスクリプトの更新 |
+| DELETE | `/api/agent/v1/scripts/{cid}` | 保存済みスクリプトの削除 |
+| POST | `/api/agent/v1/scripts/{cid}/run` | 保存済みスクリプトの実行 |
+| GET | `/api/agent/v1/scripts/{cid}/history` | 保存済みスクリプトの履歴一覧 |
+| GET | `/api/agent/v1/scripts/{cid}/history/{time}` | 履歴の 1 バージョン取得 |
 
-#### POST /agent/v1/check
+#### POST /api/agent/v1/check
 
 実行せずに構文解析だけ行います。
 
@@ -73,7 +73,7 @@ Content-Type: application/json
 
 レスポンス: `{"ok": true, "mode": "PG0.5", "error": null}` または `{"ok": false, "mode": "PG0.5", "error": {"message": "間違った書き方です", "line": 3, "source": "if a > 1 {", "phase": "parse"}}`
 
-#### POST /agent/v1/run
+#### POST /api/agent/v1/run
 
 リクエストのフィールド:
 
@@ -93,7 +93,7 @@ Content-Type: application/json
 
 保存されるスクリプトは Web エディタが使うものと同じデータです。エージェントが作ったプログラムを人に渡す（レスポンスの `url` でエディタが開く）ことも、人が同じパスワードでエディタから編集することもできます。
 
-`POST /agent/v1/scripts` のリクエスト:
+`POST /api/agent/v1/scripts` のリクエスト:
 
 | フィールド | 型 | 備考 |
 |---|---|---|
@@ -108,15 +108,15 @@ Content-Type: application/json
 
 レスポンス `201`: `{"cid", "name", "author", "mode", "private", "createTime", "updateTime", "url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。
 
-`PUT /agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
+`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
-`DELETE /agent/v1/scripts/{cid}`: ボディ `{"password": "..."}`。レスポンス `{"deleted": true, "cid": "..."}`。
+`DELETE /api/agent/v1/scripts/{cid}`: ボディ `{"password": "..."}`。レスポンス `{"deleted": true, "cid": "..."}`。
 
-`GET /agent/v1/scripts?q=単語&uuid=所有者&skip=0&count=30`: `{"scripts": [要約...], "skip", "count"}`。`q` の単語（空白区切り）は名前と作者に対して照合されます。
+`GET /api/agent/v1/scripts?q=単語&uuid=所有者&skip=0&count=30`: `{"scripts": [要約...], "skip", "count"}`。`q` の単語（空白区切り）は名前と作者に対して照合されます。
 
-`POST /agent/v1/scripts/{cid}/run`: `/run` から `code` を除いたボディ。`mode` は保存時のモードがデフォルトです。
+`POST /api/agent/v1/scripts/{cid}/run`: `/run` から `code` を除いたボディ。`mode` は保存時のモードがデフォルトです。
 
-`GET /agent/v1/scripts/{cid}/history`: `{"history": [memo 付きの要約...]}`、新しい順。`GET /agent/v1/scripts/{cid}/history/{updateTime}` でそのバージョンのコードを取得できます。
+`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [memo 付きの要約...]}`、新しい順。`GET /api/agent/v1/scripts/{cid}/history/{updateTime}` でそのバージョンのコードを取得できます。
 
 ### 2.3 実行結果
 
@@ -403,7 +403,7 @@ fill(list, 3)       // list は {0, 1, 2}
 
 ### 4.5 画面描画ライブラリ: `#import("lib/screen.pg0")`（API では使用不可）
 
-描画、キーボード、マウス、サウンド、`sleep`、`time`、`timeString` は Web ブラウザが必要です。API 経由で import するとエラーになります。これらを使うプログラムも `POST /agent/v1/scripts` で保存でき、人がレスポンスの `url` から Web エディタで実行できます。参考の関数名: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound（詳細は `/doc/pg0.5_lib.html`）。
+描画、キーボード、マウス、サウンド、`sleep`、`time`、`timeString` は Web ブラウザが必要です。API 経由で import するとエラーになります。これらを使うプログラムも `POST /api/agent/v1/scripts` で保存でき、人がレスポンスの `url` から Web エディタで実行できます。参考の関数名: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound（詳細は `/doc/pg0.5_lib.html`）。
 
 ## 5. 例
 
@@ -439,7 +439,7 @@ fill(list, 3)       // list は {0, 1, 2}
 ### 5.4 人に渡すためにプログラムを保存する
 
 ```http
-POST /agent/v1/scripts
+POST /api/agent/v1/scripts
 {"name": "FizzBuzz", "author": "AI agent", "password": "s3cret", "memo": "1..30 を出力",
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```

@@ -78,7 +78,7 @@ module.exports = {
 			id: 'screen',
 			import: '#import("lib/screen.pg0")',
 			available: false,
-			reason: 'Needs a web browser (canvas, keyboard, mouse, sound). Importing it through the API fails with "Read error in script or library". Programs that use it can still be stored with POST /agent/v1/scripts and run in the web editor.',
+			reason: 'Needs a web browser (canvas, keyboard, mouse, sound). Importing it through the API fails with "Read error in script or library". Programs that use it can still be stored with POST /api/agent/v1/scripts and run in the web editor.',
 			functions: [
 				'startScreen', 'sleep', 'time', 'timeString', 'startOffscreen', 'endOffscreen', 'startMask', 'endMask', 'clearRect',
 				'drawLine', 'drawRect', 'drawCircle', 'drawPolyline', 'drawFill', 'drawScroll', 'createImage', 'drawImage', 'drawText',

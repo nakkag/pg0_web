@@ -1,21 +1,21 @@
 # PG0 Agent API Manual
 
-This manual is written for AI agents (and people) that want to write, check, run and store programs in **PG0** and **PG0.5** through the HTTP API of the PG0 web service. It is self-contained: it covers the API, the full language specification and the library reference. The Japanese version is at `GET /agent/v1/manual?lang=ja`.
+This manual is written for AI agents (and people) that want to write, check, run and store programs in **PG0** and **PG0.5** through the HTTP API of the PG0 web service. It is self-contained: it covers the API, the full language specification and the library reference. The Japanese version is at `GET /api/agent/v1/manual?lang=ja`.
 
-- API index (JSON): `GET /agent/v1`
-- OpenAPI 3 document: `GET /agent/v1/openapi.json`
-- Machine readable function list: `GET /agent/v1/libraries`
+- API index (JSON): `GET /api/agent/v1`
+- OpenAPI 3 document: `GET /api/agent/v1/openapi.json`
+- Machine readable function list: `GET /api/agent/v1/libraries`
 - Original HTML documentation: `/doc/pg0_eng.html`, `/doc/pg0.5_eng.html`, `/doc/pg0.5_lib_eng.html`
 
 ## 1. Quick start
 
 1. Write a program. Use **PG0.5** (the default) unless a task explicitly asks for PG0.
-2. `POST /agent/v1/run` with `{"code": "..."}`.
+2. `POST /api/agent/v1/run` with `{"code": "..."}`.
 3. Read `status`, `output`, `result`, `variables` and `error` in the response. Fix the program and run again.
-4. Optionally store the program with `POST /agent/v1/scripts`; the response contains a URL that opens it in the web editor.
+4. Optionally store the program with `POST /api/agent/v1/scripts`; the response contains a URL that opens it in the web editor.
 
 ```http
-POST /agent/v1/run
+POST /api/agent/v1/run
 Content-Type: application/json
 
 {"code": "#import(\"lib/io.pg0\")\nfunction fact(n) {\n  if (n <= 1) { return 1 }\n  return n * fact(n - 1)\n}\nprintln(fact(5))\nexit fact(6)"}
@@ -40,32 +40,32 @@ Content-Type: application/json
 
 ### 2.1 General
 
-- Base path: `/agent/v1` on the same host as the web editor. `/api/agent/v1` is an alias with identical behaviour; on https://pg0.jp use `https://pg0.jp/api/agent/v1`. The `base_url` field of the index response tells which prefix you are using.
+- Base path: `/api/agent/v1` on the same host as the web editor (on https://pg0.jp: `https://pg0.jp/api/agent/v1`). The index response repeats it as `base_url`.
 - Request and response bodies are JSON (`Content-Type: application/json`, UTF-8). Request bodies are limited to 1 MB.
 - Authentication: none by default. If the server operator configured an API key, send `Authorization: Bearer <key>` (or `X-API-Key: <key>`); otherwise the API answers `401`.
 - Errors of the API itself (not of your program) use HTTP status codes 4xx/5xx and the body `{"error": {"code": "...", "message": "..."}}`. Program failures are reported with HTTP `200` and `status` other than `"ok"` (see 2.3).
-- Limits are listed in `GET /agent/v1`; typical values: 5 s default timeout (30 s max), 10,000,000 statements, 200,000 characters of code, 1,000,000 characters of output, 4 concurrent runs (`429 too_many_runs` beyond that, retry after a second).
+- Limits are listed in `GET /api/agent/v1`; typical values: 5 s default timeout (30 s max), 10,000,000 statements, 200,000 characters of code, 1,000,000 characters of output, 4 concurrent runs (`429 too_many_runs` beyond that, retry after a second).
 
 ### 2.2 Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/agent/v1` | Index: endpoints, manual URLs, limits |
-| GET | `/agent/v1/manual?lang=en\|ja` | This manual (Markdown) |
-| GET | `/agent/v1/openapi.json` | OpenAPI 3 description |
-| GET | `/agent/v1/libraries` | Function list as JSON |
-| POST | `/agent/v1/check` | Syntax check only |
-| POST | `/agent/v1/run` | Run a program |
-| GET | `/agent/v1/scripts` | List / search stored scripts |
-| POST | `/agent/v1/scripts` | Store a new script |
-| GET | `/agent/v1/scripts/{cid}` | Get a stored script with its code |
-| PUT | `/agent/v1/scripts/{cid}` | Update a stored script |
-| DELETE | `/agent/v1/scripts/{cid}` | Delete a stored script |
-| POST | `/agent/v1/scripts/{cid}/run` | Run a stored script |
-| GET | `/agent/v1/scripts/{cid}/history` | Previous versions of a stored script |
-| GET | `/agent/v1/scripts/{cid}/history/{time}` | One previous version |
+| GET | `/api/agent/v1` | Index: endpoints, manual URLs, limits |
+| GET | `/api/agent/v1/manual?lang=en\|ja` | This manual (Markdown) |
+| GET | `/api/agent/v1/openapi.json` | OpenAPI 3 description |
+| GET | `/api/agent/v1/libraries` | Function list as JSON |
+| POST | `/api/agent/v1/check` | Syntax check only |
+| POST | `/api/agent/v1/run` | Run a program |
+| GET | `/api/agent/v1/scripts` | List / search stored scripts |
+| POST | `/api/agent/v1/scripts` | Store a new script |
+| GET | `/api/agent/v1/scripts/{cid}` | Get a stored script with its code |
+| PUT | `/api/agent/v1/scripts/{cid}` | Update a stored script |
+| DELETE | `/api/agent/v1/scripts/{cid}` | Delete a stored script |
+| POST | `/api/agent/v1/scripts/{cid}/run` | Run a stored script |
+| GET | `/api/agent/v1/scripts/{cid}/history` | Previous versions of a stored script |
+| GET | `/api/agent/v1/scripts/{cid}/history/{time}` | One previous version |
 
-#### POST /agent/v1/check
+#### POST /api/agent/v1/check
 
 Parses the program without executing it.
 
@@ -73,7 +73,7 @@ Request: `{"code": string, "mode": "PG0.5" | "PG0" (default PG0.5), "lang": "en"
 
 Response: `{"ok": true, "mode": "PG0.5", "error": null}` or `{"ok": false, "mode": "PG0.5", "error": {"message": "Syntax error", "line": 3, "source": "if a > 1 {", "phase": "parse"}}`
 
-#### POST /agent/v1/run
+#### POST /api/agent/v1/run
 
 Request fields:
 
@@ -93,7 +93,7 @@ Response fields are described in 2.3.
 
 Stored scripts are the same documents the web editor uses, so an agent can hand a program to a human (the response `url` opens it in the editor) and a human can edit it there with the same password.
 
-`POST /agent/v1/scripts` request:
+`POST /api/agent/v1/scripts` request:
 
 | Field | Type | Notes |
 |---|---|---|
@@ -108,15 +108,15 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 
 Response `201`: `{"cid", "name", "author", "mode", "private", "createTime", "updateTime", "url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC.
 
-`PUT /agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid}`; only given fields change. The previous version is kept in the history. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
+`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid}`; only given fields change. The previous version is kept in the history. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
-`DELETE /agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
+`DELETE /api/agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
 
-`GET /agent/v1/scripts?q=words&uuid=owner&skip=0&count=30`: `{"scripts": [summary...], "skip", "count"}`. `q` words are matched against name and author.
+`GET /api/agent/v1/scripts?q=words&uuid=owner&skip=0&count=30`: `{"scripts": [summary...], "skip", "count"}`. `q` words are matched against name and author.
 
-`POST /agent/v1/scripts/{cid}/run`: same body as `/run` without `code`; `mode` defaults to the stored mode.
+`POST /api/agent/v1/scripts/{cid}/run`: same body as `/run` without `code`; `mode` defaults to the stored mode.
 
-`GET /agent/v1/scripts/{cid}/history`: `{"history": [summary with memo...]}`, newest first. `GET /agent/v1/scripts/{cid}/history/{updateTime}` returns that version with its code.
+`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [summary with memo...]}`, newest first. `GET /api/agent/v1/scripts/{cid}/history/{updateTime}` returns that version with its code.
 
 ### 2.3 Run result
 
@@ -403,7 +403,7 @@ Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 
 ### 4.5 Screen library: `#import("lib/screen.pg0")` (not available in the API)
 
-Graphics, keyboard, mouse, sound, `sleep`, `time` and `timeString` need a web browser. Importing it through the API fails. Programs that use it can still be stored with `POST /agent/v1/scripts` and run by a person in the web editor at the returned `url`. Function names for reference: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound (see `/doc/pg0.5_lib_eng.html`).
+Graphics, keyboard, mouse, sound, `sleep`, `time` and `timeString` need a web browser. Importing it through the API fails. Programs that use it can still be stored with `POST /api/agent/v1/scripts` and run by a person in the web editor at the returned `url`. Function names for reference: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound (see `/doc/pg0.5_lib_eng.html`).
 
 ## 5. Examples
 
@@ -439,7 +439,7 @@ Response: `"status": "error"`, `"error": {"message": "Division by zero", "line":
 ### 5.4 Storing a program for a person
 
 ```http
-POST /agent/v1/scripts
+POST /api/agent/v1/scripts
 {"name": "FizzBuzz", "author": "AI agent", "password": "s3cret", "memo": "Prints 1..30",
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```
