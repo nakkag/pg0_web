@@ -500,6 +500,7 @@
                   "type": "string",
                   "enum": [
                     "block_local_variable",
+                    "split_variable",
                     "unused_variable",
                     "keyed_initializer",
                     "undeclared_variable"

@@ -248,10 +248,16 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 };
 
 function __screenTextSize(text, fontSize, fontFace) {
-	// Approximation: 0.55 (0.6 for monospace) of the font size per ASCII character, full width otherwise.
+	// Approximation of the browser's ink bounding box: leading and trailing spaces have no ink,
+	// so they are not counted, and text without ink measures 0 x 0. Inner characters count
+	// 0.55 (0.6 for monospace) of the font size per ASCII character, full width otherwise.
+	const inked = String(text).replace(/^[ \t]+|[ \t]+$/g, '');
+	if (inked === '') {
+		return {width: 0, height: 0};
+	}
 	const narrow = /monospace|courier|consolas|menlo|monaco/i.test(fontFace || '') ? 0.6 : 0.55;
 	let width = 0;
-	for (const ch of String(text)) {
+	for (const ch of inked) {
 		width += (ch.codePointAt(0) < 0x2e80) ? fontSize * narrow : fontSize;
 	}
 	return {width: Math.round(width), height: Math.round(fontSize)};

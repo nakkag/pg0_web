@@ -14,6 +14,9 @@ const MESSAGES = {
 		block_local_variable: function(name, declLine) {
 			return `Variable "${name}" was first used inside a block at line ${declLine}, so it is local to that block; here it is a different variable that starts at 0. Create it before the block (for example "${name} = 0" at the top level).`;
 		},
+		split_variable: function(name, writeLine) {
+			return `Variable "${name}" is never created at the top level, so each block that uses it gets its own copy: the assignment at line ${writeLine} and this read refer to different variables (this one stays 0). Create it before both blocks (for example "${name} = 0" at the top level).`;
+		},
 		unused_variable: function(name) {
 			return `Variable "${name}" is assigned but never read.`;
 		},
@@ -27,6 +30,9 @@ const MESSAGES = {
 	ja: {
 		block_local_variable: function(name, declLine) {
 			return `変数 "${name}" は ${declLine} 行目のブロック内で初めて使われたためそのブロックのローカル変数です。ここでは別の変数（初期値 0）になります。ブロックの前に作ってください（例: 最上位で "${name} = 0"）。`;
+		},
+		split_variable: function(name, writeLine) {
+			return `変数 "${name}" は最上位で作られていないため、使っているブロックごとに別の変数になります。${writeLine} 行目の代入とここでの読み取りは別の変数を指しています（ここでは 0 のまま）。両方のブロックより前に作ってください（例: 最上位で "${name} = 0"）。`;
 		},
 		unused_variable: function(name) {
 			return `変数 "${name}" は代入されていますが一度も読まれていません。`;
@@ -194,9 +200,11 @@ function lint(src, lang) {
 		}
 		return null;
 	}
+	const declsByName = {};
 	function declare(scope, name, line) {
-		const v = {name: name, line: line, reads: 0, writes: 0, param: false};
+		const v = {name: name, line: line, reads: 0, writes: 0, param: false, scope: scope};
 		scope.vars[name] = v;
+		(declsByName[name] || (declsByName[name] = [])).push(v);
 		return v;
 	}
 	function closeScope() {
@@ -403,10 +411,27 @@ function lint(src, lang) {
 	while (scopes.length > 1) {
 		closeScope();
 	}
-	// An "unused" write inside a block that is later read outside is already covered by the scope warning.
+	// A name that only exists inside blocks/functions, written in one and read in another, is split
+	// into unrelated variables whatever the textual order of the blocks.
+	Object.keys(declsByName).forEach(function(name) {
+		if (globalScope.vars[name]) {
+			return;
+		}
+		const decls = declsByName[name].filter(function(v) { return !v.param && !v.declared; });
+		const writer = decls.find(function(v) { return v.writes > 0; });
+		if (!writer) {
+			return;
+		}
+		decls.forEach(function(v) {
+			if (v !== writer && v.reads > 0 && v.writes === 0) {
+				warn('split_variable', v.line, name, msg.split_variable(name, writer.line + 1));
+			}
+		});
+	});
+	// An "unused" write inside a block that is later read outside is already covered by the scope warnings.
 	const scopeWarned = {};
 	warnings.forEach(function(w) {
-		if (w.code === 'block_local_variable') {
+		if (w.code === 'block_local_variable' || w.code === 'split_variable') {
 			scopeWarned[w.name] = true;
 		}
 	});
