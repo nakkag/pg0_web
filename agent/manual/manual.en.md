@@ -105,10 +105,11 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `private` | 0 or 1 | 1 hides the script from lists (still reachable by `cid`, and the name need not be unique). |
 | `mode` | `"PG0.5"` or `"PG0"` | Mode used by the editor and by `/scripts/{cid}/run`. |
 | `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. |
+| `speed` | 0, 1, 250 or 500 | Execution speed in the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. **Set 0 for programs that use `lib/screen.pg0`**: with a wait, drawing and animation become extremely slow. |
 
-Response `201`: `{"cid", "name", "author", "mode", "private", "createTime", "updateTime", "url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC.
+Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC.
 
-`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid}`; only given fields change. The previous version is kept in the history. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
+`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed}`; only given fields change. The previous version is kept in the history. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
 `DELETE /api/agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
 
@@ -403,7 +404,7 @@ Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 
 ### 4.5 Screen library: `#import("lib/screen.pg0")` (not available in the API)
 
-Graphics, keyboard, mouse, sound, `sleep`, `time` and `timeString` need a web browser. Importing it through the API fails. Programs that use it can still be stored with `POST /api/agent/v1/scripts` and run by a person in the web editor at the returned `url`. Function names for reference: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound (see `/doc/pg0.5_lib_eng.html`).
+Graphics, keyboard, mouse, sound, `sleep`, `time` and `timeString` need a web browser. Importing it through the API fails. Programs that use it can still be stored with `POST /api/agent/v1/scripts` and run by a person in the web editor at the returned `url`. **Store such programs with `"speed": 0` (no wait)**: the editor otherwise pauses after every statement (250 ms by default), which makes a screen program that covers the page with drawing crawl or appear frozen. Function names for reference: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound (see `/doc/pg0.5_lib_eng.html`).
 
 ## 5. Examples
 
@@ -440,8 +441,18 @@ Response: `"status": "error"`, `"error": {"message": "Division by zero", "line":
 
 ```http
 POST /api/agent/v1/scripts
-{"name": "FizzBuzz", "author": "AI agent", "password": "s3cret", "memo": "Prints 1..30",
+{"name": "FizzBuzz", "author": "AI agent", "password": "s3cret", "memo": "Prints 1..30", "speed": 250,
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```
 
 The `201` response contains `"url": "https://<host>/dev/?cid=<cid>"`; give that URL to the person. Append `&run=1` to run it on open.
+
+### 5.5 Storing a screen program (runs only in the web editor)
+
+```http
+POST /api/agent/v1/scripts
+{"name": "Bouncing ball", "author": "AI agent", "password": "s3cret", "speed": 0,
+ "code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}"}
+```
+
+`"speed": 0` is essential here; the program cannot be run through `/run` because it imports `lib/screen.pg0`.

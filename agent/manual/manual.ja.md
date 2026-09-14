@@ -105,10 +105,11 @@ Content-Type: application/json
 | `private` | 0 または 1 | 1 で一覧に出なくなります（`cid` では取得可能。名前の一意性も不要）。 |
 | `mode` | `"PG0.5"` または `"PG0"` | エディタと `/scripts/{cid}/run` が使うモード。 |
 | `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。 |
+| `speed` | 0, 1, 250, 500 のいずれか | Web エディタでの実行速度。1 文ごとの待ち時間（ミリ秒）で、0 = 待ち無し、1 = 速い、250 = 普通（デフォルト）、500 = 遅い。**`lib/screen.pg0` を使うプログラムは 0 にしてください。** 待ちがあると描画やアニメーションが極端に遅くなります。 |
 
-レスポンス `201`: `{"cid", "name", "author", "mode", "private", "createTime", "updateTime", "url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。
+レスポンス `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。
 
-`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
+`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
 `DELETE /api/agent/v1/scripts/{cid}`: ボディ `{"password": "..."}`。レスポンス `{"deleted": true, "cid": "..."}`。
 
@@ -403,7 +404,7 @@ fill(list, 3)       // list は {0, 1, 2}
 
 ### 4.5 画面描画ライブラリ: `#import("lib/screen.pg0")`（API では使用不可）
 
-描画、キーボード、マウス、サウンド、`sleep`、`time`、`timeString` は Web ブラウザが必要です。API 経由で import するとエラーになります。これらを使うプログラムも `POST /api/agent/v1/scripts` で保存でき、人がレスポンスの `url` から Web エディタで実行できます。参考の関数名: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound（詳細は `/doc/pg0.5_lib.html`）。
+描画、キーボード、マウス、サウンド、`sleep`、`time`、`timeString` は Web ブラウザが必要です。API 経由で import するとエラーになります。これらを使うプログラムも `POST /api/agent/v1/scripts` で保存でき、人がレスポンスの `url` から Web エディタで実行できます。**このようなプログラムは `"speed": 0`（待ち無し）で保存してください。** それ以外の実行速度ではエディタが 1 文ごとに待ち（デフォルト 250 ミリ秒）を入れるため、画面を描画で覆うようなスクリーンのプログラムは極端に遅くなるか、止まっているように見えます。参考の関数名: startScreen, sleep, time, timeString, startOffscreen, endOffscreen, startMask, endMask, clearRect, drawLine, drawRect, drawCircle, drawPolyline, drawFill, drawScroll, createImage, drawImage, drawText, measureText, rgbToPoint, rgbToHex, hexToRgb, inTouch, inKey, playSound, playMusic, stopSound（詳細は `/doc/pg0.5_lib.html`）。
 
 ## 5. 例
 
@@ -440,8 +441,18 @@ fill(list, 3)       // list は {0, 1, 2}
 
 ```http
 POST /api/agent/v1/scripts
-{"name": "FizzBuzz", "author": "AI agent", "password": "s3cret", "memo": "1..30 を出力",
+{"name": "FizzBuzz", "author": "AI agent", "password": "s3cret", "memo": "1..30 を出力", "speed": 250,
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```
 
 `201` レスポンスに `"url": "https://<host>/dev/?cid=<cid>"` が含まれるので、その URL を人に渡します。`&run=1` を付けると開いたときに自動実行されます。
+
+### 5.5 スクリーンのプログラムを保存する（Web エディタでのみ実行可能）
+
+```http
+POST /api/agent/v1/scripts
+{"name": "跳ねるボール", "author": "AI agent", "password": "s3cret", "speed": 0,
+ "code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}"}
+```
+
+ここでは `"speed": 0` が必須です。このプログラムは `lib/screen.pg0` を import しているため `/run` では実行できません。

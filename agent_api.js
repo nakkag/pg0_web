@@ -40,6 +40,14 @@ function crc32(str) {
 	return (crc ^ (-1)) >>> 0;
 }
 
+// Execution speed values offered by the web editor (milliseconds of wait per statement).
+const SPEED_VALUES = [0, 1, 250, 500];
+
+function normalizeSpeed(value) {
+	const n = (typeof value === 'string' && value.trim() !== '') ? Number(value) : value;
+	return SPEED_VALUES.indexOf(n) >= 0 ? n : null;
+}
+
 function clampInt(value, def, min, max) {
 	let n = parseInt(value, 10);
 	if (isNaN(n)) {
@@ -77,6 +85,7 @@ function summarizeScript(req, doc) {
 		author: doc.author,
 		mode: normalizeMode(doc.type),
 		private: doc.private ? 1 : 0,
+		speed: normalizeSpeed(doc.speed) !== null ? normalizeSpeed(doc.speed) : settings.defaultSpeed,
 		createTime: doc.createTime || null,
 		updateTime: doc.updateTime,
 		url: scriptUrl(req, doc.cid)
@@ -355,6 +364,10 @@ module.exports = function(app, deps) {
 			apiError(res, 400, 'invalid_request', '"memo" must be a string');
 			return null;
 		}
+		if (body.speed !== undefined && body.speed !== null && normalizeSpeed(body.speed) === null) {
+			apiError(res, 400, 'invalid_request', '"speed" must be one of ' + SPEED_VALUES.join(', ') + ' (0 = no wait, 1 = fast, 250 = normal, 500 = slow)');
+			return null;
+		}
 		return body;
 	}
 
@@ -392,7 +405,7 @@ module.exports = function(app, deps) {
 				uuid: body.uuid ? String(body.uuid) : '',
 				private: isPrivate,
 				code: body.code,
-				speed: settings.defaultSpeed,
+				speed: (body.speed !== undefined && body.speed !== null) ? normalizeSpeed(body.speed) : settings.defaultSpeed,
 				keyword: name + ' ' + author,
 				createTime: time,
 				updateTime: time,
@@ -461,7 +474,7 @@ module.exports = function(app, deps) {
 				uuid: body.uuid !== undefined ? String(body.uuid || '') : (doc.uuid || ''),
 				private: isPrivate,
 				code: body.code !== undefined ? body.code : doc.code,
-				speed: doc.speed === undefined ? settings.defaultSpeed : doc.speed,
+				speed: (body.speed !== undefined && body.speed !== null) ? normalizeSpeed(body.speed) : (normalizeSpeed(doc.speed) !== null ? normalizeSpeed(doc.speed) : settings.defaultSpeed),
 				keyword: name + ' ' + author,
 				updateTime: Date.now(),
 				ipaddr: clientAddress(req)
