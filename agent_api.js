@@ -604,29 +604,6 @@ module.exports = function(app, deps) {
 	app.get('/api/agent', function(req, res) {
 		res.redirect('/api/agent/v1');
 	});
-	app.get('/llms.txt', function(req, res) {
-		const b = baseUrl(req);
-		res.type('text/plain; charset=utf-8').send([
-			'# PG0 (Web)',
-			'',
-			'> Online editor and runner for PG0 / PG0.5, a small programming language for learning programming.',
-			'',
-			'## AI agent API',
-			'',
-			`- [API index (JSON)](${b}/api/agent/v1)`,
-			`- [Manual, English (Markdown)](${b}/api/agent/v1/manual?lang=en): API usage, language specification, library reference`,
-			`- [Manual, Japanese (Markdown)](${b}/api/agent/v1/manual?lang=ja)`,
-			`- [OpenAPI 3](${b}/api/agent/v1/openapi.json)`,
-			`- [Libraries (JSON)](${b}/api/agent/v1/libraries)`,
-			'',
-			'## Language documentation (HTML)',
-			'',
-			`- [PG0 specification](${b}/doc/pg0_eng.html)`,
-			`- [PG0.5 specification](${b}/doc/pg0.5_eng.html)`,
-			`- [PG0.5 library reference](${b}/doc/pg0.5_lib_eng.html)`,
-			''
-		].join('\n'));
-	});
 
 	logger.info('Agent API mounted at /api/agent/v1');
 	return router;

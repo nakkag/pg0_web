@@ -1,0 +1,20 @@
+# PG0 (Web)
+
+> Online editor and runner for PG0 / PG0.5, a small programming language for learning programming.
+
+## AI agent API
+
+- [API index (JSON)](https://pg0.jp/api/agent/v1)
+- [Manual, English (Markdown)](https://pg0.jp/api/agent/v1/manual?lang=en): API usage, language specification, library reference
+- [Manual, Japanese (Markdown)](https://pg0.jp/api/agent/v1/manual?lang=ja)
+- [OpenAPI 3](https://pg0.jp/api/agent/v1/openapi.json)
+- [Libraries (JSON)](https://pg0.jp/api/agent/v1/libraries)
+
+## Language documentation (HTML)
+
+- [PG0 specification](https://pg0.jp/doc/pg0_eng.html)
+- [PG0.5 specification](https://pg0.jp/doc/pg0.5_eng.html)
+- [PG0.5 library reference](https://pg0.jp/doc/pg0.5_lib_eng.html)
+- [PG0 specification (Japanese)](https://pg0.jp/doc/pg0.html)
+- [PG0.5 specification (Japanese)](https://pg0.jp/doc/pg0.5.html)
+- [PG0.5 library reference (Japanese)](https://pg0.jp/doc/pg0.5_lib.html)
