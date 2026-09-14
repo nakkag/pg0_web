@@ -5,6 +5,7 @@
 
 const path = require('path');
 const {fork} = require('child_process');
+const fs = require('fs');
 
 const WORKER_FILE = path.join(__dirname, 'pg0_worker.js');
 
@@ -248,6 +249,7 @@ function createRunner(settings) {
 
 		return new Promise(function(resolve) {
 			active++;
+			const startedAt = Date.now();
 			let finished = false;
 			let flushed = '';
 			const memoryMb = settings.workerMemoryMb || 256;
@@ -289,7 +291,7 @@ function createRunner(settings) {
 					variables: null,
 					screen: null,
 					storage: null,
-					stats: {steps: null, elapsed_ms: opt.timeoutMs, input_lines_used: null, steps_per_frame: null},
+					stats: {steps: null, elapsed_ms: Date.now() - startedAt, input_lines_used: null, steps_per_frame: null},
 					truncated: []
 				});
 			}
@@ -327,9 +329,27 @@ function createRunner(settings) {
 		});
 	}
 
+	// MemAvailable of the machine in MB (Linux); Infinity where /proc/meminfo is not available.
+	function availableMemoryMb() {
+		try {
+			const m = fs.readFileSync('/proc/meminfo', 'utf8').match(/MemAvailable:\s+(\d+)\s*kB/);
+			return m ? Math.floor(parseInt(m[1], 10) / 1024) : Infinity;
+		} catch (e) {
+			return Infinity;
+		}
+	}
+	// Whether a new runner process could fit into the machine's memory (a small server
+	// without swap becomes unresponsive when the runner processes exhaust it).
+	function memoryAvailable() {
+		const need = settings.minAvailableMemoryMb || ((settings.workerMemoryMb || 256) + 64);
+		return availableMemoryMb() >= need;
+	}
+
 	return {
 		run: run,
 		activeCount: function() { return active; },
+		memoryAvailable: memoryAvailable,
+		availableMemoryMb: availableMemoryMb,
 		normalizeMode: normalizeMode
 	};
 }

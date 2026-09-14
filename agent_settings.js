@@ -9,7 +9,7 @@ exports.apiKey = '';
 exports.publicUrl = 'https://pg0.jp';
 
 // Execution limits
-exports.maxConcurrentRuns = 4;
+exports.maxConcurrentRuns = 2;
 exports.defaultTimeoutMs = 5000;
 exports.maxTimeoutMs = 30000;
 exports.defaultMaxSteps = 10000000;
@@ -19,8 +19,11 @@ exports.maxInputLength = 200000;
 exports.maxOutputLength = 1000000;
 // Response fields (variables, storage, screen.record, ...) are dropped when the JSON would exceed this
 exports.maxResponseLength = 4000000;
-// Heap limit (--max-old-space-size) of each runner process; up to maxConcurrentRuns of them run at once
-exports.workerMemoryMb = 256;
+// Heap limit (--max-old-space-size) of each runner process; up to maxConcurrentRuns of them run at once,
+// so keep maxConcurrentRuns * (workerMemoryMb + about 60MB) well below the memory the server has free
+exports.workerMemoryMb = 128;
+// Runs answer 503 server_busy while the machine has less than this much memory available (MB)
+exports.minAvailableMemoryMb = 192;
 
 // Headless screen (lib/screen.pg0 through the API)
 exports.defaultMaxFrames = 10000;

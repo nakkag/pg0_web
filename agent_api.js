@@ -323,10 +323,24 @@ module.exports = function(app, deps) {
 		return body;
 	}
 
-	async function runProgram(req, res, params) {
+	// Sends 429 / 503 when no runner process can be started now; returns true in that case.
+	function runnerBusy(res) {
 		if (runner.activeCount() >= settings.maxConcurrentRuns) {
 			res.set('Retry-After', '1');
-			return apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
+			apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
+			return true;
+		}
+		if (!runner.memoryAvailable()) {
+			res.set('Retry-After', '2');
+			apiError(res, 503, 'server_busy', 'Not enough free memory to run a program now; retry shortly', {retry_after_ms: 2000});
+			return true;
+		}
+		return false;
+	}
+
+	async function runProgram(req, res, params) {
+		if (runnerBusy(res)) {
+			return;
 		}
 		try {
 			params.imports = await resolveImports(params.code);
@@ -343,9 +357,8 @@ module.exports = function(app, deps) {
 		if (!body) {
 			return;
 		}
-		if (runner.activeCount() >= settings.maxConcurrentRuns) {
-			res.set('Retry-After', '1');
-			return apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
+		if (runnerBusy(res)) {
+			return;
 		}
 		try {
 			// A step limit of 1 stops execution right after parsing.
@@ -476,9 +489,7 @@ module.exports = function(app, deps) {
 		if (!body.check || typeof body.code !== 'string') {
 			return true;
 		}
-		if (runner.activeCount() >= settings.maxConcurrentRuns) {
-			res.set('Retry-After', '1');
-			apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
+		if (runnerBusy(res)) {
 			return false;
 		}
 		const imports = await resolveImports(body.code);

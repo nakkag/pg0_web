@@ -1157,6 +1157,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The server is short of free memory; retry after the Retry-After header (2 seconds)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
