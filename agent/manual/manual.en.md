@@ -339,7 +339,7 @@ fill(list, 3)       // list is {0, 1, 2}
 - Names: same rules as variables, case-insensitive.
 - Missing required arguments are a runtime error ("Too few arguments"); extra arguments are ignored.
 - A function without `return` returns `0`. Recursion is allowed (deep recursion of several thousand levels works; extremely deep recursion fails).
-- Parameters and `var` variables inside the function are local; other names resolve to globals.
+- Parameters and `var` variables inside the function are local. Any other name used in the function body resolves to the **global variable of that name if it already exists when the function runs** (assigning to it updates the global); if no such global exists yet, the name becomes a variable local to the function (or to the block inside the function where it is first used). Globals that a function should update must therefore be created before the function is called.
 - User functions with the same name as a built-in take precedence.
 
 ### 3.9 exit and return
@@ -377,7 +377,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 17. `{x, y}` with bare variables creates keyed elements `"x"` and `"y"`; write `{x + 0, y + 0}` for a plain list.
 18. Screen programs: call `sleep()` once per loop iteration (it is the frame boundary in the API and the only pause in the browser), use radians for angles, and remember that `drawText(x, y)` places the top-left of the text at (x, y).
 19. A multi-line array initializer continues only while each line ends with an operator, so keep the closing brace on the line of the last element: `a[] = {1,\n 2,\n 3}` is fine, `a[] = {1,\n 2\n}` is a syntax error.
-20. Inside a function, a variable first assigned in the function body is function-local, and one first assigned inside an `if`/`for` block of the function is local to that block. Declare the function's working variables with `var` at the top of the function.
+20. Inside a function, assigning to a name updates the global of that name if it already exists; otherwise the variable is function-local, and one first assigned inside an `if`/`for` block of the function is local to that block. Declare the function's working variables with `var` at the top of the function, and create shared state at the top level before calling the function.
 21. `m = mons[0]` copies the element; changing `m["hp"]` leaves `mons[0]` untouched. Write `mons[0]["hp"] = ...` to modify the element in place.
 22. `int(time())` overflows 32 bits (`time()` is milliseconds since 1970). Take a remainder first, for example `int(time() % 65521)`, or keep the float.
 
@@ -508,7 +508,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | `rgbToPoint(x, y)` | Pixel color `{"r", "g", "b"}` (0 to 255). Headless: always black. |
 | `rgbToHex(rgb)` / `hexToRgb(hex)` | Convert between `{"r", "g", "b"}` and `"#rrggbb"`. |
 | `inTouch()` | `{"x", "y", "touch": 0/1, "button": 0 left/1 middle/2 right, "pos": {{x, y}, ...}}`. When `touch` is 0, `x`/`y` keep the last position. `pos` holds all touch points (multi-touch). |
-| `inKey(key = none)` | No argument: array of held key names (JavaScript `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`). String: 1 if held (case-insensitive). Array: 1 only if all are held; names in the array must be lower case (`{"arrowleft", "a"}`). Browser: the held list is cleared 1 s after the last key press even if the key stays down, so poll and act every frame. |
+| `inKey(key = none)` | No argument: array of held key names (JavaScript `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`). String: 1 if held (case-insensitive). Array: 1 only if all are held; names in the array must be lower case (`{"arrowleft", "a"}`). Browser: the held list is cleared 1 s after the last `keydown` event; since a key that stays down produces repeated `keydown` events through the OS key repeat (typically every 30 to 50 ms after an initial delay of about 250 to 500 ms), ordinary keys held down stay in the list and this is not a problem in practice. Modifier keys (Shift, Ctrl, Alt) do not repeat and therefore read as released after 1 s. Poll every frame and treat the list as "currently pressed". |
 | `playSound(note, start, duration, volume = 1)` | Square wave. `note`: Hz or a name like `"C4"`, `"F#5"`. `start`: delay in ms, `duration`: length in ms. |
 | `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` in sequence; `{"start": ms}` resets the position (chords), `{"volume": v}` sets the volume for following notes. `option`: `{"repeat": 1}`. Calling it again does not stop what is already playing: sounds overlap. |
 | `bgm(notes = none, option = {"repeat": 1})` | Background music track: stops the previous `bgm` (and only that), then plays `notes` in a loop (`{"repeat": 0}` plays once). `bgm()` without arguments stops the music. Sound effects from `playSound`/`playMusic` keep playing. |
