@@ -340,9 +340,26 @@ playMusic(notes, option)
 	* Return Value
 		0
 
+bgm(notes, option)
+	* Description
+		Plays background music.
+		Stops the background music that is playing, if any, then plays notes repeatedly.
+		Sound effects started with playSound() or playMusic() keep playing.
+		Without notes, stops the background music.
+			Ex) bgm({{"C4", 500}, {"E4", 500}, {"G4", 500}})
+			Ex) bgm() // stop the background music
+	* Parameters
+		notes - Array of notes in the same format as playMusic(), optional
+		option - Specify options in an associative array.
+					{"repeat": repeat flag (number)}
+					Default is 1 (repeat). 0 plays the notes once.
+	* Return Value
+		0
+
 stopSound()
 	* Description
 		Stop any sound that is playing.
+		Background music started with bgm() is stopped as well.
 	* Parameters
 		None
 	* Return Value
@@ -392,11 +409,14 @@ log(num)
 	* Return Value
 		logarithm
 
-random()
+random(seed)
 	* Description
 		Returns a random number.
+		When seed is given, switches to a reproducible sequence that starts from that seed and returns its first value.
+		Following random() calls continue the same sequence.
+		Without a seed ever given, a different random number is returned each time.
 	* Parameters
-		None
+		seed - Seed of the sequence (number or string), optional
 	* Return Value
 		Random number greater than or equal to 0 and less than 1
 
@@ -442,6 +462,26 @@ pow(base, exponent)
 		exponent - exponentiated index
 	* Return Value
 		Value of a number multiplied by a power
+
+max(a, b, ...)
+	* Description
+		Returns the largest of the arguments.
+		When an array is given, its elements are compared.
+			Ex) max(1, 5, 3) // 5
+			Ex) max({4, 2, 9}) // 9
+	* Parameters
+		a, b, ... - Numbers or arrays of numbers
+	* Return Value
+		Largest value
+
+min(a, b, ...)
+	* Description
+		Returns the smallest of the arguments.
+		When an array is given, its elements are compared.
+	* Parameters
+		a, b, ... - Numbers or arrays of numbers
+	* Return Value
+		Smallest value
 
 # String API (string.pg0)
 Can be used with the following import statement. 
