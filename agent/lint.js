@@ -16,6 +16,9 @@ const MESSAGES = {
 		},
 		unused_variable: function(name) {
 			return `Variable "${name}" is assigned but never read.`;
+		},
+		keyed_initializer: function(name) {
+			return `In an array initializer a bare variable such as "${name}" becomes a keyed element ("${name}": value), not a plain list element. Write "${name} + 0" (or "" + ${name} for strings) if you want a list.`;
 		}
 	},
 	ja: {
@@ -24,6 +27,9 @@ const MESSAGES = {
 		},
 		unused_variable: function(name) {
 			return `変数 "${name}" は代入されていますが一度も読まれていません。`;
+		},
+		keyed_initializer: function(name) {
+			return `配列の初期化子に裸の変数 "${name}" を書くと、リストの要素ではなくキー付きの要素（"${name}": 値）になります。リストにしたい場合は "${name} + 0"（文字列なら "" + ${name}）と書いてください。`;
 		}
 	}
 };
@@ -315,6 +321,13 @@ function lint(src, lang) {
 			continue;
 		}
 		const prev = tokens[i - 1];
+		// {a, b} inside an initializer: bare variables become keyed elements
+		if (braceKinds[braceKinds.length - 1] === 'init' && prev && prev.t === 'op' && (prev.v === '{' || prev.v === ',')) {
+			const nx = tokens[i + 1];
+			if (nx && nx.t === 'op' && (nx.v === ',' || nx.v === '}')) {
+				warn('keyed_initializer', tk.line, tk.v, msg.keyed_initializer(tk.v));
+			}
+		}
 		if (prev && prev.t === 'op' && prev.v === '&') {
 			continue;
 		}

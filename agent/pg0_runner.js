@@ -175,6 +175,9 @@ function validateScreen(screen, settings) {
 	if (screen.record_functions !== undefined && screen.record_functions !== null && !Array.isArray(screen.record_functions)) {
 		return '"screen.record_functions" must be an array of function names';
 	}
+	if (screen.record_exclude_functions !== undefined && screen.record_exclude_functions !== null && !Array.isArray(screen.record_exclude_functions)) {
+		return '"screen.record_exclude_functions" must be an array of function names';
+	}
 	return null;
 }
 
@@ -187,7 +190,9 @@ function normalizeScreen(screen, settings) {
 		max_calls: optionalInt(screen.max_calls, 1, settings.maxRecordedCalls) || settings.defaultRecordedCalls,
 		record_frames: normalizeRecordFrames(screen.record_frames),
 		record_functions: Array.isArray(screen.record_functions) && screen.record_functions.length ? screen.record_functions.map(String) : null,
-		record_image_frames: !!screen.record_image_frames
+		record_image_frames: !!screen.record_image_frames,
+		record_exclude_functions: Array.isArray(screen.record_exclude_functions) && screen.record_exclude_functions.length ? screen.record_exclude_functions.map(String) : null,
+		frame_steps: !!screen.frame_steps
 	};
 }
 
@@ -218,7 +223,8 @@ function createRunner(settings) {
 			seed: (params.seed === undefined || params.seed === null || params.seed === '') ? null : String(params.seed),
 			storage: normalizeJsonObject(params.storage),
 			globals: normalizeJsonObject(params.globals),
-			globalsAt: params.globals_at === 'first_sleep' ? 'first_sleep' : 'start'
+			globalsAt: params.globals_at === 'first_sleep' ? 'first_sleep' : 'start',
+			profile: !!params.profile
 		};
 
 		return new Promise(function(resolve) {

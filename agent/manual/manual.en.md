@@ -77,6 +77,7 @@ Response: `{"ok": true, "mode": "PG0.5", "error": null, "warnings": [...]}` or `
 
 - `block_local_variable`: a variable first used inside a block is read outside that block, where it is a different variable (see 3.4). Typical fix: create it before the block.
 - `unused_variable`: a variable inside a function or block is assigned but never read.
+- `keyed_initializer`: a bare variable inside an array initializer (`{x, y}`) becomes a keyed element, not a list element (see 3.5). Write `{x + 0, y + 0}` for a list.
 
 #### POST /api/agent/v1/run
 
@@ -94,6 +95,7 @@ Request fields:
 | `seed` | number or string | none | Makes `random()` of `lib/math.pg0` reproducible. Equivalent to calling `random(seed)` once before the program starts (see 4.2). |
 | `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs (see 4.5). |
 | `globals_at` | `"start"` or `"first_sleep"` | `"start"` | When `globals` are applied: before the first statement, or at the first `sleep()` call after the program's own initialization ran (screen programs; see 4.5). |
+| `profile` | boolean | false | Return `profile` with the execution steps per source line and per function, to find out what is expensive. |
 | `storage` | object | `{}` | Initial contents of the key/value store of `lib/io.pg0` (`loadValue`), `{"key": value}`. The final store comes back in the response field `storage`. |
 | `max_frames` | integer | 10000 | Programs using `lib/screen.pg0`: stop with `status: "frame_limit"` after this many `sleep()` calls (frames). See 4.5. |
 | `max_virtual_ms` | integer | none | Programs using `lib/screen.pg0`: stop with `status: "virtual_time_limit"` when the virtual clock reaches this value. |
@@ -165,7 +167,8 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `variables` | Final values of the global variables (`{"name": value}`), converted to JSON. Variables local to blocks and functions are not included. This is the only way to observe values in PG0 mode, which has no `print`. |
 | `screen` | `null` unless `lib/screen.pg0` was imported. Then `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`, see 4.5. |
 | `storage` | `null` unless `lib/io.pg0` was imported. Then the final key/value store `{"key": value}` (initialized from the request field `storage`). |
-| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, `globals_applied` (`"start"`, `"first_sleep"`, `false` when `globals` were given but never applied, `null` without `globals`), and for screen programs `steps_per_frame: {"avg", "max"}` (see the performance note in 4.5). |
+| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, `globals_applied` (`"start"`, `"first_sleep"`, `false` when `globals` were given but never applied, `null` without `globals`), and for screen programs `steps_per_frame: {"avg", "max", "max_frame", "first", "avg_after_first"}` (`max_frame` is the index of the heaviest frame; `first` is frame 0, which usually contains the initialization, and `avg_after_first` excludes it; see the performance note in 4.5). |
+| `profile` | `null` unless `profile: true` was requested. Then `{"top_level_steps", "by_function": {"name": {"calls", "steps"}}, "by_line": {"12": steps, ...}}` for the main program (library code is not counted). `steps` of a function are the steps executed inside its own body, including argument passing but not the functions it calls; `by_line` uses 1-based line numbers. |
 
 Value conversion to JSON: integers and floats become numbers, strings become strings. An array whose elements all have no key becomes a JSON array; an array with at least one keyed element becomes a JSON object, unkeyed elements using their index as the key (for example `{"x": 1, 7}` becomes `{"x": 1, "1": 7}`).
 
@@ -460,6 +463,8 @@ What cannot be verified headless: actual pixels (`rgbToPoint` returns black), ex
 
 **Performance budget per frame.** `stats.steps_per_frame` (`avg` and `max`) counts execution steps between two `sleep()` calls, in the same unit as `stats.steps`. In the browser at speed 0 the interpreter yields to the page every 1000 steps, which costs about 4 ms each, so a frame needs roughly **4.6 ms per 1000 steps plus the `sleep()` time plus drawing**. With `sleep(16)`: about 1000 steps per frame gives around 45 fps, 3000 steps around 30 fps, 10000 steps around 15 fps. Drawing 300 tiles with one `drawRect` each costs a few thousand steps; draw only what changed, or draw static layers once into an image (`createImage`) and blit it with `drawImage`.
 
+With `profile: true` the response tells which lines and functions consume the steps, so measure before optimizing.
+
 **Step cost of common constructs** (measured; one step is roughly one token executed, so a variable, a constant and an operator cost about 1 each):
 
 | Construct | Steps |
@@ -490,6 +495,8 @@ Steps count interpreted tokens, not work: copying a large array into a parameter
 | `screen.record_frames` | `{"from": 300, "to": 320}` records only these frames (inclusive), so a late scene can be captured cheaply. |
 | `screen.record_functions` | `["drawText", "drawImage"]` records only these functions (case-insensitive). |
 | `screen.record_image_frames` | `true` records every frame in which `createImage` is called completely (all calls of that frame, from its start), even outside `record_frames` and regardless of `record_functions`, so that the images can be reproduced when replaying a partial recording. |
+| `screen.record_exclude_functions` | `["drawRect"]` records everything except these functions (case-insensitive), for example to drop the background fill. |
+| `screen.frame_steps` | `true` returns `screen.frame_steps`, an array with the number of execution steps of every frame (first 100000 frames), to locate spikes cheaply. |
 
 Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. The order of the entries does not matter: at any moment the state entry that became due last applies, and taps/holds are evaluated by their own time. Every entry must have exactly one of `ms` or `frame`, numeric `x`/`y` for touch, and `keys`, `tap` or `hold` for keys; otherwise the request is rejected with `400 invalid_request` naming the entry, for example `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`.
 
@@ -504,7 +511,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
  "record_truncated": false}
 ```
 
-`record` is `null` unless requested. A frame is the span between two `sleep()` calls; `frame` is its index and `ms` the virtual clock at its start.
+`record` is `null` unless requested. A frame is the span between two `sleep()` calls; `frame` is its index, `ms` the virtual clock at its start and `steps` the execution steps of that frame (`null` for the unfinished last frame). `calls_by_function` counts every drawing and sound call by function name whether or not recording is on, for example `{"drawLine": 3200, "drawText": 40}`.
 
 **Coordinate system and units**: origin at the top-left of the screen, x to the right, y downwards, in the pixel units of `startScreen(width, height)`. With `"fit": 1` (default) the browser scales the screen to the window, but all coordinates, including `inTouch()`, stay in screen pixels. Angles are **radians**, clockwise from the positive x axis. Colors are CSS color strings: `"#rgb"`, `"#rrggbb"`, `"#rrggbbaa"`, `"rgb(255, 0, 0)"`, `"rgba(255, 0, 0, 0.5)"`, `"hsl(120, 100%, 50%)"` and names like `"red"` all work for drawing (`drawLine`, `drawRect`, `drawCircle`, `drawPolyline`, `drawText`, `startScreen`). Exceptions: `drawFill` and `hexToRgb` accept only `"#rrggbb"` or `"#rgb"`, and `rgbToHex` returns `"#rrggbb"`. The default drawing color is black `"#000"`.
 
@@ -513,8 +520,8 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | Function | Description |
 |---|---|
 | `startScreen(width, height, option = {})` | Opens the screen. `option`: `{"color": background, "fit": 1}`. Call it once at the start. |
-| `sleep(ms)` | Browser: pause. Headless: advance the virtual clock, end the frame. One call per game-loop iteration. |
-| `time()` | Milliseconds since 1970-01-01 UTC as a float. Headless: virtual. |
+| `sleep(ms)` | Browser: pauses at least `ms` milliseconds; the wait is checked with a 1 ms timer that browsers slow down to about 4 ms after a few rounds, so `sleep(16)` typically lasts 17 to 20 ms and frames are not exactly regular. For steady pacing measure with `time()` and sleep the remainder, for example `sleep(max(1, 32 - (time() - t0)))` for 30 fps (`max` from `lib/math.pg0`). Headless: advance the virtual clock, end the frame. One call per game-loop iteration. |
+| `time()` | Milliseconds since 1970-01-01 UTC as a float, 1 ms resolution (browsers may coarsen it slightly). Headless: virtual. |
 | `timeString(ms, format = "")` | Formats a time; `YYYY MM DD hh mm ss` (zero padded) or `M D h m s`. Without `format`: locale date and time. |
 | `startOffscreen()` / `endOffscreen()` | Double buffering: draw to a buffer, then show it. Use around each frame's drawing to avoid flicker. |
 | `startMask(option = {})` / `endMask()` | Mask mode: only drawn areas stay visible; `{"destination": "out"}` makes drawn areas transparent instead. |
@@ -525,7 +532,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | `drawPolyline(points, option = {})` | `points` is `{{x, y}, {x, y}, ...}`. `option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`. |
 | `drawFill(x, y, color)` | Flood fill from (x, y). Headless: recorded only. |
 | `drawScroll(dx, dy)` | Scrolls the screen; content wraps around. |
-| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. Only pixels inside the screen area can be captured: a region reaching outside the screen gets transparent pixels there, and areas never drawn are transparent as well (the background color is not part of the pixels). So an image cannot hold more than one screen of content; for a maze larger than the screen keep the data in an array and draw the visible part each frame, or build several screen-sized tiles. Images live only for the current run: they are not carried over by `globals`/`storage` into a following run (see below). |
+| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. Only pixels inside the screen area can be captured: a region reaching outside the screen gets transparent pixels there, and areas never drawn or cleared with `clearRect` are transparent as well (alpha 0; the background color is not part of the pixels). Transparency is kept: `drawImage` of such an image shows the background and earlier drawing through the transparent parts, so sprites made from a cleared area work as expected. So an image cannot hold more than one screen of content; for a maze larger than the screen keep the data in an array and draw the visible part each frame, or build several screen-sized tiles. Images live only for the current run: they are not carried over by `globals`/`storage` into a following run (see below). |
 | `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` in radians, **clockwise** (positive angles turn the top of the image to the right, because y grows downwards), rotating about the **image center**; `"alpha"` 0.0 to 1.0. Unknown ids are ignored. To rotate about another point P, rotate the image center around P and draw at the new center: with `cx = x + w/2 - px`, `cy = y + h/2 - py`, the new top-left is `(px + cx*cos(a) - cy*sin(a) - w/2, py + cx*sin(a) + cy*cos(a) - h/2)` with the same `angle` `a`. |
 | `drawText(text, x, y, option = {})` | **(x, y) is the top-left of the text**; the baseline is at y + fontsize. `option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`; `fill` 0 draws outlines. Numbers and arrays are converted to text. |
 | `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character, 1 × fontsize otherwise, height = fontsize. |
@@ -539,6 +546,8 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | `stopSound()` | Stops all sounds, `bgm` included. |
 
 Sound notes: all sounds are square waves mixed together, so `playSound` effects play on top of `playMusic`/`bgm`. Browsers block audio until the first tap or key press on the page; sounds started before that may stay silent or start late, so start the music from the title screen after the first input. Sound is muted when the person turned on the mute button of the screen.
+
+**Array arguments and keys.** Library functions read point lists and other array arguments by index, so `drawPolyline({{ax, ay}, {bx, by}})` works even though bare variables produce keyed elements (`{"ax": 1, "ay": 2}` in `screen.record`); the keys are ignored and `+ 0` is not needed for these calls. Two exceptions look at keys: `playMusic`/`bgm` treat an element whose first key is `start` or `volume` as a command (`{{start, len}}` with a variable named `start` is misread), and `rgbToHex` reads `r`/`g`/`b` by key when the first element has a key (so `{red, green, blue}` gives black; use `{red + 0, green + 0, blue + 0}` or keys `r`, `g`, `b`). Option arrays (`{"color": c}`) always need keys.
 
 **Continuing a long play across runs.** One run is limited to `max_timeout_ms` of real time. To test a longer session, run with `max_frames`, read `variables` and `storage` from the response, and pass them back as `globals` and `storage` of the next request. Two things decide whether this works:
 

@@ -261,6 +261,59 @@ async function main() {
 	const recordFrames = screenOpt.record_frames || null;
 	const recordFunctions = screenOpt.record_functions ? screenOpt.record_functions.map(function(f) { return String(f).toLowerCase(); }) : null;
 	const recordImageFrames = !!screenOpt.record_image_frames;
+	const recordExclude = screenOpt.record_exclude_functions ? screenOpt.record_exclude_functions.map(function(f) { return String(f).toLowerCase(); }) : null;
+	const wantFrameSteps = !!screenOpt.frame_steps;
+	const frameStepsList = [];
+	let firstFrameSteps = null;
+	let maxFrameIndex = 0;
+	const callsByFunction = {};
+	// Profiling: steps per source line and per function of the main program.
+	const profile = opt.profile ? {byLine: {}, byFunction: {}, topLevel: 0} : null;
+	let bodyNames = null;
+	const eiFunction = {};
+	const pendingArgSteps = {};
+	function functionOf(ei) {
+		if (eiFunction[ei.id] !== undefined) {
+			return eiFunction[ei.id];
+		}
+		for (let e = ei; e; e = e.parent) {
+			if (bodyNames && bodyNames.has(e.token)) {
+				return bodyNames.get(e.token);
+			}
+		}
+		return null;
+	}
+	function profileStep(ei, mainEi, mainTokens) {
+		const tk = ei.token[ei.index];
+		if (tk && tk.line >= 0) {
+			profile.byLine[tk.line + 1] = (profile.byLine[tk.line + 1] || 0) + 1;
+		}
+		if (ei === mainEi) {
+			profile.topLevel++;
+			return;
+		}
+		let name = eiFunction[ei.id];
+		if (name === undefined) {
+			if (ei.token === mainTokens) {
+				// argument expansion of a call: attributed once the body starts
+				pendingArgSteps[ei.id] = (pendingArgSteps[ei.id] || 0) + 1;
+				return;
+			}
+			name = functionOf(ei);
+			eiFunction[ei.id] = name;
+			if (name !== null && bodyNames.has(ei.token)) {
+				const f = profile.byFunction[name] || (profile.byFunction[name] = {calls: 0, steps: 0});
+				f.calls++;
+				f.steps += pendingArgSteps[ei.id] || 0;
+				delete pendingArgSteps[ei.id];
+			}
+		}
+		if (name === null) {
+			profile.topLevel++;
+		} else {
+			profile.byFunction[name].steps++;
+		}
+	}
 	let frameSteps = 0;
 	let maxFrameSteps = 0;
 	const storage = {};
@@ -359,15 +412,26 @@ async function main() {
 			if (opt.globalsAt === 'first_sleep' && screen.frames === 0) {
 				applyGlobals('first_sleep');
 			}
+			// per-frame step bookkeeping for the frame that ends with this sleep()
+			if (frameSteps > maxFrameSteps) {
+				maxFrameSteps = frameSteps;
+				maxFrameIndex = screen.frames;
+			}
+			if (firstFrameSteps === null) {
+				firstFrameSteps = frameSteps;
+			}
+			if (wantFrameSteps && frameStepsList.length < 100000) {
+				frameStepsList.push(frameSteps);
+			}
+			if (screen.currentFrame) {
+				screen.currentFrame.steps = frameSteps;
+			}
 			screen.virtualMs += ms;
 			screen.frames++;
 			frameStart[screen.frames] = screen.virtualMs;
 			screen.currentFrame = null;
 			screen.pendingCalls = [];
 			screen.frameForced = false;
-			if (frameSteps > maxFrameSteps) {
-				maxFrameSteps = frameSteps;
-			}
 			frameSteps = 0;
 			activatePulses(touchTimeline);
 			activatePulses(keyTimeline);
@@ -438,12 +502,13 @@ async function main() {
 		},
 		record: function(name, args) {
 			screen.calls++;
+			callsByFunction[name] = (callsByFunction[name] || 0) + 1;
 			if (!recordCalls) {
 				return;
 			}
 			const call = {fn: name, args: args};
 			const inRange = !recordFrames || (screen.frames >= recordFrames.from && screen.frames <= recordFrames.to);
-			const fnOk = !recordFunctions || recordFunctions.indexOf(name.toLowerCase()) >= 0;
+			const fnOk = (!recordFunctions || recordFunctions.indexOf(name.toLowerCase()) >= 0) && (!recordExclude || recordExclude.indexOf(name.toLowerCase()) < 0);
 			// A frame that creates an image is recorded completely (with the calls before createImage)
 			// so that the image can be reproduced even outside record_frames / record_functions.
 			if (recordImageFrames && name.toLowerCase() === 'createimage' && !screen.frameForced) {
@@ -558,6 +623,18 @@ async function main() {
 			import: importFile,
 			success: async function(token) {
 				const se = new ScriptExec(scis, sci);
+				if (profile && !imported) {
+					bodyNames = new Map();
+					let pendingName = null;
+					token.forEach(function(t) {
+						if (t.type === 73) {
+							pendingName = t.buf;
+						} else if (t.type === 75 && t.target && pendingName !== null) {
+							bodyNames.set(t.target, pendingName);
+							pendingName = null;
+						}
+					});
+				}
 				const initialVars = {};
 				if (!imported && opt.globals && opt.globalsAt !== 'first_sleep') {
 					Object.keys(opt.globals).forEach(function(name) {
@@ -569,6 +646,9 @@ async function main() {
 					callback: async function(ei) {
 						steps++;
 						frameSteps++;
+						if (profile && !imported) {
+							profileStep(ei, sci.ei, token);
+						}
 						if (!imported) {
 							const tk = ei.token[ei.index];
 							if (tk && tk.line >= 0) {
@@ -699,7 +779,9 @@ async function main() {
 			frames: screen.frames,
 			virtual_ms: screen.virtualMs,
 			calls: screen.calls,
+			calls_by_function: callsByFunction,
 			images: screen.images.length,
+			frame_steps: wantFrameSteps ? frameStepsList : null,
 			record: recordCalls ? screen.record : null,
 			record_truncated: screen.recordTruncated
 		} : null,
@@ -709,8 +791,19 @@ async function main() {
 			elapsed_ms: Date.now() - startTime,
 			input_lines_used: inputUsed,
 			globals_applied: opt.globals ? (globalsApplied || false) : null,
-			steps_per_frame: screen.frames > 0 ? {avg: Math.round(steps / screen.frames), max: Math.max(maxFrameSteps, frameSteps)} : null
-		}
+			steps_per_frame: screen.frames > 0 ? {
+				avg: Math.round(steps / screen.frames),
+				max: Math.max(maxFrameSteps, frameSteps),
+				max_frame: frameSteps > maxFrameSteps ? screen.frames : maxFrameIndex,
+				first: firstFrameSteps,
+				avg_after_first: screen.frames > 1 ? Math.round((steps - firstFrameSteps) / (screen.frames - 1)) : null
+			} : null
+		},
+		profile: profile ? {
+			top_level_steps: profile.topLevel,
+			by_function: profile.byFunction,
+			by_line: profile.byLine
+		} : null
 	});
 
 	function storageToJson() {

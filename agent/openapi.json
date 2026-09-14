@@ -135,6 +135,11 @@
             ],
             "default": "start",
             "description": "When to apply globals: before the first statement, or at the first sleep() call after the program's own initialization (screen programs), which avoids being overwritten by initial assignments and var declarations."
+          },
+          "profile": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return execution steps per source line and per function (response field profile)."
           }
         }
       },
@@ -241,9 +246,20 @@
                   },
                   "max": {
                     "type": "integer"
+                  },
+                  "max_frame": {
+                    "type": "integer"
+                  },
+                  "first": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "avg_after_first": {
+                    "type": "integer",
+                    "nullable": true
                   }
                 },
-                "description": "Screen programs: execution steps between two sleep() calls. Browser cost is about 4.6 ms per 1000 steps plus the sleep time."
+                "description": "Screen programs: execution steps between two sleep() calls. first = frame 0 (usually initialization), avg_after_first excludes it."
               },
               "globals_applied": {
                 "oneOf": [
@@ -328,12 +344,32 @@
                           }
                         }
                       }
+                    },
+                    "steps": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Execution steps of the frame."
                     }
                   }
                 }
               },
               "record_truncated": {
                 "type": "boolean"
+              },
+              "calls_by_function": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "Number of drawing/sound calls per function name."
+              },
+              "frame_steps": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "type": "integer"
+                },
+                "description": "Steps of every frame when screen.frame_steps was requested."
               }
             }
           },
@@ -342,6 +378,37 @@
             "nullable": true,
             "additionalProperties": true,
             "description": "Final key/value store of lib/io.pg0; null unless the library was imported."
+          },
+          "profile": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "top_level_steps": {
+                "type": "integer"
+              },
+              "by_function": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "calls": {
+                      "type": "integer"
+                    },
+                    "steps": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "by_line": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "1-based line number -> steps"
+              }
+            },
+            "description": "Present when profile was true."
           }
         }
       },
@@ -410,7 +477,8 @@
                   "type": "string",
                   "enum": [
                     "block_local_variable",
-                    "unused_variable"
+                    "unused_variable",
+                    "keyed_initializer"
                   ]
                 },
                 "line": {
@@ -719,6 +787,11 @@
             ],
             "default": "start",
             "description": "When to apply globals: before the first statement, or at the first sleep() call after the program's own initialization (screen programs), which avoids being overwritten by initial assignments and var declarations."
+          },
+          "profile": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return execution steps per source line and per function (response field profile)."
           }
         }
       },
@@ -861,6 +934,18 @@
             "type": "boolean",
             "default": false,
             "description": "Record every frame that calls createImage completely, even outside record_frames and regardless of record_functions, so images can be reproduced from a partial recording."
+          },
+          "record_exclude_functions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Record everything except these functions (case-insensitive)."
+          },
+          "frame_steps": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return screen.frame_steps: execution steps of every frame (first 100000)."
           }
         }
       }

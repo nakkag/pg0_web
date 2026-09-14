@@ -77,6 +77,7 @@ Content-Type: application/json
 
 - `block_local_variable`: ブロック内で初めて使った変数をそのブロックの外で読んでいる。外では別の変数になります（3.4 参照）。ブロックの前に作るのが典型的な直し方です。
 - `unused_variable`: 関数やブロック内の変数に代入しているが一度も読んでいない。
+- `keyed_initializer`: 配列の初期化子に裸の変数（`{x, y}`）を書くと、リストの要素ではなくキー付きの要素になる（3.5 参照）。リストにするなら `{x + 0, y + 0}` と書く。
 
 #### POST /api/agent/v1/run
 
@@ -94,6 +95,7 @@ Content-Type: application/json
 | `seed` | number または string | なし | `lib/math.pg0` の `random()` を再現可能にします。プログラム開始前に `random(seed)` を 1 回呼ぶのと同じです（4.2 参照）。 |
 | `globals` | object | `{}` | グローバル変数の初期値 `{"名前": 値}`。JSON の数値・文字列・配列・オブジェクトはそれぞれ整数/実数・文字列・配列・キー付き配列になります。前回実行の `variables` を渡せば、長いプレイを複数回の実行に分けて続けられます（4.5 参照）。 |
 | `globals_at` | `"start"` または `"first_sleep"` | `"start"` | `globals` を適用する時点。最初の文より前か、プログラム自身の初期化が終わった最初の `sleep()` の時点か（スクリーンのプログラム向け。4.5 参照）。 |
+| `profile` | boolean | false | ソースの行別・関数別の実行ステップ数を `profile` で返します。どこが重いかを調べるときに使います。 |
 | `storage` | object | `{}` | `lib/io.pg0` のキー/値ストア（`loadValue`）の初期内容 `{"キー": 値}`。最終的なストアはレスポンスの `storage` に返ります。 |
 | `max_frames` | integer | 10000 | `lib/screen.pg0` を使うプログラム: `sleep()` の呼び出し（フレーム）がこの回数に達したら `status: "frame_limit"` で停止。4.5 参照。 |
 | `max_virtual_ms` | integer | なし | `lib/screen.pg0` を使うプログラム: 仮想時計がこの値に達したら `status: "virtual_time_limit"` で停止。 |
@@ -165,7 +167,8 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `variables` | グローバル変数の最終値（`{"名前": 値}`）を JSON に変換したもの。ブロックや関数のローカル変数は含みません。`print` のない PG0 モードでは値を観測する唯一の手段です。 |
 | `screen` | `lib/screen.pg0` を import していなければ `null`。import していれば `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`。4.5 参照。 |
 | `storage` | `lib/io.pg0` を import していなければ `null`。import していれば最終的なキー/値ストア `{"キー": 値}`（リクエストの `storage` で初期化）。 |
-| `stats` | `steps`（実行ステップ数。おおむね文や演算子ごとに 1）、`elapsed_ms`、`input_lines_used`、`globals_applied`（`"start"`、`"first_sleep"`、`globals` を渡したのに適用されなかったときは `false`、`globals` 無しなら `null`）、スクリーンのプログラムでは `steps_per_frame: {"avg", "max"}`（4.5 の性能の目安を参照）。 |
+| `stats` | `steps`（実行ステップ数。おおむね文や演算子ごとに 1）、`elapsed_ms`、`input_lines_used`、`globals_applied`（`"start"`、`"first_sleep"`、`globals` を渡したのに適用されなかったときは `false`、`globals` 無しなら `null`）、スクリーンのプログラムでは `steps_per_frame: {"avg", "max", "max_frame", "first", "avg_after_first"}`（`max_frame` は最も重いフレームの番号、`first` は初期化を含むことが多いフレーム 0 のステップ数、`avg_after_first` はそれを除いた平均。4.5 の性能の目安を参照）。 |
+| `profile` | `profile: true` を指定しない限り `null`。指定すると主プログラムについて `{"top_level_steps", "by_function": {"名前": {"calls", "steps"}}, "by_line": {"12": ステップ数, ...}}` を返します（ライブラリ内は数えません）。関数の `steps` はその関数の本体で実行したステップ数で、引数の受け渡しを含み、呼び出した先の関数は含みません。`by_line` の行番号は 1 始まりです。 |
 
 JSON への変換: 整数・実数は数値、文字列は文字列になります。要素にキーが一つも無い配列は JSON 配列、キー付き要素が一つでもある配列は JSON オブジェクトになり、キーの無い要素はインデックスがキーになります（例: `{"x": 1, 7}` は `{"x": 1, "1": 7}`）。
 
@@ -460,6 +463,8 @@ fill(list, 3)       // list は {0, 1, 2}
 
 **1 フレームあたりの性能の目安。** `stats.steps_per_frame`（`avg` と `max`）は `sleep()` から次の `sleep()` までの実行ステップ数で、`stats.steps` と同じ単位です。ブラウザでは実行速度「待ち無し」でも 1000 ステップごとにページへ制御を戻し、それに約 4ms かかるため、1 フレームには**1000 ステップあたり約 4.6ms + `sleep()` の時間 + 描画時間**が必要です。`sleep(16)` の場合、1 フレーム 1000 ステップで約 45fps、3000 ステップで約 30fps、10000 ステップで約 15fps です。300 枚のタイルを毎フレーム `drawRect` で描くと数千ステップになります。変化した部分だけ描くか、静的なレイヤーは一度 `createImage` で画像にして `drawImage` で貼ってください。
 
+`profile: true` を付けるとどの行・どの関数がステップを消費しているかが分かるので、最適化の前に測ってください。
+
 **よく使う構文のステップ数**（実測。1 ステップはおおむね実行したトークン 1 つで、変数・定数・演算子がそれぞれ約 1）:
 
 | 構文 | ステップ数 |
@@ -490,6 +495,8 @@ fill(list, 3)       // list は {0, 1, 2}
 | `screen.record_frames` | `{"from": 300, "to": 320}` でそのフレーム範囲（両端含む）だけを記録します。後半の場面を安く取れます。 |
 | `screen.record_functions` | `["drawText", "drawImage"]` でその関数だけを記録します（大文字小文字を区別しない）。 |
 | `screen.record_image_frames` | `true` にすると、`createImage` を呼んだフレームは `record_frames` の範囲外でも、また `record_functions` に関係なく、そのフレームの先頭からの全呼び出しを記録します。部分的な記録を再生するときに画像を再現できます。 |
+| `screen.record_exclude_functions` | `["drawRect"]` でその関数以外を記録します（大文字小文字を区別しない）。背景の塗りつぶしだけ省くといった使い方ができます。 |
+| `screen.frame_steps` | `true` にすると各フレームの実行ステップ数の配列（先頭 100000 フレーム）を `screen.frame_steps` で返します。スパイクの位置を安く特定できます。 |
 
 タッチの要素も簡易表記 `{"ms": 500, "tap": {"x": 330, "y": 300}}`（1 フレームだけタッチ。`"frames": n` で複数フレーム）と `"ms"` の代わりの `"frame"` を使えます。要素の順序は問いません。各時点では最後に到達した状態要素が有効になり、tap/hold はそれぞれの時刻で評価されます。各要素は `ms` か `frame` のどちらか一方を必ず持ち、タッチは数値の `x`/`y`、キーは `keys`、`tap`、`hold` のいずれかが必要です。満たさない場合は `400 invalid_request` で該当要素を示して拒否します（例: `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`）。
 
@@ -504,7 +511,7 @@ fill(list, 3)       // list は {0, 1, 2}
  "record_truncated": false}
 ```
 
-`record` は要求しない限り `null` です。フレームは `sleep()` から次の `sleep()` までの区間で、`frame` はその番号、`ms` は区間開始時の仮想時計です。
+`record` は要求しない限り `null` です。フレームは `sleep()` から次の `sleep()` までの区間で、`frame` はその番号、`ms` は区間開始時の仮想時計、`steps` はそのフレームの実行ステップ数（終わっていない最後のフレームでは `null`）です。`calls_by_function` は記録の有無に関わらず、描画・サウンドの呼び出し回数を関数名ごとに数えます（例: `{"drawLine": 3200, "drawText": 40}`）。
 
 **座標系と単位**: 原点は画面の左上、x は右、y は下向きで、単位は `startScreen(width, height)` のピクセルです。`"fit": 1`（既定）ではブラウザが画面をウィンドウに合わせて拡大縮小しますが、`inTouch()` を含むすべての座標は画面ピクセルのままです。角度は**ラジアン**で、x 軸の正方向から時計回りです。色は CSS の色文字列で、`"#rgb"`、`"#rrggbb"`、`"#rrggbbaa"`、`"rgb(255, 0, 0)"`、`"rgba(255, 0, 0, 0.5)"`、`"hsl(120, 100%, 50%)"`、`"red"` のような色名がすべて描画（`drawLine`、`drawRect`、`drawCircle`、`drawPolyline`、`drawText`、`startScreen`）で使えます。例外は `drawFill` と `hexToRgb` で、`"#rrggbb"` か `"#rgb"` だけを受け付けます。`rgbToHex` は `"#rrggbb"` を返します。描画色の既定は黒 `"#000"` です。
 
@@ -513,8 +520,8 @@ fill(list, 3)       // list は {0, 1, 2}
 | 関数 | 説明 |
 |---|---|
 | `startScreen(width, height, option = {})` | 画面を開く。`option`: `{"color": 背景色, "fit": 1}`。最初に 1 回呼ぶ。 |
-| `sleep(ms)` | ブラウザ: 待つ。ヘッドレス: 仮想時計を進めてフレームを終える。ゲームループ 1 周に 1 回。 |
-| `time()` | 1970-01-01 UTC からのミリ秒（実数）。ヘッドレスでは仮想。 |
+| `sleep(ms)` | ブラウザ: 少なくとも `ms` ミリ秒待つ。待ちは 1ms のタイマーで確認しているが、ブラウザは数回続くと約 4ms に間引くため、`sleep(16)` は実際には 17～20ms 程度になり、フレーム間隔は正確には揃わない。安定させるには `time()` で計って残りだけ待つ（例: 30fps なら `sleep(max(1, 32 - (time() - t0)))`。`max` は `lib/math.pg0`）。ヘッドレス: 仮想時計を進めてフレームを終える。ゲームループ 1 周に 1 回。 |
+| `time()` | 1970-01-01 UTC からのミリ秒（実数）。分解能は 1ms（ブラウザによっては少し粗くなる）。ヘッドレスでは仮想。 |
 | `timeString(ms, format = "")` | 時刻の書式化。`YYYY MM DD hh mm ss`（ゼロ埋め）または `M D h m s`。`format` 省略時はロケールの日時。 |
 | `startOffscreen()` / `endOffscreen()` | ダブルバッファ。バッファに描いてから表示する。ちらつき防止のため各フレームの描画を挟む。 |
 | `startMask(option = {})` / `endMask()` | マスクモード。描いた領域だけが残る。`{"destination": "out"}` で描いた領域が透明になる。 |
@@ -525,7 +532,7 @@ fill(list, 3)       // list は {0, 1, 2}
 | `drawPolyline(points, option = {})` | `points` は `{{x, y}, {x, y}, ...}`。`option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`。 |
 | `drawFill(x, y, color)` | (x, y) からの塗りつぶし。ヘッドレスでは記録のみ。 |
 | `drawScroll(dx, dy)` | 画面をスクロール。はみ出た部分は反対側に出る。 |
-| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。取り込めるのは画面の範囲内のピクセルだけで、画面の外にはみ出した部分は透明になり、一度も描いていない部分も透明（背景色はピクセルに含まれない）。したがって 1 枚の画像に画面 1 面分より多くの内容は入らない。画面より大きい迷路は配列にデータを持って毎フレーム見える部分だけを描くか、画面サイズのタイルを複数枚作る。画像は現在の実行の間だけ存在し、`globals`/`storage` による継続実行には引き継がれない（下記参照）。 |
+| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。取り込めるのは画面の範囲内のピクセルだけで、画面の外にはみ出した部分は透明になり、一度も描いていない部分や `clearRect` で消した部分も透明（アルファ 0。背景色はピクセルに含まれない）。透明は保持されるので、`drawImage` で描くと透明部分から背景や先に描いたものが見え、消した領域に描いて作ったスプライトは期待どおりに重なる。したがって 1 枚の画像に画面 1 面分より多くの内容は入らない。画面より大きい迷路は配列にデータを持って毎フレーム見える部分だけを描くか、画面サイズのタイルを複数枚作る。画像は現在の実行の間だけ存在し、`globals`/`storage` による継続実行には引き継がれない（下記参照）。 |
 | `drawImage(id, x, y, option = {})` | 画像を左上 (x, y) に描く。`option`: `{"width", "height"}`（両方か無指定）、`"angle"` はラジアンで**時計回り**（y が下向きなので、正の角度で画像の上辺が右に傾く）、回転の基準は**画像の中心**。`"alpha"` 0.0～1.0。未知の ID は無視。別の点 P を中心に回すには、画像の中心を P の周りで回してから新しい中心に描く: `cx = x + w/2 - px`、`cy = y + h/2 - py` として、新しい左上は `(px + cx*cos(a) - cy*sin(a) - w/2, py + cx*sin(a) + cy*cos(a) - h/2)`、`angle` は同じ `a`。 |
 | `drawText(text, x, y, option = {})` | **(x, y) は文字の左上**。ベースラインは y + fontsize。`option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`。`fill` 0 で中抜き。数値や配列は文字列に変換される。 |
 | `measureText(text, option = {})` | `{"width": w, "height": h}`（ピクセル）。`option`: `{"fontsize", "fontface", "fontstyle"}`。ヘッドレスでは ASCII 1 文字 0.55 × fontsize、それ以外 1 × fontsize、高さ = fontsize の概算。 |
@@ -539,6 +546,8 @@ fill(list, 3)       // list は {0, 1, 2}
 | `stopSound()` | `bgm` を含む全てのサウンドを停止。 |
 
 サウンドの補足: すべて矩形波でミックスされるので、`playSound` の効果音は `playMusic`/`bgm` に重ねて鳴ります。ブラウザはページで最初のタップまたはキー入力があるまで音声をブロックするため、それより前に開始した音は鳴らないか遅れて始まることがあります。曲はタイトル画面で最初の入力があった後に開始してください。画面のミュートボタンが押されている間は鳴りません。
+
+**配列の引数とキー。** ライブラリ関数は点列などの配列引数をインデックスで読みます。裸の変数からできた要素はキー付き（`screen.record` では `{"ax": 1, "ay": 2}`）になりますが、`drawPolyline({{ax, ay}, {bx, by}})` はそのまま動き、キーは無視されるので、これらの呼び出しに `+ 0` は不要です。例外はキーを見る 2 つです。`playMusic`/`bgm` は先頭のキーが `start` または `volume` の要素を命令として扱うため、`start` という名前の変数で `{{start, len}}` と書くと誤解釈されます。`rgbToHex` は先頭要素にキーがあると `r`/`g`/`b` のキーで読むため、`{red, green, blue}` は黒になります（`{red + 0, green + 0, blue + 0}` かキー `r`, `g`, `b` を使う）。オプション配列（`{"color": c}`）は常にキーが必要です。
 
 **長いプレイを複数回の実行に分ける。** 1 回の実行は実時間で `max_timeout_ms` までです。長いセッションを試すには、`max_frames` で実行してレスポンスの `variables` と `storage` を読み、次のリクエストの `globals` と `storage` に渡します。うまく続くかどうかは次の 2 点で決まります。
 

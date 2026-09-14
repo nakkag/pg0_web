@@ -326,6 +326,7 @@ module.exports = function(app, deps) {
 			storage: body.storage,
 			globals: body.globals,
 			globals_at: body.globals_at,
+			profile: body.profile,
 			variables: body.variables
 		});
 	});
@@ -606,6 +607,7 @@ module.exports = function(app, deps) {
 				storage: body.storage,
 				globals: body.globals,
 				globals_at: body.globals_at,
+				profile: body.profile,
 				variables: body.variables
 			});
 		} catch (error) {
