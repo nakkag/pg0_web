@@ -104,7 +104,7 @@ Content-Type: application/json
 | `code` | string、必須 | プログラムのソース。 |
 | `password` | string、必須 | 更新・削除に必要。エディタと同様、前後の空白を除き大文字小文字を区別せずに比較されます。 |
 | `author` | string、100 文字まで | デフォルト `"AI agent"`。 |
-| `memo` | string | エディタに表示される説明。 |
+| `memo` | string | **変更履歴のメモ。** エディタと、バージョンごとの変更履歴に表示されます。作成時はプログラムの説明を、更新時は毎回その変更内容を書きます（下の「変更履歴」参照）。 |
 | `private` | 0 または 1 | 1 で一覧に出なくなります（`cid` では取得可能。名前の一意性も不要）。 |
 | `mode` | `"PG0.5"` または `"PG0"` | エディタと `/scripts/{cid}/run` が使うモード。 |
 | `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。 |
@@ -112,7 +112,7 @@ Content-Type: application/json
 
 レスポンス `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。
 
-`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
+`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
 `DELETE /api/agent/v1/scripts/{cid}`: ボディ `{"password": "..."}`。レスポンス `{"deleted": true, "cid": "..."}`。
 
@@ -120,7 +120,25 @@ Content-Type: application/json
 
 `POST /api/agent/v1/scripts/{cid}/run`: `/run` から `code` を除いたボディ。`mode` は保存時のモードがデフォルトです。
 
-`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [memo 付きの要約...]}`、新しい順。`GET /api/agent/v1/scripts/{cid}/history/{updateTime}` でそのバージョンのコードを取得できます。
+`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [memo と current 付きの要約...]}`。現在のバージョンが先頭（`"current": 1`）で、その後に過去のバージョンが新しい順に並びます。`GET /api/agent/v1/scripts/{cid}/history/{updateTime}` でそのバージョンのコードを取得できます。
+
+**変更履歴。** 保存のたびにバージョンが作られ、各バージョンは自分の `memo` を保持します。Web エディタはこの一覧を「変更履歴」として現在のバージョンを先頭に表示するので、`memo` がスクリプトの変更履歴になります。コミットメッセージのように書いてください。
+
+- `POST /api/agent/v1/scripts` では、プログラムの内容（例: `初版: ブロック崩し、3 ステージ`）
+- `PUT /api/agent/v1/scripts/{cid}` では毎回、変更内容と理由（例: `パドルが右端で画面外に出る不具合を修正。ステージごとにボール速度 +10%`）
+
+1～2 行にまとめます。更新のたびに直前のバージョンが履歴に保存されます（履歴の最新と全く同じ内容の場合は重複して保存されません）。
+
+```http
+PUT /api/agent/v1/scripts/2f1c...
+{"password": "s3cret", "code": "...", "memo": "パドルが右端で画面外に出る不具合を修正"}
+
+GET /api/agent/v1/scripts/2f1c.../history
+{"history": [
+  {"cid": "2f1c...", "updateTime": 1789380000000, "memo": "パドルが右端で画面外に出る不具合を修正", "current": 1, ...},
+  {"cid": "2f1c...", "updateTime": 1789379000000, "memo": "初版: ブロック崩し、3 ステージ", "current": 0, ...}
+]}
+```
 
 ### 2.3 実行結果
 

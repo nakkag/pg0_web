@@ -386,6 +386,18 @@
               500
             ],
             "description": "Execution speed used by the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. Use 0 for programs that draw with lib/screen.pg0."
+          },
+          "memo": {
+            "type": "string",
+            "description": "Revision note of this version (present in history listings and details)."
+          },
+          "current": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "History listings only: 1 for the current version, 0 for previous versions."
           }
         }
       },
@@ -434,7 +446,7 @@
           },
           "memo": {
             "type": "string",
-            "description": "Free text description."
+            "description": "Revision note shown in the editor and in the revision history. Describe the program on creation and what changed on every update."
           },
           "private": {
             "type": "integer",
@@ -489,7 +501,8 @@
             "type": "string"
           },
           "memo": {
-            "type": "string"
+            "type": "string",
+            "description": "Revision note for this version: write what changed. Always set it on an update; when omitted the previous memo is carried over, which makes the revision history uninformative."
           },
           "private": {
             "type": "integer",
@@ -953,7 +966,7 @@
         }
       },
       "put": {
-        "summary": "Update a stored script (only the fields given are changed)",
+        "summary": "Update a stored script (only the fields given are changed); the previous version is kept in the history, so set \"memo\" to what changed",
         "requestBody": {
           "required": true,
           "content": {
@@ -1071,7 +1084,7 @@
         }
       ],
       "get": {
-        "summary": "List previous versions of a stored script (newest first)",
+        "summary": "Revision history: the current version first (current = 1), then previous versions, newest first, each with its memo",
         "parameters": [
           {
             "name": "skip",
@@ -1090,7 +1103,28 @@
         ],
         "responses": {
           "200": {
-            "description": "History list"
+            "description": "History list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScriptSummary"
+                      }
+                    },
+                    "skip": {
+                      "type": "integer"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

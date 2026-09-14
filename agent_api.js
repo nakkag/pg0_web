@@ -165,12 +165,12 @@ module.exports = function(app, deps) {
 				{method: 'POST', path: '/check', description: 'Syntax check a program without running it'},
 				{method: 'POST', path: '/run', description: 'Run a program and get its output, result and variables'},
 				{method: 'GET', path: '/scripts', description: 'List / search stored scripts'},
-				{method: 'POST', path: '/scripts', description: 'Store a new script (opens in the web editor)'},
+				{method: 'POST', path: '/scripts', description: 'Store a new script (opens in the web editor); "memo" is the revision note'},
 				{method: 'GET', path: '/scripts/{cid}', description: 'Get a stored script including its code'},
-				{method: 'PUT', path: '/scripts/{cid}', description: 'Update a stored script (password required)'},
+				{method: 'PUT', path: '/scripts/{cid}', description: 'Update a stored script (password required); write what changed in "memo"'},
 				{method: 'DELETE', path: '/scripts/{cid}', description: 'Delete a stored script (password required)'},
 				{method: 'POST', path: '/scripts/{cid}/run', description: 'Run a stored script'},
-				{method: 'GET', path: '/scripts/{cid}/history', description: 'List previous versions of a stored script'},
+				{method: 'GET', path: '/scripts/{cid}/history', description: 'Revision history: current and previous versions with their memo (change note)'},
 				{method: 'GET', path: '/scripts/{cid}/history/{time}', description: 'Get a previous version of a stored script'}
 			],
 			limits: {
@@ -565,11 +565,25 @@ module.exports = function(app, deps) {
 		try {
 			const db = await getDB();
 			const ret = [];
+			// Like the editor's revision history: the current version first, then older versions.
+			if (skip === 0) {
+				const cur = await db.collection('script').findOne({cid: req.params.cid});
+				if (cur) {
+					const s = summarizeScript(req, cur);
+					s.memo = cur.memo || '';
+					s.current = 1;
+					ret.push(s);
+				}
+			}
 			const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
 			for await (const doc of cursor) {
 				const s = summarizeScript(req, doc);
 				s.memo = doc.memo || '';
+				s.current = 0;
 				ret.push(s);
+			}
+			if (ret.length === 0) {
+				return apiError(res, 404, 'not_found', 'Script not found');
 			}
 			res.json({history: ret, skip: skip, count: count});
 		} catch (error) {

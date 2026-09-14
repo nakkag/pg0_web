@@ -104,7 +104,7 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `code` | string, required | Program source. |
 | `password` | string, required | Needed for update/delete. Compared case-insensitively after trimming, exactly as in the editor. |
 | `author` | string, max 100 | Default `"AI agent"`. |
-| `memo` | string | Description shown in the editor. |
+| `memo` | string | **Revision note.** Shown in the editor and, per version, in the revision history. On creation describe the program; on every update describe what changed (see "Revision history" below). |
 | `private` | 0 or 1 | 1 hides the script from lists (still reachable by `cid`, and the name need not be unique). |
 | `mode` | `"PG0.5"` or `"PG0"` | Mode used by the editor and by `/scripts/{cid}/run`. |
 | `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. |
@@ -112,7 +112,7 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 
 Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC.
 
-`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed}`; only given fields change. The previous version is kept in the history. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
+`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
 `DELETE /api/agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
 
@@ -120,7 +120,25 @@ Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTi
 
 `POST /api/agent/v1/scripts/{cid}/run`: same body as `/run` without `code`; `mode` defaults to the stored mode.
 
-`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [summary with memo...]}`, newest first. `GET /api/agent/v1/scripts/{cid}/history/{updateTime}` returns that version with its code.
+`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [summary with memo and current...]}`; the current version first (`"current": 1`), then previous versions, newest first. `GET /api/agent/v1/scripts/{cid}/history/{updateTime}` returns that version with its code.
+
+**Revision history.** Every save creates a version, and each version keeps its own `memo`. The web editor shows this list under "Revision history" (変更履歴), with the current version on top, so `memo` works as the change log of the script. Write it like a commit message:
+
+- on `POST /api/agent/v1/scripts`: what the program does (for example `Initial version: breakout game, 3 levels`);
+- on every `PUT /api/agent/v1/scripts/{cid}`: what changed and why (for example `Fixed paddle leaving the screen at the right edge; ball speed +10% per level`).
+
+Keep it to one or two lines. Each update stores the previous version in the history (a version identical to the newest history entry is not stored twice).
+
+```http
+PUT /api/agent/v1/scripts/2f1c...
+{"password": "s3cret", "code": "...", "memo": "Fixed paddle leaving the screen at the right edge"}
+
+GET /api/agent/v1/scripts/2f1c.../history
+{"history": [
+  {"cid": "2f1c...", "updateTime": 1789380000000, "memo": "Fixed paddle leaving the screen at the right edge", "current": 1, ...},
+  {"cid": "2f1c...", "updateTime": 1789379000000, "memo": "Initial version: breakout game, 3 levels", "current": 0, ...}
+]}
+```
 
 ### 2.3 Run result
 
