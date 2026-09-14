@@ -1,8 +1,10 @@
 "use strict";
-// Runs PG0 / PG0.5 programs in isolated worker threads with time, step and memory limits.
+// Runs PG0 / PG0.5 programs in isolated child processes with time, step and memory limits.
+// (Worker threads were used before, but their resourceLimits are not enforced on some Node
+// versions; --max-old-space-size of a child process is.)
 
 const path = require('path');
-const {Worker} = require('worker_threads');
+const {fork} = require('child_process');
 
 const WORKER_FILE = path.join(__dirname, 'pg0_worker.js');
 
@@ -248,9 +250,17 @@ function createRunner(settings) {
 			active++;
 			let finished = false;
 			let flushed = '';
-			const worker = new Worker(WORKER_FILE, {
-				workerData: opt,
-				resourceLimits: {maxOldGenerationSizeMb: settings.workerMemoryMb}
+			const memoryMb = settings.workerMemoryMb || 256;
+			opt.memoryLimitBytes = Math.floor(memoryMb * 0.85 * 1048576);
+			const worker = fork(WORKER_FILE, [], {
+				execArgv: ['--max-old-space-size=' + memoryMb, '--expose-gc'],
+				stdio: ['ignore', 'ignore', 'pipe', 'ipc']
+			});
+			let stderr = '';
+			worker.stderr.on('data', function(chunk) {
+				if (stderr.length < 4000) {
+					stderr += chunk;
+				}
 			});
 
 			function finish(result) {
@@ -260,7 +270,9 @@ function createRunner(settings) {
 				finished = true;
 				active--;
 				clearTimeout(timer);
-				worker.terminate().catch(function() {});
+				try {
+					worker.kill('SIGKILL');
+				} catch (e) {}
 				result.mode = opt.mode;
 				resolve(result);
 			}
@@ -286,6 +298,11 @@ function createRunner(settings) {
 				abnormal('timeout', 'Execution timed out (hard limit)');
 			}, opt.timeoutMs + 1000);
 
+			worker.send(opt, function(err) {
+				if (err) {
+					abnormal('error', 'Could not start the runner process: ' + err.message);
+				}
+			});
 			worker.on('message', function(msg) {
 				if (msg.type === 'output') {
 					flushed += msg.text;
@@ -295,15 +312,16 @@ function createRunner(settings) {
 				}
 			});
 			worker.on('error', function(err) {
-				if (err && err.code === 'ERR_WORKER_OUT_OF_MEMORY') {
+				abnormal('error', (err && err.message) ? err.message : String(err));
+			});
+			worker.on('exit', function(code, signal) {
+				if (finished) {
+					return;
+				}
+				if (/heap out of memory|allocation failed|OutOfMemory/i.test(stderr) || signal === 'SIGABRT' || code === 134) {
 					abnormal('memory_limit', 'Memory limit exceeded');
 				} else {
-					abnormal('error', (err && err.message) ? err.message : String(err));
-				}
-			});
-			worker.on('exit', function(code) {
-				if (!finished) {
-					abnormal('error', 'Worker exited unexpectedly (code ' + code + ')');
+					abnormal('error', 'Runner process exited unexpectedly (code ' + code + (signal ? ', ' + signal : '') + ')');
 				}
 			});
 		});

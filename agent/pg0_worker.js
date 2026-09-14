@@ -1,11 +1,11 @@
 "use strict";
-// Worker thread that runs one PG0 / PG0.5 program inside a vm sandbox.
+// Child process (or worker thread) that runs one PG0 / PG0.5 program inside a vm sandbox.
 // The browser interpreter (public/dev/pg0/*.js) is loaded unchanged into
 // an isolated context; print/error/input and the io library are provided
 // by host hooks so that everything is captured and returned as JSON.
 
-const {parentPort, workerData} = require('worker_threads');
 const vm = require('vm');
+const v8 = require('v8');
 const fs = require('fs');
 const path = require('path');
 
@@ -201,8 +201,22 @@ function typeName(v) {
 	return ['integer', 'float', 'string', 'array'][v.type] || null;
 }
 
-async function main() {
-	const opt = workerData;
+// Transport to the runner: IPC when forked as a child process (the normal case, so that
+// --max-old-space-size really limits the memory), the worker port when run as a worker thread.
+const isChildProcess = typeof process.send === 'function';
+const parentPort = isChildProcess ? null : require('worker_threads').parentPort;
+function send(msg, done) {
+	if (isChildProcess) {
+		process.send(msg, undefined, undefined, done);
+	} else {
+		parentPort.postMessage(msg);
+		if (done) {
+			done();
+		}
+	}
+}
+
+async function main(opt) {
 	const startTime = Date.now();
 	const deadline = startTime + opt.timeoutMs;
 	const maxSteps = opt.maxSteps;
@@ -219,9 +233,25 @@ async function main() {
 	let inputUsed = 0;
 	const importErrors = [];
 
+	// Soft memory check (the hard limit is --max-old-space-size of the child process, which
+	// aborts without a response): over the threshold, collect garbage once and re-check.
+	const memoryLimit = opt.memoryLimitBytes || 0;
+	function memoryExceeded() {
+		if (!memoryLimit) {
+			return false;
+		}
+		if (v8.getHeapStatistics().used_heap_size <= memoryLimit) {
+			return false;
+		}
+		if (typeof global.gc === 'function') {
+			global.gc();
+		}
+		return v8.getHeapStatistics().used_heap_size > memoryLimit;
+	}
+
 	function flush(force) {
 		if (pending && (force || pending.length > 8192)) {
-			parentPort.postMessage({type: 'output', text: pending});
+			send({type: 'output', text: pending});
 			pending = '';
 		}
 	}
@@ -743,6 +773,10 @@ async function main() {
 							stopReason = 'step_limit';
 							return 1;
 						}
+						if ((steps & 255) === 0 && memoryExceeded()) {
+							stopReason = 'memory_limit';
+							return 1;
+						}
 						if ((steps & 1023) === 0 && Date.now() > deadline) {
 							stopReason = 'timeout';
 							return 1;
@@ -812,7 +846,7 @@ async function main() {
 		} else if (stopReason) {
 			status = stopReason;
 			error = {
-				message: stopReason === 'timeout' ? 'Execution timed out' : 'Step limit exceeded',
+				message: stopReason === 'timeout' ? 'Execution timed out' : (stopReason === 'memory_limit' ? 'Memory limit exceeded' : 'Step limit exceeded'),
 				line: lastLine >= 0 ? lastLine + 1 : null,
 				source: null,
 				phase: 'runtime'
@@ -898,7 +932,11 @@ async function main() {
 			response.truncated.push(p.join('.'));
 		}
 	}
-	parentPort.postMessage(response);
+	send(response, function() {
+		if (isChildProcess) {
+			process.exit(0);
+		}
+	});
 
 	function storageToJson() {
 		const out = Object.create(null);
@@ -913,8 +951,8 @@ async function main() {
 	}
 }
 
-main().catch(function(e) {
-	parentPort.postMessage({
+function fail(e) {
+	send({
 		type: 'done',
 		status: 'error',
 		output: '',
@@ -928,5 +966,17 @@ main().catch(function(e) {
 		storage: null,
 		stats: {steps: 0, elapsed_ms: 0, input_lines_used: 0, steps_per_frame: null},
 		truncated: []
+	}, function() {
+		if (isChildProcess) {
+			process.exit(0);
+		}
 	});
-});
+}
+
+if (isChildProcess) {
+	process.once('message', function(opt) {
+		main(opt).catch(fail);
+	});
+} else {
+	main(require('worker_threads').workerData).catch(fail);
+}

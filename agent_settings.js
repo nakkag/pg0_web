@@ -19,6 +19,7 @@ exports.maxInputLength = 200000;
 exports.maxOutputLength = 1000000;
 // Response fields (variables, storage, screen.record, ...) are dropped when the JSON would exceed this
 exports.maxResponseLength = 4000000;
+// Heap limit (--max-old-space-size) of each runner process; up to maxConcurrentRuns of them run at once
 exports.workerMemoryMb = 256;
 
 // Headless screen (lib/screen.pg0 through the API)

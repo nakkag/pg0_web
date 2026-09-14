@@ -44,7 +44,7 @@ Content-Type: application/json
 - リクエスト・レスポンスとも JSON（`Content-Type: application/json`、UTF-8）。リクエストボディは 1MB まで。
 - 認証: デフォルトでは不要。サーバ管理者が API キーを設定している場合は `Authorization: Bearer <key>`（または `X-API-Key: <key>`）を付けます。無い場合は `401` になります。
 - API 自体のエラー（プログラムのエラーではない）は HTTP 4xx/5xx と `{"error": {"code": "...", "message": "..."}}` で返します。プログラムの失敗は HTTP `200` で、`status` が `"ok"` 以外になります（2.3 参照）。
-- 制限値は `GET /api/agent/v1` に載っています。標準値: タイムアウト 5 秒（最大 30 秒）、実行文数 10,000,000、コード 200,000 文字、出力 1,000,000 文字、同時実行 4（超えると `429 too_many_runs`。レスポンスに `Retry-After: 1` ヘッダと `retry_after_ms` が付くので、1 秒待って再試行）。
+- 制限値は `GET /api/agent/v1` に載っています。標準値: タイムアウト 5 秒（最大 30 秒）、実行文数 10,000,000、メモリ 256MB（超えると `"memory_limit"`。数百万要素の配列は作れません）、コード 200,000 文字、出力 1,000,000 文字、同時実行 4（超えると `429 too_many_runs`。レスポンスに `Retry-After: 1` ヘッダと `retry_after_ms` が付くので、1 秒待って再試行）。
 - レスポンスは約 4MB までです。超える場合は `screen.record`、`screen.last_drawn_frame`、`screen.frame_steps`、`storage`、`variables`、`result`、`profile` の順に、収まるまでフィールドが `null` に置き換えられ、置き換えたフィールド名が `truncated`（例: `["screen.record", "variables"]`）に入ります。巨大な配列を `exit` や変数に残さず、必要な値だけを `print` するか `max_calls` を小さくしてください。
 
 ### 2.2 エンドポイント
