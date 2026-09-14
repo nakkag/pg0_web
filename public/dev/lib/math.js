@@ -66,9 +66,36 @@ ScriptExec.lib['log'] = function(ei, param, ret) {
 	return 0;
 };
 
+// random(seed) seeds a reproducible generator (mulberry32) and returns its first value;
+// random() without a seed continues that sequence, or uses Math.random() when never seeded.
+function _mathSeededRandom(seed) {
+	let a = 0;
+	const str = String(seed);
+	for (let i = 0; i < str.length; i++) {
+		a = (Math.imul(a, 31) + str.charCodeAt(i)) | 0;
+	}
+	return function() {
+		a = (a + 0x6D2B79F5) | 0;
+		let t = Math.imul(a ^ (a >>> 15), 1 | a);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
 ScriptExec.lib['random'] = function(ei, param, ret) {
+	if (param.length >= 1) {
+		let seed;
+		if (param[0].v.type === TYPE_STRING) {
+			seed = param[0].v.str;
+		} else if (param[0].v.type === TYPE_ARRAY) {
+			seed = ScriptExec.arrayToString(param[0].v.array);
+		} else {
+			seed = param[0].v.num;
+		}
+		ScriptExec.lib['$random'] = _mathSeededRandom(seed);
+	}
 	ret.v.type = TYPE_FLOAT;
-	ret.v.num = Math.random();
+	ret.v.num = ScriptExec.lib['$random'] ? ScriptExec.lib['$random']() : Math.random();
 	return 0;
 };
 
@@ -132,5 +159,45 @@ ScriptExec.lib['pow'] = function(ei, param, ret) {
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
 	}
+	return 0;
+};
+
+function _mathNumbers(param) {
+	const values = [];
+	param.forEach(function(p) {
+		if (p.v.type === TYPE_ARRAY) {
+			p.v.array.forEach(function(a) {
+				if (a.v.type === TYPE_INTEGER || a.v.type === TYPE_FLOAT) {
+					values.push(a.v.num);
+				} else if (a.v.type === TYPE_STRING) {
+					values.push(ScriptExec.stringToNumber(a.v.str));
+				}
+			});
+		} else if (p.v.type === TYPE_STRING) {
+			values.push(ScriptExec.stringToNumber(p.v.str));
+		} else {
+			values.push(p.v.num);
+		}
+	});
+	return values;
+}
+
+ScriptExec.lib['max'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	const values = _mathNumbers(param);
+	ret.v.num = values.length ? Math.max.apply(null, values) : 0;
+	ret.v.type = ScriptExec.checkInt(ret.v.num) ? TYPE_INTEGER : TYPE_FLOAT;
+	return 0;
+};
+
+ScriptExec.lib['min'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	const values = _mathNumbers(param);
+	ret.v.num = values.length ? Math.min.apply(null, values) : 0;
+	ret.v.type = ScriptExec.checkInt(ret.v.num) ? TYPE_INTEGER : TYPE_FLOAT;
 	return 0;
 };

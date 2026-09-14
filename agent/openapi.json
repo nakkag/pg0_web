@@ -105,6 +105,27 @@
           },
           "screen": {
             "$ref": "#/components/schemas/ScreenOptions"
+          },
+          "seed": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Seeds random() of lib/math.pg0 for reproducible runs; same as calling random(seed) once before the program starts."
+          },
+          "globals": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play."
+          },
+          "storage": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial key/value store of lib/io.pg0 (loadValue) {key: value}. The final store is returned as \"storage\"."
           }
         }
       },
@@ -201,6 +222,19 @@
               "input_lines_used": {
                 "type": "integer",
                 "nullable": true
+              },
+              "steps_per_frame": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "avg": {
+                    "type": "integer"
+                  },
+                  "max": {
+                    "type": "integer"
+                  }
+                },
+                "description": "Screen programs: execution steps between two sleep() calls. Browser cost is about 4.6 ms per 1000 steps plus the sleep time."
               }
             }
           },
@@ -277,6 +311,12 @@
                 "type": "boolean"
               }
             }
+          },
+          "storage": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Final key/value store of lib/io.pg0; null unless the library was imported."
           }
         }
       },
@@ -335,6 +375,31 @@
                 "type": "string"
               }
             }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "block_local_variable",
+                    "unused_variable"
+                  ]
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Best-effort static warnings; they do not affect ok."
           }
         }
       },
@@ -398,6 +463,10 @@
               1
             ],
             "description": "History listings only: 1 for the current version, 0 for previous versions."
+          },
+          "run_url": {
+            "type": "string",
+            "description": "URL that opens the script in the web editor and runs it immediately (url + &run=1)."
           }
         }
       },
@@ -585,6 +654,27 @@
           },
           "screen": {
             "$ref": "#/components/schemas/ScreenOptions"
+          },
+          "seed": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Seeds random() of lib/math.pg0 for reproducible runs; same as calling random(seed) once before the program starts."
+          },
+          "globals": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play."
+          },
+          "storage": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial key/value store of lib/io.pg0 (loadValue) {key: value}. The final store is returned as \"storage\"."
           }
         }
       },
@@ -594,15 +684,15 @@
         "properties": {
           "touch": {
             "type": "array",
-            "description": "Pointer timeline. Each entry is the state from its virtual time (ms) on: {ms, x, y, touch (default 1), button (0 left, 1 middle, 2 right)}.",
+            "description": "Pointer timeline in chronological order. State entries: {ms | frame, x, y, touch (default 1), button (0 left, 1 middle, 2 right)} apply from their virtual time / frame index on. Short form: {ms | frame, tap: {x, y}, frames (default 1)} touches for that many frames.",
             "items": {
               "type": "object",
-              "required": [
-                "ms"
-              ],
               "properties": {
                 "ms": {
                   "type": "number"
+                },
+                "frame": {
+                  "type": "integer"
                 },
                 "x": {
                   "type": "number"
@@ -624,27 +714,72 @@
                     1,
                     2
                   ]
+                },
+                "tap": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "frames": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               }
             }
           },
           "keys": {
             "type": "array",
-            "description": "Keyboard timeline. Each entry lists the keys held from its virtual time on (KeyboardEvent.key names); an empty list releases all keys.",
+            "description": "Keyboard timeline in chronological order. State entries: {ms | frame, keys: [...]} list the held keys (KeyboardEvent.key names) from then on; [] releases all. Short forms: {ms | frame, tap: key | [keys]} presses for one frame, {ms | frame, hold: key | [keys], frames: n} for n frames; taps/holds are added on top of the held keys.",
             "items": {
               "type": "object",
-              "required": [
-                "ms"
-              ],
               "properties": {
                 "ms": {
                   "type": "number"
+                },
+                "frame": {
+                  "type": "integer"
                 },
                 "keys": {
                   "type": "array",
                   "items": {
                     "type": "string"
                   }
+                },
+                "tap": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "hold": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "frames": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               }
             }
@@ -658,6 +793,25 @@
             "type": "integer",
             "default": 2000,
             "description": "Maximum number of recorded calls (capped by the server); further calls set record_truncated."
+          },
+          "record_frames": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "integer"
+              },
+              "to": {
+                "type": "integer"
+              }
+            },
+            "description": "Record only frames from..to (inclusive)."
+          },
+          "record_functions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Record only these functions (case-insensitive)."
           }
         }
       }

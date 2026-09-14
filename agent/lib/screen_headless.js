@@ -403,3 +403,8 @@ ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
 	__screenRecord('stopSound', param);
 	return 0;
 };
+
+ScriptExec.lib['bgm'] = async function(ei, param, ret) {
+	__screenRecord('bgm', param);
+	return 0;
+};

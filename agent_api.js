@@ -11,6 +11,7 @@ const express = require('express');
 const settings = require('./agent_settings.js');
 const {createRunner, normalizeMode} = require('./agent/pg0_runner.js');
 const libraries = require('./agent/libraries.js');
+const {lint} = require('./agent/lint.js');
 
 const MANUAL_DIR = path.join(__dirname, 'agent', 'manual');
 const OPENAPI_FILE = path.join(__dirname, 'agent', 'openapi.json');
@@ -88,7 +89,8 @@ function summarizeScript(req, doc) {
 		speed: normalizeSpeed(doc.speed) !== null ? normalizeSpeed(doc.speed) : settings.defaultSpeed,
 		createTime: doc.createTime || null,
 		updateTime: doc.updateTime,
-		url: scriptUrl(req, doc.cid)
+		url: scriptUrl(req, doc.cid),
+		run_url: scriptUrl(req, doc.cid) + '&run=1'
 	};
 }
 
@@ -240,6 +242,16 @@ module.exports = function(app, deps) {
 			apiError(res, 400, 'invalid_request', '"screen" must be an object ({"touch": [...], "keys": [...], "record": true})');
 			return null;
 		}
+		for (const key of ['storage', 'globals']) {
+			if (body[key] !== undefined && body[key] !== null && (typeof body[key] !== 'object' || Array.isArray(body[key]))) {
+				apiError(res, 400, 'invalid_request', `"${key}" must be an object of {"name": value}`);
+				return null;
+			}
+		}
+		if (body.seed !== undefined && body.seed !== null && typeof body.seed !== 'number' && typeof body.seed !== 'string') {
+			apiError(res, 400, 'invalid_request', '"seed" must be a number or a string');
+			return null;
+		}
 		if (body.input !== undefined && body.input !== null) {
 			const len = Array.isArray(body.input) ? body.input.join('\n').length : String(body.input).length;
 			if (len > settings.maxInputLength) {
@@ -275,9 +287,15 @@ module.exports = function(app, deps) {
 			// A step limit of 1 stops execution right after parsing.
 			const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false});
 			if (result.status === 'error' && result.error && result.error.phase === 'parse') {
-				return res.json({ok: false, mode: result.mode, error: result.error});
+				return res.json({ok: false, mode: result.mode, error: result.error, warnings: []});
 			}
-			res.json({ok: true, mode: result.mode, error: null});
+			let warnings = [];
+			try {
+				warnings = lint(body.code, body.lang);
+			} catch (e) {
+				logger.error(e);
+			}
+			res.json({ok: true, mode: result.mode, error: null, warnings: warnings});
 		} catch (error) {
 			logger.error(error);
 			apiError(res, 500, 'internal_error', 'Internal Server Error');
@@ -299,6 +317,9 @@ module.exports = function(app, deps) {
 			max_frames: body.max_frames,
 			max_virtual_ms: body.max_virtual_ms,
 			screen: body.screen,
+			seed: body.seed,
+			storage: body.storage,
+			globals: body.globals,
 			variables: body.variables
 		});
 	});
@@ -548,6 +569,9 @@ module.exports = function(app, deps) {
 				max_frames: body.max_frames,
 				max_virtual_ms: body.max_virtual_ms,
 				screen: body.screen,
+				seed: body.seed,
+				storage: body.storage,
+				globals: body.globals,
 				variables: body.variables
 			});
 		} catch (error) {

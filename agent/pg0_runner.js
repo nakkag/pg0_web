@@ -41,6 +41,18 @@ function optionalInt(value, min, max) {
 	return Math.min(Math.max(n, min), max);
 }
 
+function toKeyList(v) {
+	if (Array.isArray(v)) {
+		return v.map(String);
+	}
+	if (v === undefined || v === null) {
+		return [];
+	}
+	return [String(v)];
+}
+
+// Timeline entries: {ms | frame, ...}. Key entries hold "keys" (state) or "tap"/"hold" (pulse for
+// "frames" frames, default 1). Touch entries hold x/y/touch/button (state) or "tap" (pulse).
 function normalizeTimeline(list, kind) {
 	if (!Array.isArray(list)) {
 		return [];
@@ -50,18 +62,55 @@ function normalizeTimeline(list, kind) {
 		if (!e || typeof e !== 'object') {
 			return;
 		}
-		const ms = Number(e.ms);
-		if (!isFinite(ms) || ms < 0) {
-			return;
+		const entry = {};
+		if (e.frame !== undefined && e.frame !== null) {
+			const frame = parseInt(e.frame, 10);
+			if (isNaN(frame) || frame < 0) {
+				return;
+			}
+			entry.frame = frame;
+		} else {
+			const ms = Number(e.ms);
+			if (!isFinite(ms) || ms < 0) {
+				return;
+			}
+			entry.ms = ms;
+		}
+		const pulse = (e.tap !== undefined && e.tap !== null) || (e.hold !== undefined && e.hold !== null);
+		if (pulse) {
+			let frames = parseInt(e.frames, 10);
+			if (isNaN(frames) || frames < 1) {
+				frames = 1;
+			}
+			entry.frames = frames;
 		}
 		if (kind === 'touch') {
-			out.push({ms: ms, x: Number(e.x) || 0, y: Number(e.y) || 0, touch: (e.touch === undefined ? 1 : (e.touch ? 1 : 0)), button: Number(e.button) || 0});
+			const tap = (e.tap && typeof e.tap === 'object') ? e.tap : e;
+			entry.x = Number(tap.x) || 0;
+			entry.y = Number(tap.y) || 0;
+			entry.button = Number(e.button) || 0;
+			if (!pulse) {
+				entry.touch = (e.touch === undefined ? 1 : (e.touch ? 1 : 0));
+			}
 		} else {
-			const keys = Array.isArray(e.keys) ? e.keys.map(String) : (e.key !== undefined ? [String(e.key)] : []);
-			out.push({ms: ms, keys: keys});
+			entry.keys = pulse ? toKeyList(e.tap !== undefined && e.tap !== null ? e.tap : e.hold) : (Array.isArray(e.keys) ? e.keys.map(String) : toKeyList(e.key));
 		}
+		out.push(entry);
 	});
 	return out;
+}
+
+function normalizeRecordFrames(v) {
+	if (!v || typeof v !== 'object') {
+		return null;
+	}
+	const from = parseInt(v.from, 10);
+	const to = parseInt(v.to, 10);
+	return {from: isNaN(from) ? 0 : Math.max(from, 0), to: isNaN(to) ? Number.MAX_SAFE_INTEGER : to};
+}
+
+function normalizeJsonObject(v) {
+	return (v && typeof v === 'object' && !Array.isArray(v)) ? v : null;
 }
 
 function normalizeScreen(screen, settings) {
@@ -70,7 +119,9 @@ function normalizeScreen(screen, settings) {
 		touch: normalizeTimeline(screen.touch, 'touch').slice(0, settings.maxTimelineEvents),
 		keys: normalizeTimeline(screen.keys, 'keys').slice(0, settings.maxTimelineEvents),
 		record: !!screen.record,
-		max_calls: optionalInt(screen.max_calls, 1, settings.maxRecordedCalls) || settings.defaultRecordedCalls
+		max_calls: optionalInt(screen.max_calls, 1, settings.maxRecordedCalls) || settings.defaultRecordedCalls,
+		record_frames: normalizeRecordFrames(screen.record_frames),
+		record_functions: Array.isArray(screen.record_functions) && screen.record_functions.length ? screen.record_functions.map(String) : null
 	};
 }
 
@@ -97,7 +148,10 @@ function createRunner(settings) {
 			variables: params.variables !== false && params.variables !== 0 && params.variables !== 'false',
 			maxFrames: optionalInt(params.max_frames, 1, settings.maxMaxFrames) !== null ? optionalInt(params.max_frames, 1, settings.maxMaxFrames) : settings.defaultMaxFrames,
 			maxVirtualMs: optionalInt(params.max_virtual_ms, 1, settings.maxMaxVirtualMs),
-			screen: normalizeScreen(params.screen, settings)
+			screen: normalizeScreen(params.screen, settings),
+			seed: (params.seed === undefined || params.seed === null || params.seed === '') ? null : String(params.seed),
+			storage: normalizeJsonObject(params.storage),
+			globals: normalizeJsonObject(params.globals)
 		};
 
 		return new Promise(function(resolve) {
@@ -132,7 +186,8 @@ function createRunner(settings) {
 					error: {message: message, line: null, source: null, phase: 'runtime'},
 					variables: null,
 					screen: null,
-					stats: {steps: null, elapsed_ms: opt.timeoutMs, input_lines_used: null}
+					storage: null,
+					stats: {steps: null, elapsed_ms: opt.timeoutMs, input_lines_used: null, steps_per_frame: null}
 				});
 			}
 

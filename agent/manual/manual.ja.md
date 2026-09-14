@@ -71,7 +71,12 @@ Content-Type: application/json
 
 リクエスト: `{"code": string, "mode": "PG0.5" | "PG0" (デフォルト PG0.5), "lang": "en" | "ja" (デフォルト en)}`
 
-レスポンス: `{"ok": true, "mode": "PG0.5", "error": null}` または `{"ok": false, "mode": "PG0.5", "error": {"message": "間違った書き方です", "line": 3, "source": "if a > 1 {", "phase": "parse"}}`
+レスポンス: `{"ok": true, "mode": "PG0.5", "error": null, "warnings": [...]}` または `{"ok": false, "mode": "PG0.5", "error": {"message": "間違った書き方です", "line": 3, "source": "if a > 1 {", "phase": "parse"}, "warnings": []}`
+
+`warnings` には、インタプリタは受け付けるが誤りの可能性が高い箇所が `{"code", "line", "name", "message"}` の形で入ります（メッセージは `lang` に従います）。静的解析による目安で、`ok` には影響しません。
+
+- `block_local_variable`: ブロック内で初めて使った変数をそのブロックの外で読んでいる。外では別の変数になります（3.4 参照）。ブロックの前に作るのが典型的な直し方です。
+- `unused_variable`: 関数やブロック内の変数に代入しているが一度も読んでいない。
 
 #### POST /api/agent/v1/run
 
@@ -86,6 +91,9 @@ Content-Type: application/json
 | `timeout_ms` | integer | 5000 | 実行時間の上限。サーバ側の上限（30000）で頭打ちになります。 |
 | `max_steps` | integer | 10000000 | 実行する文の数の上限。サーバ側の上限で頭打ちになります。 |
 | `variables` | boolean | true | 終了時のグローバル変数をレスポンスに含めるか。 |
+| `seed` | number または string | なし | `lib/math.pg0` の `random()` を再現可能にします。プログラム開始前に `random(seed)` を 1 回呼ぶのと同じです（4.2 参照）。 |
+| `globals` | object | `{}` | グローバル変数の初期値 `{"名前": 値}`。JSON の数値・文字列・配列・オブジェクトはそれぞれ整数/実数・文字列・配列・キー付き配列になります。前回実行の `variables` を渡せば、長いプレイを複数回の実行に分けて続けられます。 |
+| `storage` | object | `{}` | `lib/io.pg0` のキー/値ストア（`loadValue`）の初期内容 `{"キー": 値}`。最終的なストアはレスポンスの `storage` に返ります。 |
 | `max_frames` | integer | 10000 | `lib/screen.pg0` を使うプログラム: `sleep()` の呼び出し（フレーム）がこの回数に達したら `status: "frame_limit"` で停止。4.5 参照。 |
 | `max_virtual_ms` | integer | なし | `lib/screen.pg0` を使うプログラム: 仮想時計がこの値に達したら `status: "virtual_time_limit"` で停止。 |
 | `screen` | object | `{}` | `lib/screen.pg0` を使うプログラム: `{"touch": [...], "keys": [...], "record": true, "max_calls": 2000}`。入力のタイムラインと描画呼び出しの記録。4.5 参照。 |
@@ -110,7 +118,7 @@ Content-Type: application/json
 | `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。 |
 | `speed` | 0, 1, 250, 500 のいずれか | Web エディタでの実行速度。1 文ごとの待ち時間（ミリ秒）で、0 = 待ち無し、1 = 速い、250 = 普通（デフォルト）、500 = 遅い。**`lib/screen.pg0` を使うプログラムは 0 にしてください。** 待ちがあると描画やアニメーションが極端に遅くなります。 |
 
-レスポンス `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。
+レスポンス `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。`url` は Web エディタでスクリプトを開く URL、`run_url`（`url` + `&run=1`）は開いてすぐ実行する URL で、ゲームを人に渡すときはこちらを使います。
 
 `PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
@@ -154,7 +162,8 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `error` | `null` または `{"message", "line", "source", "phase"}`。`line` は `code` 内の 1 始まりの行番号。`phase` は `"parse"` か `"runtime"`。 |
 | `variables` | グローバル変数の最終値（`{"名前": 値}`）を JSON に変換したもの。ブロックや関数のローカル変数は含みません。`print` のない PG0 モードでは値を観測する唯一の手段です。 |
 | `screen` | `lib/screen.pg0` を import していなければ `null`。import していれば `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`。4.5 参照。 |
-| `stats` | `steps`（実行した文の数）、`elapsed_ms`、`input_lines_used`。 |
+| `storage` | `lib/io.pg0` を import していなければ `null`。import していれば最終的なキー/値ストア `{"キー": 値}`（リクエストの `storage` で初期化）。 |
+| `stats` | `steps`（実行ステップ数。おおむね文や演算子ごとに 1）、`elapsed_ms`、`input_lines_used`、スクリーンのプログラムでは `steps_per_frame: {"avg", "max"}`（4.5 の性能の目安を参照）。 |
 
 JSON への変換: 整数・実数は数値、文字列は文字列になります。要素にキーが一つも無い配列は JSON 配列、キー付き要素が一つでもある配列は JSON オブジェクトになり、キーの無い要素はインデックスがキーになります（例: `{"x": 1, 7}` は `{"x": 1, "1": 7}`）。
 
@@ -367,6 +376,10 @@ fill(list, 3)       // list は {0, 1, 2}
 16. `{}` の中で初めて代入した変数はそのブロックのローカルで、ブロックの後には残りません。合計値、結果配列、フラグなどはループや `if` の前に最上位で作っておきます（`total = 0`）。
 17. 裸の変数を並べた `{x, y}` はキー `"x"`、`"y"` 付きの要素になります。ただのリストにしたいときは `{x + 0, y + 0}` と書きます。
 18. スクリーンのプログラムでは、ループ 1 周につき `sleep()` を 1 回呼びます（API ではフレームの区切り、ブラウザでは唯一の待ち）。角度はラジアンで、`drawText(x, y)` の (x, y) は文字の左上です。
+19. 複数行の配列初期化子は各行が演算子で終わる間だけ継続するので、閉じ括弧は最後の要素と同じ行に書きます。`a[] = {1,\n 2,\n 3}` は可、`a[] = {1,\n 2\n}` は構文エラーです。
+20. 関数の本体で初めて代入した変数は関数ローカル、関数内の `if`/`for` ブロックで初めて代入した変数はそのブロックのローカルです。関数で使う作業変数は関数の先頭で `var` 宣言しておくのが安全です。
+21. `m = mons[0]` は要素のコピーです。`m["hp"]` を変えても `mons[0]` は変わりません。要素を書き換えるときは `mons[0]["hp"] = ...` と書きます。
+22. `int(time())` は 32bit を超えます（`time()` は 1970 年からのミリ秒）。`int(time() % 65521)` のように剰余を取ってから変換するか、実数のまま使います。
 
 ## 4. 標準関数とライブラリ
 
@@ -401,7 +414,8 @@ fill(list, 3)       // list は {0, 1, 2}
 | `log(n)` | 自然対数。`n <= 0` はエラー。 |
 | `sqrt(n)` | 平方根。負数はエラー。 |
 | `pow(base, exponent)` | 累乗。 |
-| `random()` | [0, 1) の実数。 |
+| `random(seed = なし)` | [0, 1) の実数。`seed`（数値または文字列）を渡すと再現可能な乱数列を最初から始めてその最初の値を返し、以降の `random()` はその列を続けます。一度もシードを与えなければ本当の乱数です。プログラムを変えずにテストを決定的にしたいときは `/run` の `seed` フィールドを使うと、開始前に同じことが行われます。 |
+| `max(a, b, ...)`, `min(a, b, ...)` | 引数の最大値 / 最小値。配列を渡すとその要素が対象になります（`max({4, 2, 9})` は 9）。 |
 | `sign(n)` | 1、-1、0。 |
 
 小数部が 0 の結果は整数で返ります（`sqrt(16)` は `4`）。
@@ -422,7 +436,7 @@ fill(list, 3)       // list は {0, 1, 2}
 | 関数 | 説明 |
 |---|---|
 | `println(v)` | `print` の後に改行。 |
-| `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | キー/値ストア。API では現在の実行の間だけ有効（ブラウザでは永続化）。存在しないキーの `loadValue` は `0`。 |
+| `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | キー/値ストア。API では現在の実行の間だけ有効です（ブラウザでは永続化）。リクエストの `storage` で開始前に内容を入れられ（例: セーブデータがある状態で「つづきから」を試す）、最終内容はレスポンスの `storage` に返ります。存在しないキーの `loadValue` は `0`。 |
 | `get_clipboard()`, `set_clipboard(s)` | 実行内だけのクリップボード文字列（初期値は空）。`set_clipboard` は 1 を返す。 |
 
 ### 4.5 画面描画ライブラリ: `#import("lib/screen.pg0")`（API ではヘッドレス）
@@ -435,7 +449,9 @@ fill(list, 3)       // list は {0, 1, 2}
 - `inTouch()` と `inKey()` はリクエストの `screen.touch` / `screen.keys` タイムラインから状態を返します（指定がなければ何も押されていない状態）。
 - `sleep()` が `max_frames` 回（デフォルト 10000）に達すると `status: "frame_limit"`、仮想時計が `max_virtual_ms` に達すると `status: "virtual_time_limit"` で停止します。無限ループのゲームではこれが正常な停止で、`variables` と `screen` が返り、`error` は `null` です。
 
-ヘッドレスで確認できないもの: 実際のピクセル（`rgbToPoint` は黒を返す）、正確な文字サイズ（`measureText` は概算）、実際のフレームレートと見た目。これらは `POST /api/agent/v1/scripts` に `"speed": 0` で保存し、人が `url` から開いて確認します。
+ヘッドレスで確認できないもの: 実際のピクセル（`rgbToPoint` は黒を返す）、正確な文字サイズ（`measureText` は概算）、実際のフレームレートと見た目。これらは `POST /api/agent/v1/scripts` に `"speed": 0` で保存し、人が `run_url` から開いて確認します。
+
+**1 フレームあたりの性能の目安。** `stats.steps_per_frame`（`avg` と `max`）は `sleep()` から次の `sleep()` までの実行ステップ数で、`stats.steps` と同じ単位です。ブラウザでは実行速度「待ち無し」でも 1000 ステップごとにページへ制御を戻し、それに約 4ms かかるため、1 フレームには**1000 ステップあたり約 4.6ms + `sleep()` の時間 + 描画時間**が必要です。`sleep(16)` の場合、1 フレーム 1000 ステップで約 45fps、3000 ステップで約 30fps、10000 ステップで約 15fps です。300 枚のタイルを毎フレーム `drawRect` で描くと数千ステップになります。変化した部分だけ描くか、静的なレイヤーは一度 `createImage` で画像にして `drawImage` で貼ってください。
 
 **リクエストのフィールド**（`POST /api/agent/v1/run` と `/scripts/{cid}/run`）:
 
@@ -444,9 +460,13 @@ fill(list, 3)       // list は {0, 1, 2}
 | `max_frames` | `sleep()` の呼び出し回数がこの値に達したら停止。デフォルト 10000。サーバの上限は `GET /api/agent/v1` に載っています。 |
 | `max_virtual_ms` | 仮想時計がこのミリ秒に達したら停止。デフォルトは無制限。 |
 | `screen.touch` | ポインタのタイムライン: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`。各要素はその仮想時刻から次の要素までの状態。`touch` の既定は 1、`button` の既定は 0。 |
-| `screen.keys` | キーボードのタイムライン: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`。各要素はその仮想時刻以降に押されているキーの一覧。`[]` で全て離します。 |
+| `screen.keys` | キーボードのタイムライン: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`。各要素はその仮想時刻以降に押されているキーの一覧。`[]` で全て離します。簡易表記: `{"ms": 500, "tap": "Enter"}` はちょうど 1 フレームだけ押す、`{"ms": 500, "hold": "ArrowDown", "frames": 8}` は 8 フレーム押し続ける（`tap`/`hold` は文字列またはキーの配列）。どの要素も `"ms"` の代わりに `"frame": n`（0 始まりのフレーム番号）で指定できます。tap/hold は開始時刻が `ms` 以上になる最初のフレームから始まり、`keys` で押されているキーに加算されます。 |
 | `screen.record` | `true` で描画呼び出しを返します。 |
 | `screen.max_calls` | 記録する呼び出しの上限（デフォルト 2000）。超えると `record_truncated` が `true` になります。`calls` は数え続けます。 |
+| `screen.record_frames` | `{"from": 300, "to": 320}` でそのフレーム範囲（両端含む）だけを記録します。後半の場面を安く取れます。 |
+| `screen.record_functions` | `["drawText", "drawImage"]` でその関数だけを記録します（大文字小文字を区別しない）。 |
+
+タッチの要素も簡易表記 `{"ms": 500, "tap": {"x": 330, "y": 300}}`（1 フレームだけタッチ。`"frames": n` で複数フレーム）と `"ms"` の代わりの `"frame"` を使えます。タイムラインの要素は指定した順に評価されるので、時系列順に並べてください。
 
 **レスポンスの `screen`**（ライブラリを import した場合に存在）:
 
@@ -480,7 +500,7 @@ fill(list, 3)       // list は {0, 1, 2}
 | `drawPolyline(points, option = {})` | `points` は `{{x, y}, {x, y}, ...}`。`option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`。 |
 | `drawFill(x, y, color)` | (x, y) からの塗りつぶし。ヘッドレスでは記録のみ。 |
 | `drawScroll(dx, dy)` | 画面をスクロール。はみ出た部分は反対側に出る。 |
-| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。 |
+| `createImage(x, y, width, height, option = {})` | 領域を画像にして ID（0, 1, 2, ...）を返す。`{"id": n}` で画像 n を置き換える。取り込み元はそのときの描画先で、`startOffscreen()`～`endOffscreen()` の間はオフスクリーンバッファ、それ以外は表示中の画面。 |
 | `drawImage(id, x, y, option = {})` | 画像を左上 (x, y) に描く。`option`: `{"width", "height"}`（両方か無指定）、`"angle"` ラジアン（画像中心で回転）、`"alpha"` 0.0～1.0。未知の ID は無視。 |
 | `drawText(text, x, y, option = {})` | **(x, y) は文字の左上**。ベースラインは y + fontsize。`option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`。`fill` 0 で中抜き。数値や配列は文字列に変換される。 |
 | `measureText(text, option = {})` | `{"width": w, "height": h}`（ピクセル）。`option`: `{"fontsize", "fontface", "fontstyle"}`。ヘッドレスでは ASCII 1 文字 0.55 × fontsize、それ以外 1 × fontsize、高さ = fontsize の概算。 |
@@ -489,8 +509,13 @@ fill(list, 3)       // list は {0, 1, 2}
 | `inTouch()` | `{"x", "y", "touch": 0/1, "button": 0 左/1 中/2 右, "pos": {{x, y}, ...}}`。`touch` が 0 のとき `x`/`y` は最後の位置。`pos` は全タッチ点（マルチタッチ）。 |
 | `inKey(key = なし)` | 引数なし: 押されているキー名の配列（JavaScript の `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`）。文字列: 押されていれば 1（大文字小文字を区別しない）。配列: 全て押されていれば 1。配列内の名前は小文字で書く（`{"arrowleft", "a"}`）。ブラウザでは最後のキー押下から 1 秒後にキーを押したままでも一覧が空になるので、毎フレーム読んで処理する。 |
 | `playSound(note, start, duration, volume = 1)` | 矩形波。`note`: 周波数（Hz）か `"C4"`、`"F#5"` のような音名。`start`: 開始までの遅延（ミリ秒）、`duration`: 長さ（ミリ秒）。 |
-| `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` を順に再生。`{"start": ms}` で位置を戻す（和音）、`{"volume": v}` で以降の音量。`option`: `{"repeat": 1}`。 |
-| `stopSound()` | 全てのサウンドを停止。 |
+| `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` を順に再生。`{"start": ms}` で位置を戻す（和音）、`{"volume": v}` で以降の音量。`option`: `{"repeat": 1}`。再度呼んでも再生中の音は止まらず、重なって鳴ります。 |
+| `bgm(notes = なし, option = {"repeat": 1})` | BGM トラック。前の `bgm`（だけ）を止めてから `notes` をループ再生します（`{"repeat": 0}` で 1 回）。引数なしの `bgm()` は BGM を止めます。`playSound`/`playMusic` の効果音は鳴り続けます。 |
+| `stopSound()` | `bgm` を含む全てのサウンドを停止。 |
+
+サウンドの補足: すべて矩形波でミックスされるので、`playSound` の効果音は `playMusic`/`bgm` に重ねて鳴ります。ブラウザはページで最初のタップまたはキー入力があるまで音声をブロックするため、それより前に開始した音は鳴らないか遅れて始まることがあります。曲はタイトル画面で最初の入力があった後に開始してください。画面のミュートボタンが押されている間は鳴りません。
+
+**長いプレイを複数回の実行に分ける。** 1 回の実行は実時間で `max_timeout_ms` までです。長いセッションを試すには、`max_frames` で実行してレスポンスの `variables` と `storage` を読み、次のリクエストの `globals` と `storage` にそのまま渡します（リセットしたい値は除きます）。関数とコードは同じなので、プログラムはその状態から続きを実行します。
 
 **ヘッドレスでもブラウザでも動くゲームループの雛形**
 

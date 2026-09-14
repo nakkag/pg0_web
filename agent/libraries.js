@@ -39,7 +39,9 @@ module.exports = {
 				{name: 'cos', signature: 'cos(n: num) -> float', summary: 'Cosine (radians).'},
 				{name: 'exp', signature: 'exp(n: num) -> float', summary: 'e raised to n.'},
 				{name: 'log', signature: 'log(n: num) -> float', summary: 'Natural logarithm. Runtime error for 0 or negative values.'},
-				{name: 'random', signature: 'random() -> float', summary: 'Random number, 0 <= x < 1.'},
+				{name: 'random', signature: 'random(seed: num | str = none) -> float', summary: 'Random number, 0 <= x < 1. With seed: restarts a reproducible sequence and returns its first value; later random() calls continue it. Never seeded: true random. The /run field "seed" seeds it before the program starts.'},
+				{name: 'max', signature: 'max(a: num, b: num, ...) -> num', summary: 'Largest argument; an array argument contributes its elements.'},
+				{name: 'min', signature: 'min(a: num, b: num, ...) -> num', summary: 'Smallest argument; an array argument contributes its elements.'},
 				{name: 'sign', signature: 'sign(n: num) -> int', summary: '1 for positive, -1 for negative, 0 for zero.'},
 				{name: 'sin', signature: 'sin(n: num) -> float', summary: 'Sine (radians).'},
 				{name: 'sqrt', signature: 'sqrt(n: num) -> float', summary: 'Square root. Runtime error for negative values.'},
@@ -102,7 +104,7 @@ module.exports = {
 				{name: 'drawPolyline', signature: 'drawPolyline(points: arr, option: arr = {}) -> int', summary: 'Connected lines through {{x, y}, {x, y}, ...}. option: {"width": 1, "color": "#000", "fill": 0, "close": 0}.'},
 				{name: 'drawFill', signature: 'drawFill(x: num, y: num, color: str) -> int', summary: 'Flood fill starting at (x, y). Headless: recorded only.'},
 				{name: 'drawScroll', signature: 'drawScroll(dx: num, dy: num) -> int', summary: 'Scrolls the whole screen; pixels leaving one edge reappear at the opposite edge.'},
-				{name: 'createImage', signature: 'createImage(x: num, y: num, width: num, height: num, option: arr = {}) -> int', summary: 'Copies a screen region into an image and returns its id (0, 1, 2, ...). {"id": n} replaces image n and returns n.'},
+				{name: 'createImage', signature: 'createImage(x: num, y: num, width: num, height: num, option: arr = {}) -> int', summary: 'Copies a region of the current drawing target (the offscreen buffer between startOffscreen/endOffscreen, otherwise the visible screen) into an image and returns its id (0, 1, 2, ...). {"id": n} replaces image n and returns n.'},
 				{name: 'drawImage', signature: 'drawImage(id: int, x: num, y: num, option: arr = {}) -> int', summary: 'Draws image id with top-left (x, y). option: {"width", "height" (give both or neither), "angle": radians, rotates about the image center, "alpha": 0.0..1.0}. Unknown ids are ignored.'},
 				{name: 'drawText', signature: 'drawText(text: str, x: num, y: num, option: arr = {}) -> int', summary: 'Text with (x, y) = top-left of the text box: the baseline is drawn at y + fontsize. option: {"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"|"bold"|"italic"|"oblique", "fill": 1, "width": 1}. fill 0 draws outlined text with line width "width". Numbers and arrays are converted to text.'},
 				{name: 'measureText', signature: 'measureText(text: str, option: arr = {}) -> arr', summary: 'Returns {"width": w, "height": h} in pixels. option: {"fontsize": 30, "fontface", "fontstyle"}. Headless: approximation (0.55 * fontsize per ASCII character, 1 * fontsize per other character, height = fontsize).'},
@@ -112,8 +114,9 @@ module.exports = {
 				{name: 'inTouch', signature: 'inTouch() -> arr', summary: 'Current pointer state {"x", "y", "touch": 0|1, "button": 0 left|1 middle|2 right, "pos": {{x, y}, ...}}. When touch is 0, x/y hold the last position. Headless: from the "screen".touch timeline (pos has one entry while touching).'},
 				{name: 'inKey', signature: 'inKey(key: str | arr = none) -> arr | int', summary: 'No argument: array of held key names (KeyboardEvent.key values such as "ArrowLeft", "a", " ", "Enter"). String: 1 if that key is held (case-insensitive). Array: 1 only if all listed keys are held; names in the array must be written in lower case ("arrowleft"). Browser: the held list is cleared 1 second after the last key press even if keys stay down. Headless: from the "screen".keys timeline.'},
 				{name: 'playSound', signature: 'playSound(note: num | str, start: num, duration: num, volume: num = 1) -> int', summary: 'Square wave tone. note: frequency in Hz or a name like "C4", "F#5". start: delay in ms before the tone, duration: length in ms. Headless: recorded only.'},
-				{name: 'playMusic', signature: 'playMusic(notes: arr, option: arr = {}) -> int', summary: 'Plays {{note, length_ms, volume?}, ...} in sequence. {"start": ms} resets the position (for chords), {"volume": v} sets the volume for following notes. option: {"repeat": 1}. Headless: recorded only.'},
-				{name: 'stopSound', signature: 'stopSound() -> int', summary: 'Stops all sounds.'}
+				{name: 'playMusic', signature: 'playMusic(notes: arr, option: arr = {}) -> int', summary: 'Plays {{note, length_ms, volume?}, ...} in sequence. {"start": ms} resets the position (for chords), {"volume": v} sets the volume for following notes. option: {"repeat": 1}. Does not stop sounds already playing (they overlap). Headless: recorded only.'},
+				{name: 'bgm', signature: 'bgm(notes: arr = none, option: arr = {"repeat": 1}) -> int', summary: 'Background music track: stops the previous bgm only, then loops notes ({"repeat": 0} plays once). bgm() stops the music. Sound effects keep playing. Browsers block audio until the first tap/key on the page. Headless: recorded only.'},
+				{name: 'stopSound', signature: 'stopSound() -> int', summary: 'Stops all sounds, bgm included.'}
 			]
 		}
 	]

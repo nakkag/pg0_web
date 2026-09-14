@@ -71,7 +71,12 @@ Parses the program without executing it.
 
 Request: `{"code": string, "mode": "PG0.5" | "PG0" (default PG0.5), "lang": "en" | "ja" (default en)}`
 
-Response: `{"ok": true, "mode": "PG0.5", "error": null}` or `{"ok": false, "mode": "PG0.5", "error": {"message": "Syntax error", "line": 3, "source": "if a > 1 {", "phase": "parse"}}`
+Response: `{"ok": true, "mode": "PG0.5", "error": null, "warnings": [...]}` or `{"ok": false, "mode": "PG0.5", "error": {"message": "Syntax error", "line": 3, "source": "if a > 1 {", "phase": "parse"}, "warnings": []}`
+
+`warnings` lists likely mistakes that the interpreter accepts, each as `{"code", "line", "name", "message"}` (messages follow `lang`). They are best-effort static checks and do not affect `ok`:
+
+- `block_local_variable`: a variable first used inside a block is read outside that block, where it is a different variable (see 3.4). Typical fix: create it before the block.
+- `unused_variable`: a variable inside a function or block is assigned but never read.
 
 #### POST /api/agent/v1/run
 
@@ -86,6 +91,9 @@ Request fields:
 | `timeout_ms` | integer | 5000 | Time limit; capped by the server (30000). |
 | `max_steps` | integer | 10000000 | Maximum executed statements; capped by the server. |
 | `variables` | boolean | true | Include final global variables in the response. |
+| `seed` | number or string | none | Makes `random()` of `lib/math.pg0` reproducible. Equivalent to calling `random(seed)` once before the program starts (see 4.2). |
+| `globals` | object | `{}` | Initial values of global variables, `{"name": value}`; JSON numbers, strings, arrays and objects become integers/floats, strings, arrays and keyed arrays. Together with `variables` of a previous run this continues a long play across several runs. |
+| `storage` | object | `{}` | Initial contents of the key/value store of `lib/io.pg0` (`loadValue`), `{"key": value}`. The final store comes back in the response field `storage`. |
 | `max_frames` | integer | 10000 | Programs using `lib/screen.pg0`: stop with `status: "frame_limit"` after this many `sleep()` calls (frames). See 4.5. |
 | `max_virtual_ms` | integer | none | Programs using `lib/screen.pg0`: stop with `status: "virtual_time_limit"` when the virtual clock reaches this value. |
 | `screen` | object | `{}` | Programs using `lib/screen.pg0`: `{"touch": [...], "keys": [...], "record": true, "max_calls": 2000}`; input timelines and call recording, see 4.5. |
@@ -110,7 +118,7 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. |
 | `speed` | 0, 1, 250 or 500 | Execution speed in the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. **Set 0 for programs that use `lib/screen.pg0`**: with a wait, drawing and animation become extremely slow. |
 
-Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC.
+Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC. `url` opens the script in the web editor; `run_url` (`url` + `&run=1`) opens and runs it immediately, which is the link to hand to a person for a game.
 
 `PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
@@ -154,7 +162,8 @@ GET /api/agent/v1/scripts/2f1c.../history
 | `error` | `null` or `{"message", "line", "source", "phase"}`. `line` is 1-based and refers to `code`; `phase` is `"parse"` or `"runtime"`. |
 | `variables` | Final values of the global variables (`{"name": value}`), converted to JSON. Variables local to blocks and functions are not included. This is the only way to observe values in PG0 mode, which has no `print`. |
 | `screen` | `null` unless `lib/screen.pg0` was imported. Then `{"started", "width", "height", "background", "fit", "frames", "virtual_ms", "calls", "images", "record", "record_truncated"}`, see 4.5. |
-| `stats` | `steps` (statements executed), `elapsed_ms`, `input_lines_used`. |
+| `storage` | `null` unless `lib/io.pg0` was imported. Then the final key/value store `{"key": value}` (initialized from the request field `storage`). |
+| `stats` | `steps` (execution steps: roughly one per statement or operator), `elapsed_ms`, `input_lines_used`, and for screen programs `steps_per_frame: {"avg", "max"}` (see the performance note in 4.5). |
 
 Value conversion to JSON: integers and floats become numbers, strings become strings. An array whose elements all have no key becomes a JSON array; an array with at least one keyed element becomes a JSON object, unkeyed elements using their index as the key (for example `{"x": 1, 7}` becomes `{"x": 1, "1": 7}`).
 
@@ -367,6 +376,10 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 16. A variable first assigned inside `{}` is local to that block and vanishes afterwards. Create accumulators, result arrays and flags at the top level (`total = 0`) before the loop or `if` that fills them.
 17. `{x, y}` with bare variables creates keyed elements `"x"` and `"y"`; write `{x + 0, y + 0}` for a plain list.
 18. Screen programs: call `sleep()` once per loop iteration (it is the frame boundary in the API and the only pause in the browser), use radians for angles, and remember that `drawText(x, y)` places the top-left of the text at (x, y).
+19. A multi-line array initializer continues only while each line ends with an operator, so keep the closing brace on the line of the last element: `a[] = {1,\n 2,\n 3}` is fine, `a[] = {1,\n 2\n}` is a syntax error.
+20. Inside a function, a variable first assigned in the function body is function-local, and one first assigned inside an `if`/`for` block of the function is local to that block. Declare the function's working variables with `var` at the top of the function.
+21. `m = mons[0]` copies the element; changing `m["hp"]` leaves `mons[0]` untouched. Write `mons[0]["hp"] = ...` to modify the element in place.
+22. `int(time())` overflows 32 bits (`time()` is milliseconds since 1970). Take a remainder first, for example `int(time() % 65521)`, or keep the float.
 
 ## 4. Built-in functions and libraries
 
@@ -401,7 +414,8 @@ Function names are case-insensitive. Types: int, float, num (int or float), str,
 | `log(n)` | Natural logarithm; error for `n <= 0`. |
 | `sqrt(n)` | Square root; error for negative `n`. |
 | `pow(base, exponent)` | Power. |
-| `random()` | Float in [0, 1). |
+| `random(seed = none)` | Float in [0, 1). With `seed` (number or string) it restarts a reproducible sequence and returns its first value; following `random()` calls continue the sequence. Never seeded: true random. Use a seed to make tests deterministic without changing the program: the request field `seed` of `/run` does the same before the program starts. |
+| `max(a, b, ...)`, `min(a, b, ...)` | Largest / smallest of the arguments; an array argument contributes its elements (`max({4, 2, 9})` is 9). |
 | `sign(n)` | 1, -1 or 0. |
 
 Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
@@ -422,7 +436,7 @@ Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 | Function | Description |
 |---|---|
 | `println(v)` | Like `print` followed by a newline. |
-| `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | Key/value store. In the API it exists only during the current run (in the browser it persists). `loadValue` of a missing key returns `0`. |
+| `saveValue(key, v)`, `loadValue(key)`, `removeValue(key)` | Key/value store. In the API it exists only during the current run (in the browser it persists): the request field `storage` fills it before the program starts (for example a saved game to test "continue"), and the response field `storage` returns its final contents. `loadValue` of a missing key returns `0`. |
 | `get_clipboard()`, `set_clipboard(s)` | Run-local clipboard string (empty at start). `set_clipboard` returns 1. |
 
 ### 4.5 Screen library: `#import("lib/screen.pg0")` (headless in the API)
@@ -435,7 +449,9 @@ In the browser this library opens a canvas that covers the page and provides dra
 - `inTouch()` and `inKey()` answer from the `screen.touch` and `screen.keys` timelines of the request (nothing pressed by default);
 - the run stops with `status: "frame_limit"` after `max_frames` frames (default 10000) or `status: "virtual_time_limit"` when the virtual clock reaches `max_virtual_ms`. These are normal stops for endless game loops: `variables` and `screen` are returned and `error` is `null`.
 
-What cannot be verified headless: actual pixels (`rgbToPoint` returns black), exact text metrics (`measureText` is an approximation), real frame rate and appearance. Store the program (`POST /api/agent/v1/scripts` with `"speed": 0`) and let a person open the returned `url` for that.
+What cannot be verified headless: actual pixels (`rgbToPoint` returns black), exact text metrics (`measureText` is an approximation), real frame rate and appearance. Store the program (`POST /api/agent/v1/scripts` with `"speed": 0`) and let a person open the returned `run_url` for that.
+
+**Performance budget per frame.** `stats.steps_per_frame` (`avg` and `max`) counts execution steps between two `sleep()` calls, in the same unit as `stats.steps`. In the browser at speed 0 the interpreter yields to the page every 1000 steps, which costs about 4 ms each, so a frame needs roughly **4.6 ms per 1000 steps plus the `sleep()` time plus drawing**. With `sleep(16)`: about 1000 steps per frame gives around 45 fps, 3000 steps around 30 fps, 10000 steps around 15 fps. Drawing 300 tiles with one `drawRect` each costs a few thousand steps; draw only what changed, or draw static layers once into an image (`createImage`) and blit it with `drawImage`.
 
 **Request fields** (`POST /api/agent/v1/run` and `/scripts/{cid}/run`):
 
@@ -444,9 +460,13 @@ What cannot be verified headless: actual pixels (`rgbToPoint` returns black), ex
 | `max_frames` | Stop after this many `sleep()` calls. Default 10000, server maximum in `GET /api/agent/v1`. |
 | `max_virtual_ms` | Stop when the virtual clock reaches this many ms. Default none. |
 | `screen.touch` | Pointer timeline: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`. Each entry is the state from its virtual time until the next entry. `touch` defaults to 1, `button` to 0. |
-| `screen.keys` | Keyboard timeline: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`. Each entry lists the keys held from its virtual time on; `[]` releases all keys. |
+| `screen.keys` | Keyboard timeline: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`. Each entry lists the keys held from its virtual time on; `[]` releases all keys. Short forms: `{"ms": 500, "tap": "Enter"}` presses a key for exactly one frame, `{"ms": 500, "hold": "ArrowDown", "frames": 8}` for 8 frames (`tap`/`hold` accept a string or an array of keys). Every entry may use `"frame": n` (frame index, 0-based) instead of `"ms"`. A tap/hold starts in the first frame whose start time is at or after `ms`, and is added on top of the held keys of the `keys` entries. |
 | `screen.record` | `true` returns the drawing calls. |
 | `screen.max_calls` | Cap on recorded calls (default 2000). Beyond it `record_truncated` becomes `true`; `calls` keeps counting. |
+| `screen.record_frames` | `{"from": 300, "to": 320}` records only these frames (inclusive), so a late scene can be captured cheaply. |
+| `screen.record_functions` | `["drawText", "drawImage"]` records only these functions (case-insensitive). |
+
+Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. Timeline entries are evaluated in the order given; list them chronologically.
 
 **Response field `screen`** (present when the library was imported):
 
@@ -480,7 +500,7 @@ What cannot be verified headless: actual pixels (`rgbToPoint` returns black), ex
 | `drawPolyline(points, option = {})` | `points` is `{{x, y}, {x, y}, ...}`. `option`: `{"width": 1, "color": "#000", "fill": 0, "close": 0}`. |
 | `drawFill(x, y, color)` | Flood fill from (x, y). Headless: recorded only. |
 | `drawScroll(dx, dy)` | Scrolls the screen; content wraps around. |
-| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. |
+| `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. |
 | `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` radians about the image center, `"alpha"` 0.0 to 1.0. Unknown ids are ignored. |
 | `drawText(text, x, y, option = {})` | **(x, y) is the top-left of the text**; the baseline is at y + fontsize. `option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`; `fill` 0 draws outlines. Numbers and arrays are converted to text. |
 | `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character, 1 × fontsize otherwise, height = fontsize. |
@@ -489,8 +509,13 @@ What cannot be verified headless: actual pixels (`rgbToPoint` returns black), ex
 | `inTouch()` | `{"x", "y", "touch": 0/1, "button": 0 left/1 middle/2 right, "pos": {{x, y}, ...}}`. When `touch` is 0, `x`/`y` keep the last position. `pos` holds all touch points (multi-touch). |
 | `inKey(key = none)` | No argument: array of held key names (JavaScript `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`). String: 1 if held (case-insensitive). Array: 1 only if all are held; names in the array must be lower case (`{"arrowleft", "a"}`). Browser: the held list is cleared 1 s after the last key press even if the key stays down, so poll and act every frame. |
 | `playSound(note, start, duration, volume = 1)` | Square wave. `note`: Hz or a name like `"C4"`, `"F#5"`. `start`: delay in ms, `duration`: length in ms. |
-| `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` in sequence; `{"start": ms}` resets the position (chords), `{"volume": v}` sets the volume for following notes. `option`: `{"repeat": 1}`. |
-| `stopSound()` | Stops all sounds. |
+| `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` in sequence; `{"start": ms}` resets the position (chords), `{"volume": v}` sets the volume for following notes. `option`: `{"repeat": 1}`. Calling it again does not stop what is already playing: sounds overlap. |
+| `bgm(notes = none, option = {"repeat": 1})` | Background music track: stops the previous `bgm` (and only that), then plays `notes` in a loop (`{"repeat": 0}` plays once). `bgm()` without arguments stops the music. Sound effects from `playSound`/`playMusic` keep playing. |
+| `stopSound()` | Stops all sounds, `bgm` included. |
+
+Sound notes: all sounds are square waves mixed together, so `playSound` effects play on top of `playMusic`/`bgm`. Browsers block audio until the first tap or key press on the page; sounds started before that may stay silent or start late, so start the music from the title screen after the first input. Sound is muted when the person turned on the mute button of the screen.
+
+**Continuing a long play across runs.** One run is limited to `max_timeout_ms` of real time. To test a longer session, run with `max_frames`, read `variables` and `storage` from the response, and pass them back as `globals` and `storage` of the next request (drop the values you want to reset). Functions and code stay the same, so the program simply continues from that state.
 
 **Game-loop template that works both headless and in the browser**
 

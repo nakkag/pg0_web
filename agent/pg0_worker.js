@@ -81,7 +81,7 @@ ScriptExec.lib['println'] = async function(ei, param, ret) {
 	__host.print(str + '\\n');
 	return 0;
 };
-const __ioStore = {};
+const __ioStore = __host.storage;
 function __ioKey(param) {
 	if (param[0].v.type === TYPE_ARRAY) {
 		return '{' + pg0_string.arrayToString(param[0].v.array) + '}';
@@ -174,6 +174,26 @@ function valueToJson(v, depth) {
 	return null;
 }
 
+// Converts plain JSON into an interpreter value ({type, num|str|array}).
+function jsonToValue(j) {
+	if (j === null || j === undefined || typeof j === 'boolean') {
+		return {type: 0, num: j ? 1 : 0};
+	}
+	if (typeof j === 'number') {
+		return Number.isInteger(j) ? {type: 0, num: j | 0} : {type: 1, num: j};
+	}
+	if (typeof j === 'string') {
+		return {type: 2, str: j};
+	}
+	if (Array.isArray(j)) {
+		return {type: 3, array: j.map(function(e) { return {name: '', v: jsonToValue(e)}; })};
+	}
+	if (typeof j === 'object') {
+		return {type: 3, array: Object.keys(j).map(function(k) { return {name: k, v: jsonToValue(j[k])}; })};
+	}
+	return {type: 0, num: 0};
+}
+
 function typeName(v) {
 	if (!v) {
 		return null;
@@ -234,10 +254,19 @@ async function main() {
 
 	// Headless screen: virtual clock, input timelines and optional call recording.
 	const screenOpt = opt.screen || {};
-	const touchTimeline = (screenOpt.touch || []).slice().sort(function(a, b) { return a.ms - b.ms; });
-	const keyTimeline = (screenOpt.keys || []).slice().sort(function(a, b) { return a.ms - b.ms; });
+	const touchTimeline = (screenOpt.touch || []).slice();
+	const keyTimeline = (screenOpt.keys || []).slice();
 	const recordCalls = !!screenOpt.record;
 	const maxCalls = screenOpt.max_calls;
+	const recordFrames = screenOpt.record_frames || null;
+	const recordFunctions = screenOpt.record_functions ? screenOpt.record_functions.map(function(f) { return String(f).toLowerCase(); }) : null;
+	let frameSteps = 0;
+	let maxFrameSteps = 0;
+	const storage = {};
+	Object.keys(opt.storage || {}).forEach(function(k) {
+		storage[k] = JSON.stringify(jsonToValue(opt.storage[k]));
+	});
+	let ioLoaded = false;
 	const screen = {
 		loaded: false,
 		started: false,
@@ -257,11 +286,29 @@ async function main() {
 	};
 	let pendingStop = null;
 
-	function timelineState(list, ms) {
+	// Timeline entries are evaluated in the given order; an entry applies from its
+	// virtual time (ms) or frame index on. Pulse entries (tap/hold) are active for a
+	// number of frames starting at the first frame in which they became due.
+	function entryDue(e) {
+		return (e.frame !== undefined) ? screen.frames >= e.frame : screen.virtualMs >= e.ms;
+	}
+	function activatePulses(list) {
+		list.forEach(function(e) {
+			if (e.frames !== undefined && e.startFrame === undefined && entryDue(e)) {
+				e.startFrame = screen.frames;
+			}
+		});
+	}
+	function pulseActive(e) {
+		return e.frames !== undefined && e.startFrame !== undefined && screen.frames < e.startFrame + e.frames;
+	}
+	function timelineState(list) {
 		let cur = null;
-		for (let i = 0; i < list.length && list[i].ms <= ms; i++) {
-			cur = list[i];
-		}
+		list.forEach(function(e) {
+			if (e.frames === undefined && entryDue(e)) {
+				cur = e;
+			}
+		});
 		return cur;
 	}
 
@@ -278,6 +325,12 @@ async function main() {
 			screen.virtualMs += ms;
 			screen.frames++;
 			screen.currentFrame = null;
+			if (frameSteps > maxFrameSteps) {
+				maxFrameSteps = frameSteps;
+			}
+			frameSteps = 0;
+			activatePulses(touchTimeline);
+			activatePulses(keyTimeline);
 			if (opt.maxFrames !== null && screen.frames >= opt.maxFrames) {
 				pendingStop = 'frame_limit';
 			}
@@ -311,7 +364,17 @@ async function main() {
 			return [0, 0, 0];
 		},
 		touch: function() {
-			const t = timelineState(touchTimeline, screen.virtualMs);
+			activatePulses(touchTimeline);
+			let t = null;
+			touchTimeline.forEach(function(e) {
+				if (pulseActive(e)) {
+					t = e;
+				}
+			});
+			if (t) {
+				return {x: t.x, y: t.y, touch: 1, button: t.button || 0, pos: [{x: t.x, y: t.y}]};
+			}
+			t = timelineState(touchTimeline);
 			if (!t) {
 				return {x: 0, y: 0, touch: 0, button: 0, pos: []};
 			}
@@ -319,15 +382,33 @@ async function main() {
 			return {x: t.x, y: t.y, touch: touching, button: touching ? (t.button || 0) : 0, pos: touching ? [{x: t.x, y: t.y}] : []};
 		},
 		keys: function() {
-			const k = timelineState(keyTimeline, screen.virtualMs);
-			return k ? k.keys.slice() : [];
+			activatePulses(keyTimeline);
+			const k = timelineState(keyTimeline);
+			const held = k ? k.keys.slice() : [];
+			keyTimeline.forEach(function(e) {
+				if (pulseActive(e)) {
+					e.keys.forEach(function(key) {
+						if (held.indexOf(key) < 0) {
+							held.push(key);
+						}
+					});
+				}
+			});
+			return held;
 		},
 		record: function(name, args) {
 			screen.calls++;
 			if (!recordCalls) {
 				return;
 			}
-			if (screen.calls > maxCalls) {
+			if (recordFrames && (screen.frames < recordFrames.from || screen.frames > recordFrames.to)) {
+				return;
+			}
+			if (recordFunctions && recordFunctions.indexOf(name.toLowerCase()) < 0) {
+				return;
+			}
+			screen.recorded = (screen.recorded || 0) + 1;
+			if (screen.recorded > maxCalls) {
 				screen.recordTruncated = true;
 				return;
 			}
@@ -345,6 +426,7 @@ async function main() {
 		__host: host
 	};
 	host.screen = screenHost;
+	host.storage = storage;
 	const context = vm.createContext(sandbox);
 	INTERPRETER_FILES.forEach(function(f) {
 		runSource(context, readDevFile(f), f);
@@ -390,10 +472,15 @@ async function main() {
 		const kind = ALLOWED_JS_LIBS[f];
 		if (kind === 'file') {
 			runSource(context, readDevFile(f), f);
+			if (f === 'lib/math.js' && opt.seed !== null) {
+				// Same as calling random(seed) once before the program starts (its value is discarded).
+				ScriptExec.lib['random'](null, [{name: '', v: {type: 2, str: opt.seed}}], ScriptExec.initValueInfo());
+			}
 			return 0;
 		}
 		if (kind === 'server-io') {
 			runSource(context, SERVER_IO_SOURCE, 'server_io.js');
+			ioLoaded = true;
 			return 0;
 		}
 		if (kind === 'headless-screen') {
@@ -419,9 +506,16 @@ async function main() {
 			import: importFile,
 			success: async function(token) {
 				const se = new ScriptExec(scis, sci);
-				await se.exec(token, {}, {
+				const initialVars = {};
+				if (!imported && opt.globals) {
+					Object.keys(opt.globals).forEach(function(name) {
+						initialVars[name] = jsonToValue(opt.globals[name]);
+					});
+				}
+				await se.exec(token, initialVars, {
 					callback: async function(ei) {
 						steps++;
+						frameSteps++;
 						if (!imported) {
 							const tk = ei.token[ei.index];
 							if (tk && tk.line >= 0) {
@@ -556,12 +650,26 @@ async function main() {
 			record: recordCalls ? screen.record : null,
 			record_truncated: screen.recordTruncated
 		} : null,
+		storage: ioLoaded ? storageToJson() : null,
 		stats: {
 			steps: steps,
 			elapsed_ms: Date.now() - startTime,
-			input_lines_used: inputUsed
+			input_lines_used: inputUsed,
+			steps_per_frame: screen.frames > 0 ? {avg: Math.round(steps / screen.frames), max: Math.max(maxFrameSteps, frameSteps)} : null
 		}
 	});
+
+	function storageToJson() {
+		const out = {};
+		Object.keys(storage).forEach(function(k) {
+			try {
+				out[k] = valueToJson(JSON.parse(storage[k]));
+			} catch (e) {
+				out[k] = null;
+			}
+		});
+		return out;
+	}
 }
 
 main().catch(function(e) {
@@ -576,6 +684,7 @@ main().catch(function(e) {
 		error: {message: (e && e.message) ? e.message : String(e), line: null, source: null, phase: 'internal'},
 		variables: null,
 		screen: null,
-		stats: {steps: 0, elapsed_ms: 0, input_lines_used: 0}
+		storage: null,
+		stats: {steps: 0, elapsed_ms: 0, input_lines_used: 0, steps_per_frame: null}
 	});
 });
