@@ -99,6 +99,13 @@ function normalizeTimeline(list, kind, field) {
 				return {error: `${where}.frames must be a positive integer`};
 			}
 			entry.frames = frames;
+			if (e.gap !== undefined && e.gap !== null) {
+				const gap = Number(e.gap);
+				if (!Number.isInteger(gap) || gap < 0) {
+					return {error: `${where}.gap must be a non-negative integer`};
+				}
+				entry.gap = gap;
+			}
 		} else if (e.frames !== undefined) {
 			return {error: `${where}.frames is only valid together with "tap" or "hold"`};
 		}
@@ -191,6 +198,7 @@ function normalizeScreen(screen, settings) {
 		record_frames: normalizeRecordFrames(screen.record_frames),
 		record_functions: Array.isArray(screen.record_functions) && screen.record_functions.length ? screen.record_functions.map(String) : null,
 		record_image_frames: !!screen.record_image_frames,
+		record_last_drawn: !!screen.record_last_drawn,
 		record_exclude_functions: Array.isArray(screen.record_exclude_functions) && screen.record_exclude_functions.length ? screen.record_exclude_functions.map(String) : null,
 		frame_steps: !!screen.frame_steps
 	};

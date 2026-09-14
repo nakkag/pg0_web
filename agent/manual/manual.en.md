@@ -44,7 +44,7 @@ Content-Type: application/json
 - Request and response bodies are JSON (`Content-Type: application/json`, UTF-8). Request bodies are limited to 1 MB.
 - Authentication: none by default. If the server operator configured an API key, send `Authorization: Bearer <key>` (or `X-API-Key: <key>`); otherwise the API answers `401`.
 - Errors of the API itself (not of your program) use HTTP status codes 4xx/5xx and the body `{"error": {"code": "...", "message": "..."}}`. Program failures are reported with HTTP `200` and `status` other than `"ok"` (see 2.3).
-- Limits are listed in `GET /api/agent/v1`; typical values: 5 s default timeout (30 s max), 10,000,000 statements, 200,000 characters of code, 1,000,000 characters of output, 4 concurrent runs (`429 too_many_runs` beyond that, retry after a second).
+- Limits are listed in `GET /api/agent/v1`; typical values: 5 s default timeout (30 s max), 10,000,000 statements, 200,000 characters of code, 1,000,000 characters of output, 4 concurrent runs (`429 too_many_runs` beyond that; the response carries `Retry-After: 1` and `retry_after_ms`, so wait a second and retry).
 
 ### 2.2 Endpoints
 
@@ -78,6 +78,7 @@ Response: `{"ok": true, "mode": "PG0.5", "error": null, "warnings": [...]}` or `
 - `block_local_variable`: a variable first used inside a block is read outside that block, where it is a different variable (see 3.4). Typical fix: create it before the block.
 - `unused_variable`: a variable inside a function or block is assigned but never read.
 - `keyed_initializer`: a bare variable inside an array initializer (`{x, y}`) becomes a keyed element, not a list element (see 3.5). Write `{x + 0, y + 0}` for a list.
+- `undeclared_variable`: the program has `#option("strict")` and a variable is used without a `var` declaration in its scope or an enclosing one (parameters count as declared). The interpreter reports this only when the line runs; the check reports it before.
 
 #### POST /api/agent/v1/run
 
@@ -127,6 +128,8 @@ Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTi
 `PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed, check}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
 `DELETE /api/agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
+
+While iterating on a program, save it with `"private": 1` (and optionally a `uuid` of your own) so that trial versions do not appear in the public list of the editor; switch to public with a final `PUT` when it is done.
 
 `GET /api/agent/v1/scripts?q=words&uuid=owner&skip=0&count=30`: `{"scripts": [summary...], "skip", "count"}`. `q` words are matched against name and author.
 
@@ -206,7 +209,7 @@ a = 1 +
 
 ### 3.3 Types and literals
 
-**Integer**: 32-bit signed (-2,147,483,648 to 2,147,483,647). Arithmetic wraps around (`2147483647 + 1` is `-2147483648`); literals outside the range are clamped. Literals: `1234`, `-123`, `0123` (octal, PG0.5), `0x12` (hex, PG0.5). Exponent notation (`1e3`) is not supported.
+**Integer**: 32-bit signed (-2,147,483,648 to 2,147,483,647). Arithmetic wraps around (`2147483647 + 1` is `-2147483648`); literals outside the range are clamped, and so are the results of `int`, `number` (integer strings), `floor`, `ceil` and `round`. For sums that can exceed the range, compute in floats and keep a fractional part in the operands: `(a + 0.5) + (b + 0.5) - 1` gives `4000000000` for `a = b = 2000000000`, whereas `a * 1.0 + b` does not help because `2000000000 * 1.0` has no fraction and becomes an integer again. Literals: `1234`, `-123`, `0123` (octal, PG0.5), `0x12` (hex, PG0.5). Exponent notation (`1e3`) is not supported.
 
 **Float** (PG0.5): 64-bit double. Literals: `0.5`, `.5`, `2.0`. A float result that has no fractional part is converted back to integer (`2.5 - 0.5` is the integer `2`, `6 / 3` is `2`). Floats are printed with 16 digits after the decimal point: `print(7 / 2)` gives `3.5000000000000000`. Use `int(x)` or arithmetic to produce integer output when formatting matters.
 
@@ -377,7 +380,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 12. Arrays are copied on assignment and when passed to functions; use `&param` to modify the caller's array.
 13. Several statements on one line need `;` between them.
 14. `input()` returns integer `0` (not `""`) when no input line is left; test with `isType(x) == 0`.
-15. No exponent literals, no block comments, no `else` without braces, no ternary operator, no string indexing.
+15. No exponent literals, no block comments, no `else` without braces, no ternary operator, no string indexing. Things that do work and are easy to doubt: `var a = 1, b = 2`; `a[] = {}` (an empty array, `length(a)` is 0); several statements after one `case` label; functions returning arrays (`return {1, 2}`); storing an array in an element (`args[0] = {3, 4}` nests it).
 16. A variable first assigned inside `{}` is local to that block and vanishes afterwards. Create accumulators, result arrays and flags at the top level (`total = 0`) before the loop or `if` that fills them.
 17. `{x, y}` with bare variables creates keyed elements `"x"` and `"y"`; write `{x + 0, y + 0}` for a plain list.
 18. Screen programs: call `sleep()` once per loop iteration (it is the frame boundary in the API and the only pause in the browser), use radians for angles, and remember that `drawText(x, y)` places the top-left of the text at (x, y).
@@ -401,11 +404,11 @@ Function names are case-insensitive. Types: int, float, num (int or float), str,
 | `length(v: arr\|str)` | int | Element count or character count (numbers are converted to strings). |
 | `array(s: str)` | arr | Characters of `s` as elements. |
 | `string(a: arr)` | str | Elements joined into one string (no separator). |
-| `number(s: str)` | num | Parses a decimal integer or float from the start of `s` (`"12abc"` gives 12, `"abc"` gives 0). |
-| `int(v: str\|num)` | int | Converts to a 32-bit integer, truncating toward zero. |
+| `number(s: str)` | num | Parses a decimal integer or float from the start of `s` (`"12abc"` gives 12, `"abc"` gives 0; no exponent notation, `"3e9"` gives 3). An integer string outside the 32-bit range is clamped (`"3000000000"` gives 2147483647); write a decimal point to get a float (`"3000000000.0"` gives the float 3000000000). |
+| `int(v: str\|num)` | int | Converts to a 32-bit integer, truncating toward zero; values outside the range are clamped to ±2147483647/-2147483648. |
 | `code(s: str, i: int = 0)` | int | Character code at `i`; 0 if out of range. |
 | `char(c: int)` | str | One-character string for code `c`. |
-| `getKey(a: arr, i: int)` | str | Key of element `i` (`""` if none). |
+| `getKey(a: arr, i: int)` | str | Key of element `i` (`""` if none). Reading `a["key"]` creates the element, so to test whether a key exists without creating it, scan `getKey` (case-insensitive compare) or keep the keys in a separate list. There is no delete: rebuild the array without the element. |
 | `setKey(a: arr, i: int, key: str)` | 0 | Sets the key of element `i`. |
 
 ### 4.2 Math library: `#import("lib/math.pg0")`
@@ -421,7 +424,7 @@ Function names are case-insensitive. Types: int, float, num (int or float), str,
 | `pow(base, exponent)` | Power. |
 | `random(seed = none)` | Float in [0, 1). With `seed` (number or string) it restarts a reproducible sequence and returns its first value; following `random()` calls continue the sequence. Never seeded: true random. Use a seed to make tests deterministic without changing the program: the request field `seed` of `/run` does the same before the program starts. |
 | `max(a, b, ...)`, `min(a, b, ...)` | Largest / smallest of the arguments; an array argument contributes its elements (`max({4, 2, 9})` is 9). |
-| `floor(n)`, `ceil(n)`, `round(n)` | Round down, round up, round to nearest (`round(-2.5)` is -2, like JavaScript). Return integers. |
+| `floor(n)`, `ceil(n)`, `round(n)` | Round down, round up, round to nearest (`round(-2.5)` is -2, like JavaScript). Return integers; like `int`, results beyond the 32-bit range are clamped. |
 | `hypot(x, y)` | Square root of `x*x + y*y`. |
 | `atan2(y, x)` | Angle of the point (x, y) from the positive x axis, in radians (-π to π); clockwise on the screen because y grows downwards. |
 | `sign(n)` | 1, -1 or 0. |
@@ -440,6 +443,8 @@ Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 | `substring(s, begin, length = -1)` | Substring; negative `begin` counts from the end; negative `length` means to the end. |
 | `in_string(s, search, from = 0)` | Index of `search` in `s` or -1. |
 | `split(s, separator)` | Array of strings. |
+
+Formatting a float with a fixed number of decimals (floats print with 16 decimals): scale, round and re-insert the point with string functions, about 35 steps: `s = "" + round(v * 100)` then `substring(s, 0, length(s) - 2) + "." + substring(s, length(s) - 2)` gives `"3.14"` for `v = 3.14159` (pad `s` with leading zeros first when `v < 1`).
 
 ### 4.4 I/O library: `#import("lib/io.pg0")`
 
@@ -489,7 +494,7 @@ Steps count interpreted tokens, not work: copying a large array into a parameter
 | `max_frames` | Stop after this many `sleep()` calls. Default 10000, server maximum in `GET /api/agent/v1`. |
 | `max_virtual_ms` | Stop when the virtual clock reaches this many ms. Default none. |
 | `screen.touch` | Pointer timeline: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`. Each entry is the state from its virtual time until the next entry. `touch` defaults to 1, `button` to 0. |
-| `screen.keys` | Keyboard timeline: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`. Each entry lists the keys held from its virtual time on; `[]` releases all keys. Short forms: `{"ms": 500, "tap": "Enter"}` presses a key for exactly one frame, `{"ms": 500, "hold": "ArrowDown", "frames": 8}` for 8 frames (`tap`/`hold` accept a string or an array of keys). Every entry may use `"frame": n` (frame index, 0-based) instead of `"ms"`. A tap/hold starts in the first frame whose start time is at or after `ms`, and is added on top of the held keys of the `keys` entries. |
+| `screen.keys` | Keyboard timeline: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`. Each entry lists the keys held from its virtual time on; `[]` releases all keys. Short forms: `{"ms": 500, "tap": "Enter"}` presses a key for exactly one frame (add `"gap": n` to force the key released for n frames afterwards, so that two taps on consecutive frames are seen as two presses by programs that detect edges), `{"ms": 500, "hold": "ArrowDown", "frames": 8}` for 8 frames (`tap`/`hold` accept a string or an array of keys). Every entry may use `"frame": n` (frame index, 0-based) instead of `"ms"`. A tap/hold starts in the first frame whose start time is at or after `ms`, and is added on top of the held keys of the `keys` entries. |
 | `screen.record` | `true` returns the drawing calls. |
 | `screen.max_calls` | Cap on recorded calls (default 2000). Beyond it `record_truncated` becomes `true`; `calls` keeps counting. |
 | `screen.record_frames` | `{"from": 300, "to": 320}` records only these frames (inclusive), so a late scene can be captured cheaply. |
@@ -497,6 +502,7 @@ Steps count interpreted tokens, not work: copying a large array into a parameter
 | `screen.record_image_frames` | `true` records every frame in which `createImage` is called completely (all calls of that frame, from its start), even outside `record_frames` and regardless of `record_functions`, so that the images can be reproduced when replaying a partial recording. |
 | `screen.record_exclude_functions` | `["drawRect"]` records everything except these functions (case-insensitive), for example to drop the background fill. |
 | `screen.frame_steps` | `true` returns `screen.frame_steps`, an array with the number of execution steps of every frame (first 100000 frames), to locate spikes cheaply. |
+| `screen.record_last_drawn` | `true` returns `screen.last_drawn_frame`, the complete call list of the last frame in which anything was drawn, independent of `record`, `record_frames` and the filters. For programs that redraw only when something changed (dirty flag), this is the frame to replay when the run ended with `frame_limit`. |
 
 Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. The order of the entries does not matter: at any moment the state entry that became due last applies, and taps/holds are evaluated by their own time. Every entry must have exactly one of `ms` or `frame`, numeric `x`/`y` for touch, and `keys`, `tap` or `hold` for keys; otherwise the request is rejected with `400 invalid_request` naming the entry, for example `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`.
 
@@ -535,11 +541,11 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 | `createImage(x, y, width, height, option = {})` | Copies the region into an image and returns its id (0, 1, 2, ...). `{"id": n}` replaces image n. The source is the current drawing target: the offscreen buffer between `startOffscreen()` and `endOffscreen()`, otherwise the visible screen. Only pixels inside the screen area can be captured: a region reaching outside the screen gets transparent pixels there, and areas never drawn or cleared with `clearRect` are transparent as well (alpha 0; the background color is not part of the pixels). Transparency is kept: `drawImage` of such an image shows the background and earlier drawing through the transparent parts, so sprites made from a cleared area work as expected. So an image cannot hold more than one screen of content; for a maze larger than the screen keep the data in an array and draw the visible part each frame, or build several screen-sized tiles. Images live only for the current run: they are not carried over by `globals`/`storage` into a following run (see below). |
 | `drawImage(id, x, y, option = {})` | Draws the image with top-left (x, y). `option`: `{"width", "height"}` (both or neither), `"angle"` in radians, **clockwise** (positive angles turn the top of the image to the right, because y grows downwards), rotating about the **image center**; `"alpha"` 0.0 to 1.0. Unknown ids are ignored. To rotate about another point P, rotate the image center around P and draw at the new center: with `cx = x + w/2 - px`, `cy = y + h/2 - py`, the new top-left is `(px + cx*cos(a) - cy*sin(a) - w/2, py + cx*sin(a) + cy*cos(a) - h/2)` with the same `angle` `a`. |
 | `drawText(text, x, y, option = {})` | **(x, y) is the top-left of the text**; the baseline is at y + fontsize. `option`: `{"color": "#000", "fontsize": 30, "fontface": "sans-serif", "fontstyle": "normal"/"bold"/"italic"/"oblique", "fill": 1, "width": 1}`; `fill` 0 draws outlines. Numbers and arrays are converted to text. |
-| `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character, 1 × fontsize otherwise, height = fontsize. |
+| `measureText(text, option = {})` | `{"width": w, "height": h}` in pixels; `option`: `{"fontsize", "fontface", "fontstyle"}`. Headless: 0.55 × fontsize per ASCII character (0.6 when `fontface` names a monospace font such as `"monospace"`), 1 × fontsize for other characters, height = fontsize; deterministic, so layouts computed with a monospace font match the browser closely. |
 | `rgbToPoint(x, y)` | Pixel color `{"r", "g", "b"}` (0 to 255). Headless: always black. |
 | `rgbToHex(rgb)` / `hexToRgb(hex)` | Convert between `{"r", "g", "b"}` and `"#rrggbb"`. |
 | `inTouch()` | `{"x", "y", "touch": 0/1, "button": 0 left/1 middle/2 right, "pos": {{x, y}, ...}}`. When `touch` is 0, `x`/`y` keep the last position. `pos` holds all touch points (multi-touch). |
-| `inKey(key = none)` | No argument: array of held key names (JavaScript `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`). String: 1 if held (case-insensitive). Array: 1 only if all are held; names in the array must be lower case (`{"arrowleft", "a"}`). Browser: the held list is cleared 1 s after the last `keydown` event; since a key that stays down produces repeated `keydown` events through the OS key repeat (typically every 30 to 50 ms after an initial delay of about 250 to 500 ms), ordinary keys held down stay in the list and this is not a problem in practice. Modifier keys (Shift, Ctrl, Alt) do not repeat and therefore read as released after 1 s. Poll every frame and treat the list as "currently pressed". |
+| `inKey(key = none)` | No argument: array of held key names (JavaScript `KeyboardEvent.key`: `"ArrowLeft"`, `"a"`, `" "`, `"Enter"`). String: 1 if held (case-insensitive). Array: 1 only if all are held; names in the array must be lower case (`{"arrowleft", "a"}`). Browser: the held list is cleared 1 s after the last `keydown` event; since a key that stays down produces repeated `keydown` events through the OS key repeat (typically every 30 to 50 ms after an initial delay of about 250 to 500 ms), ordinary keys held down stay in the list and this is not a problem in practice. Modifier keys (Shift, Ctrl, Alt) do not repeat and therefore read as released after 1 s. Poll every frame and treat the list as "currently pressed". Two presses of the same key within one frame are seen as one (there is no key event queue), and while the screen is open every `keydown` is prevented from its browser default (Tab, Backspace, arrows, space, Ctrl+S and similar do not move focus, navigate, scroll or open dialogs; browser-level shortcuts such as Ctrl+W or F11 cannot be blocked). Text typed through an IME (Japanese input) arrives as the key `"Process"`, so only direct keys can be read; there is no mouse-wheel input. |
 | `playSound(note, start, duration, volume = 1)` | Square wave. `note`: Hz or a name like `"C4"`, `"F#5"`. `start`: delay in ms, `duration`: length in ms. |
 | `playMusic(notes, option = {})` | `{{note, length_ms, volume?}, ...}` in sequence; `{"start": ms}` resets the position (chords), `{"volume": v}` sets the volume for following notes. `option`: `{"repeat": 1}`. Calling it again does not stop what is already playing: sounds overlap. |
 | `bgm(notes = none, option = {"repeat": 1})` | Background music track: stops the previous `bgm` (and only that), then plays `notes` in a loop (`{"repeat": 0}` plays once). `bgm()` without arguments stops the music. Sound effects from `playSound`/`playMusic` keep playing. |

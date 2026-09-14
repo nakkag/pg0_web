@@ -19,6 +19,9 @@ const MESSAGES = {
 		},
 		keyed_initializer: function(name) {
 			return `In an array initializer a bare variable such as "${name}" becomes a keyed element ("${name}": value), not a plain list element. Write "${name} + 0" (or "" + ${name} for strings) if you want a list.`;
+		},
+		undeclared_variable: function(name) {
+			return `#option("strict") is set but "${name}" is not declared with var in this scope or an enclosing one; the program will stop with "Undefined variable" when this line runs.`;
 		}
 	},
 	ja: {
@@ -30,6 +33,9 @@ const MESSAGES = {
 		},
 		keyed_initializer: function(name) {
 			return `配列の初期化子に裸の変数 "${name}" を書くと、リストの要素ではなくキー付きの要素（"${name}": 値）になります。リストにしたい場合は "${name} + 0"（文字列なら "" + ${name}）と書いてください。`;
+		},
+		undeclared_variable: function(name) {
+			return `#option("strict") が指定されていますが、"${name}" はこのスコープにも外側のスコープにも var で宣言されていません。この行の実行時に「変数が定義されていません」で停止します。`;
 		}
 	}
 };
@@ -130,6 +136,7 @@ function isCall(tokens, i) {
 
 function lint(src, lang) {
 	const msg = MESSAGES[lang === 'ja' ? 'ja' : 'en'];
+	const strict = /^\s*#\s*option\s*\(\s*["']strict["']\s*\)/im.test(src);
 	const tokens = tokenize(src);
 	const warnings = [];
 	const warned = {};
@@ -225,7 +232,9 @@ function lint(src, lang) {
 					} else if (p.t === 'op' && p.v === ',' && depthP === 1) {
 						expectName = true;
 					} else if (p.t === 'id' && expectName && depthP === 1) {
-						declare(fnScope, p.v, p.line).param = true;
+						const pv = declare(fnScope, p.v, p.line);
+						pv.param = true;
+						pv.declared = true;
 						expectName = false;
 					}
 				}
@@ -308,6 +317,7 @@ function lint(src, lang) {
 					expectName = true;
 				} else if (p.t === 'id' && expectName && depthAny === 0) {
 					const v = declare(current(), p.v, p.line);
+					v.declared = true;
 					expectName = false;
 					if (tokens[j + 1] && tokens[j + 1].t === 'op' && tokens[j + 1].v === '=') {
 						v.writes++;
@@ -363,6 +373,12 @@ function lint(src, lang) {
 		}
 		const name = tk.v;
 		let v = lookup(name);
+		if (strict && (!v || !v.declared) && !(v && globalScope.vars[name] === v && v.declared)) {
+			// In strict mode every variable must come from a var declaration (or be a parameter).
+			if (!v || !v.declared) {
+				warn('undeclared_variable', tk.line, name, msg.undeclared_variable(name));
+			}
+		}
 		if (!v) {
 			const cur = current();
 			// A name referenced at top level before this point (or anywhere, inside a function body) resolves to the global.

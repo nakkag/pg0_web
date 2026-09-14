@@ -263,6 +263,9 @@ async function main() {
 	const recordImageFrames = !!screenOpt.record_image_frames;
 	const recordExclude = screenOpt.record_exclude_functions ? screenOpt.record_exclude_functions.map(function(f) { return String(f).toLowerCase(); }) : null;
 	const wantFrameSteps = !!screenOpt.frame_steps;
+	const wantLastDrawn = !!screenOpt.record_last_drawn;
+	let lastDrawn = null;
+	let currentDrawn = null;
 	const frameStepsList = [];
 	let firstFrameSteps = null;
 	let maxFrameIndex = 0;
@@ -386,6 +389,10 @@ async function main() {
 	function pulseActive(e) {
 		return e.frames !== undefined && e.startFrame !== undefined && screen.frames < e.startFrame + e.frames;
 	}
+	// After a tap/hold with "gap", its keys count as released for that many frames.
+	function pulseGapActive(e) {
+		return e.gap !== undefined && e.startFrame !== undefined && screen.frames >= e.startFrame + e.frames && screen.frames < e.startFrame + e.frames + e.gap;
+	}
 	// The state entry that became due last wins, whatever the order in the request.
 	function timelineState(list) {
 		let cur = null;
@@ -425,6 +432,11 @@ async function main() {
 			}
 			if (screen.currentFrame) {
 				screen.currentFrame.steps = frameSteps;
+			}
+			if (currentDrawn) {
+				currentDrawn.steps = frameSteps;
+				lastDrawn = currentDrawn;
+				currentDrawn = null;
 			}
 			screen.virtualMs += ms;
 			screen.frames++;
@@ -475,6 +487,10 @@ async function main() {
 					t = e;
 				}
 			});
+			const inGap = touchTimeline.some(function(e) { return pulseGapActive(e); });
+			if (!t && inGap) {
+				return {x: 0, y: 0, touch: 0, button: 0, pos: []};
+			}
 			if (t) {
 				return {x: t.x, y: t.y, touch: 1, button: t.button || 0, pos: [{x: t.x, y: t.y}]};
 			}
@@ -498,15 +514,33 @@ async function main() {
 					});
 				}
 			});
+			keyTimeline.forEach(function(e) {
+				if (pulseGapActive(e)) {
+					e.keys.forEach(function(key) {
+						const k = held.indexOf(key);
+						if (k >= 0) {
+							held.splice(k, 1);
+						}
+					});
+				}
+			});
 			return held;
 		},
 		record: function(name, args) {
 			screen.calls++;
 			callsByFunction[name] = (callsByFunction[name] || 0) + 1;
+			const call = {fn: name, args: args};
+			if (wantLastDrawn) {
+				if (!currentDrawn) {
+					currentDrawn = {frame: screen.frames, ms: screen.virtualMs, calls: []};
+				}
+				if (currentDrawn.calls.length < maxCalls) {
+					currentDrawn.calls.push(call);
+				}
+			}
 			if (!recordCalls) {
 				return;
 			}
-			const call = {fn: name, args: args};
 			const inRange = !recordFrames || (screen.frames >= recordFrames.from && screen.frames <= recordFrames.to);
 			const fnOk = (!recordFunctions || recordFunctions.indexOf(name.toLowerCase()) >= 0) && (!recordExclude || recordExclude.indexOf(name.toLowerCase()) < 0);
 			// A frame that creates an image is recorded completely (with the calls before createImage)
@@ -782,6 +816,7 @@ async function main() {
 			calls_by_function: callsByFunction,
 			images: screen.images.length,
 			frame_steps: wantFrameSteps ? frameStepsList : null,
+			last_drawn_frame: wantLastDrawn ? (currentDrawn || lastDrawn) : null,
 			record: recordCalls ? screen.record : null,
 			record_truncated: screen.recordTruncated
 		} : null,

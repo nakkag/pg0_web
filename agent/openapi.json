@@ -370,6 +370,29 @@
                   "type": "integer"
                 },
                 "description": "Steps of every frame when screen.frame_steps was requested."
+              },
+              "last_drawn_frame": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "frame": {
+                    "type": "integer"
+                  },
+                  "ms": {
+                    "type": "integer"
+                  },
+                  "steps": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "calls": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "description": "When screen.record_last_drawn was requested."
               }
             }
           },
@@ -478,7 +501,8 @@
                   "enum": [
                     "block_local_variable",
                     "unused_variable",
-                    "keyed_initializer"
+                    "keyed_initializer",
+                    "undeclared_variable"
                   ]
                 },
                 "line": {
@@ -846,6 +870,11 @@
                 "frames": {
                   "type": "integer",
                   "minimum": 1
+                },
+                "gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "For tap: force no touch for this many frames afterwards."
                 }
               }
             }
@@ -897,6 +926,11 @@
                 "frames": {
                   "type": "integer",
                   "minimum": 1
+                },
+                "gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "For tap/hold: force the keys released for this many frames afterwards."
                 }
               }
             }
@@ -946,6 +980,11 @@
             "type": "boolean",
             "default": false,
             "description": "Return screen.frame_steps: execution steps of every frame (first 100000)."
+          },
+          "record_last_drawn": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return screen.last_drawn_frame: the complete call list of the last frame that drew anything, independent of record and its filters."
           }
         }
       }
@@ -1101,7 +1140,7 @@
             }
           },
           "429": {
-            "description": "Too many concurrent runs; retry shortly",
+            "description": "Too many concurrent runs; retry after the Retry-After header (1 second)",
             "content": {
               "application/json": {
                 "schema": {

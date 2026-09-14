@@ -247,11 +247,12 @@ ScriptExec.lib['drawtext'] = async function(ei, param, ret) {
 	return 0;
 };
 
-function __screenTextSize(text, fontSize) {
-	// Approximation: half width for ASCII, full width for other characters.
+function __screenTextSize(text, fontSize, fontFace) {
+	// Approximation: 0.55 (0.6 for monospace) of the font size per ASCII character, full width otherwise.
+	const narrow = /monospace|courier|consolas|menlo|monaco/i.test(fontFace || '') ? 0.6 : 0.55;
 	let width = 0;
 	for (const ch of String(text)) {
-		width += (ch.codePointAt(0) < 0x2e80) ? fontSize * 0.55 : fontSize;
+		width += (ch.codePointAt(0) < 0x2e80) ? fontSize * narrow : fontSize;
 	}
 	return {width: Math.round(width), height: Math.round(fontSize)};
 }
@@ -270,7 +271,7 @@ ScriptExec.lib['measuretext'] = async function(ei, param, ret) {
 	if (fontSize === undefined) {
 		fontSize = 30;
 	}
-	const size = __screenTextSize(text, fontSize);
+	const size = __screenTextSize(text, fontSize, __screenOpt(param, 1, 'fontface', 'str'));
 	ret.v.array = [__screenInt('width', size.width), __screenInt('height', size.height)];
 	ret.v.type = TYPE_ARRAY;
 	return 0;

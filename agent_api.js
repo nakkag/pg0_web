@@ -269,6 +269,7 @@ module.exports = function(app, deps) {
 
 	async function runProgram(req, res, params) {
 		if (runner.activeCount() >= settings.maxConcurrentRuns) {
+			res.set('Retry-After', '1');
 			return apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
 		}
 		try {
@@ -286,6 +287,7 @@ module.exports = function(app, deps) {
 			return;
 		}
 		if (runner.activeCount() >= settings.maxConcurrentRuns) {
+			res.set('Retry-After', '1');
 			return apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
 		}
 		try {
@@ -417,6 +419,7 @@ module.exports = function(app, deps) {
 			return true;
 		}
 		if (runner.activeCount() >= settings.maxConcurrentRuns) {
+			res.set('Retry-After', '1');
 			apiError(res, 429, 'too_many_runs', 'Too many programs are running; retry shortly', {retry_after_ms: 1000});
 			return false;
 		}
