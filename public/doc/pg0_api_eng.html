@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>PG0 - API Manual (AI agents)</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+	<style type="text/css">
+	<!--
+	body {
+		width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
+		margin: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 8px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 8px);
+	}
+	-->
+	</style>
+</head>
+<body>
+<pre style="tab-size: 4;white-space: pre-wrap;">
+Programming language PG0
+API Manual (creating programs with AI agents)
+--
+# Introduction
+PG0 (Web) provides an HTTP API for AI agents.
+Through it an AI agent can write PG0 / PG0.5 programs, check their syntax, run them to verify the results, and save them online.
+Saved programs can be opened from "Open online" in this editor or from the URL the API returns.
+
+This page is a guide for people who want an AI agent to create programs for them.
+The detailed specification that the agent itself reads (API, language, libraries) is here:
+
+	<a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a>   Agent manual (English, Markdown)
+	<a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a>   Same, Japanese
+	<a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a>       OpenAPI description
+	<a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a>          Function list (JSON)
+	<a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>                    API index and limits
+	<a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a>                          Entry point for agents
+
+# What you need
+* An AI agent that can access the web (send HTTP requests)
+	Ex) Claude Code, a chat AI with web access or code execution, an agent you built yourself
+* No API key is needed. Anyone can use the API.
+* To save a program, let the agent choose a password for later updates and deletion, or give it one in your instructions.
+
+# Basic workflow
+The agent creates programs in the following steps. You only give instructions and check the result.
+
+	1. The agent reads the manual (URL above) to learn the language and the libraries
+	2. It writes the program and checks the syntax with /check (typical mistakes come back as warnings)
+	3. It runs the program with /run and inspects output, return value and variables
+	4. Steps 2 and 3 are repeated until the program behaves as expected
+	5. It saves the program online with /scripts (name, author, password, memo)
+	6. You open the URL the agent reports and run the program in the editor
+	7. When you ask for changes, the agent updates the same script and writes what changed into the memo (revision history)
+
+You can also find the program with "Open online" in the editor, searching by name or author.
+
+# Example instructions for the agent
+Telling the agent to read the manual URL first is the most reliable start. Examples:
+
+	Create a program in PG0.5. First read https://pg0.jp/api/agent/v1/manual?lang=en to learn the
+	language and the API, verify the program with /check and /run, then save it online with /scripts.
+	Task: print the prime numbers from 1 to 100.
+	Save it as "Prime numbers", author "(your name)", password "(any string)", public.
+	Finally tell me the URL that opens it in the editor.
+
+For a game:
+
+	Using the screen library of PG0.5 (lib/screen.pg0), create a touch-controlled breakout game.
+	Read https://pg0.jp/api/agent/v1/manual?lang=en and verify the game logic with headless runs.
+	Since it is a screen program, save it with execution speed "No wait" (speed: 0) and give me the
+	URL that opens and runs it immediately (run_url).
+
+To have a saved program modified, give the agent the cid (script id) and the password:
+
+	Fetch the script with cid xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx and change it so that the ball gets
+	10% faster on every stage. The password is "(the string used when saving)".
+	When you update it, describe the change in the memo.
+
+For learning purposes you can ask for the smaller PG0 mode:
+
+	In PG0 mode (integers only, no functions), write a program that builds the multiplication table using
+	only while loops. Leave the result in variables and verify it with the "variables" field of /run.
+
+# About saving online
+* Names must be unique among public scripts; saving fails if the name exists (private scripts may repeat names).
+* The password is needed for updates and deletion. It works exactly like a password entered in the editor, so a person can update an agent's script in the editor and vice versa.
+* Passwords are compared case-insensitively with surrounding spaces removed. This is not strong protection; do not rely on it for anything valuable.
+* The memo is kept per version and shown in the editor's "Revision history". Tell the agent to describe the program on creation and the change on every update.
+* Public scripts are visible to everyone. Do not put personal information in them.
+* The agent gets two URLs:
+	url      opens the script in the editor
+	run_url  opens it and runs it immediately (use this to hand a game to someone)
+
+# About screen (game) programs
+* Programs that use the screen library (lib/screen.pg0) run through the API without a screen (headless).
+	Drawing calls are recorded, and key or touch input can be given with timestamps to verify the game logic.
+	Appearance (layout, colors) cannot be checked through the API; open the program in the editor for that.
+* Have the agent save such programs with execution speed "No wait" (speed: 0). Other speeds pause after every statement and make screen programs extremely slow.
+* Because of browser restrictions, sound may not play before the first tap or key press.
+
+# API overview
+Everything lives under https://pg0.jp/api/agent/v1 with JSON requests and responses. Details are in the agent manual.
+
+	GET    /manual?lang=en|ja    Manual (Markdown)
+	GET    /openapi.json         OpenAPI description
+	GET    /libraries            Function list
+	POST   /check                Syntax check (with warnings)
+	POST   /run                  Run (returns output, result, variables, screen recording)
+	GET    /scripts              List / search saved scripts
+	POST   /scripts              Save a new script
+	GET    /scripts/{cid}        Get a script including its code
+	PUT    /scripts/{cid}        Update (password required)
+	DELETE /scripts/{cid}        Delete (password required)
+	POST   /scripts/{cid}/run    Run a saved script
+	GET    /scripts/{cid}/history Revision history
+
+Quick test with curl:
+
+	curl -H "Content-Type: application/json" \
+	     -d '{"code":"#import(\"lib/io.pg0\")\nfor (i = 1; i <= 3; i++) { println(i * i) }"}' \
+	     https://pg0.jp/api/agent/v1/run
+
+	{"status":"ok","output":"1\n4\n9\n", ... }
+
+# Limits
+* One run is limited to 5 seconds by default (30 seconds at most), and the number of executed statements and the memory are capped too. Split long work, or for games use the frame limit (max_frames).
+* The number of concurrent runs is limited; beyond it the API asks to retry after a short wait (429).
+* The actual values are listed under "limits" at https://pg0.jp/api/agent/v1.
+* Only lib/math.pg0, lib/string.pg0, lib/io.pg0 and lib/screen.pg0 can be imported with #import; URLs and other files cannot.
+
+# Troubleshooting
+* Saving reports a name conflict (409): use another name or save as private (private: 1).
+* Updating or deleting reports a wrong password (401): give the agent the password used when saving.
+* A run ends with status "timeout": endless loop or too much work; for screen programs have the agent set max_frames.
+* "Read error in script or library": an unsupported #import is used.
+* The agent misunderstands the language (braces after if, block-local variables, string operators, ...): tell it to read the "Pitfalls checklist" in the manual.
+
+--
+Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.
+    WEB SITE: https://nakka.com/
+    E-MAIL: nakka@nakka.com
+</pre>
+</body>
+</html>

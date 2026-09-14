@@ -60,6 +60,7 @@ let resource = {
 	MENU_MANUAL_PG0: 'PG0 Language specification',
 	MENU_MANUAL_PG05: 'PG0.5 Language specification',
 	MENU_MANUAL_LIB: 'Library Reference',
+	MENU_MANUAL_API: 'API Manual (AI agents)',
 	MENU_TOP: 'Top page',
 
 	VARIABLE_NAME: 'Name',
@@ -77,6 +78,7 @@ let resource = {
 	MANUAL_PG0_URL: '../doc/pg0_eng.html',
 	MANUAL_PG05_URL: '../doc/pg0.5_eng.html',
 	MANUAL_LIB_URL: '../doc/pg0.5_lib_eng.html',
+	MANUAL_API_URL: '../doc/pg0_api_eng.html',
 };
 
 if (_lang === 'ja') {
@@ -139,6 +141,7 @@ if (_lang === 'ja') {
 		MENU_MANUAL_PG0: 'PG0言語仕様',
 		MENU_MANUAL_PG05: 'PG0.5言語仕様',
 		MENU_MANUAL_LIB: 'ライブラリリファレンス',
+		MENU_MANUAL_API: 'APIマニュアル (AIエージェント)',
 		MENU_TOP: 'トップページ',
 
 		VARIABLE_NAME: '変数',
@@ -156,5 +159,6 @@ if (_lang === 'ja') {
 		MANUAL_PG0_URL: '../doc/pg0.html',
 		MANUAL_PG05_URL: '../doc/pg0.5.html',
 		MANUAL_LIB_URL: '../doc/pg0.5_lib.html',
+		MANUAL_API_URL: '../doc/pg0_api.html',
 	};
 }

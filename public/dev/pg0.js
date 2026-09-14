@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-manual-pg0').textContent = resource.MENU_MANUAL_PG0;
 	document.getElementById('menu-manual-pg05').textContent = resource.MENU_MANUAL_PG05;
 	document.getElementById('menu-manual-lib').textContent = resource.MENU_MANUAL_LIB;
+	document.getElementById('menu-manual-api').textContent = resource.MENU_MANUAL_API;
 	document.getElementById('menu-top').textContent = resource.MENU_TOP;
 
 	// Load settings
@@ -608,6 +609,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 			case 'menu-manual-lib':
 				if (!window.open(resource.MANUAL_LIB_URL, '_blank')) {
 					location.href = resource.MANUAL_LIB_URL;
+				}
+				break;
+			case 'menu-manual-api':
+				if (!window.open(resource.MANUAL_API_URL, '_blank')) {
+					location.href = resource.MANUAL_API_URL;
 				}
 				break;
 			case 'menu-top':

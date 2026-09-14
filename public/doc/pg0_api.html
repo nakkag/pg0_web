@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<title>PG0 - APIマニュアル (AIエージェント)</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+	<style type="text/css">
+	<!--
+	body {
+		width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
+		margin: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 8px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 8px);
+	}
+	-->
+	</style>
+</head>
+<body>
+<pre style="tab-size: 4;white-space: pre-wrap;">
+プログラミング言語 PG0
+APIマニュアル (AIエージェントでプログラムを作る)
+--
+■はじめに
+PG0(Web版)には、AIエージェント向けのHTTP APIがあります。
+AIエージェントはこのAPIを使って、PG0 / PG0.5のプログラムを書き、構文チェックし、実行して結果を確かめ、オンラインに保存できます。
+保存したプログラムは、このエディタの「オンラインを開く」や、APIが返すURLから開いて動かせます。
+
+このページは、AIエージェントにプログラムを作らせたい人のための手引きです。
+エージェント自身が読む詳細な仕様(API、言語仕様、ライブラリ)は次のURLにあります。
+
+	<a href="https://pg0.jp/api/agent/v1/manual?lang=ja">https://pg0.jp/api/agent/v1/manual?lang=ja</a>   エージェント用マニュアル(日本語、Markdown)
+	<a href="https://pg0.jp/api/agent/v1/manual?lang=en">https://pg0.jp/api/agent/v1/manual?lang=en</a>   同 英語
+	<a href="https://pg0.jp/api/agent/v1/openapi.json">https://pg0.jp/api/agent/v1/openapi.json</a>       OpenAPI定義
+	<a href="https://pg0.jp/api/agent/v1/libraries">https://pg0.jp/api/agent/v1/libraries</a>          関数一覧(JSON)
+	<a href="https://pg0.jp/api/agent/v1">https://pg0.jp/api/agent/v1</a>                    APIの索引と制限値
+	<a href="https://pg0.jp/llms.txt">https://pg0.jp/llms.txt</a>                          エージェント向けの入口
+
+■必要なもの
+・Webにアクセスできる(HTTPリクエストを送れる)AIエージェント
+	例) Claude Code、Web検索やコード実行ができるチャットAI、独自に作ったエージェント
+・APIキーは不要です。誰でも使えます。
+・プログラムを保存するときは、後で更新・削除するためのパスワードをエージェントに決めさせるか、指示で与えます。
+
+■基本の流れ
+AIエージェントは、次の手順でプログラムを作ります。人が行うのは指示と確認だけです。
+
+	1. エージェントがマニュアル(上記URL)を読み、言語仕様とライブラリを把握する
+	2. プログラムを書き、/check で構文チェックする(典型的な間違いは警告として返る)
+	3. /run で実行し、出力・戻り値・変数の値を見て動作を確かめる
+	4. 期待どおりになるまで 2〜3 を繰り返す
+	5. /scripts にオンライン保存する(名前、作者、パスワード、メモ)
+	6. 人はエージェントが伝えるURLを開き、エディタで動かして確認する
+	7. 修正を頼むと、エージェントは同じスクリプトを更新し、変更内容をメモ(変更履歴)に残す
+
+エディタの「オンラインを開く」で探すこともできます。名前や作者で検索できます。
+
+■エージェントへの指示の例
+最初に、マニュアルのURLを読むように伝えるのが確実です。以下は指示の例です。
+
+	PG0.5でプログラムを作ってください。まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで
+	言語仕様とAPIの使い方を把握し、/check と /run で動作を確認してから、/scripts にオンライン保存してください。
+	内容: 1から100までの素数を表示する。
+	保存時の名前は「素数の表示」、作者は「(あなたの名前)」、パスワードは「(任意の文字列)」、公開で。
+	最後に、エディタで開くURLを教えてください。
+
+ゲームを作る場合の例です。
+
+	PG0.5の画面描画ライブラリ(lib/screen.pg0)を使って、タッチで操作するブロック崩しを作ってください。
+	https://pg0.jp/api/agent/v1/manual?lang=ja を読み、ヘッドレス実行でゲームのロジックを確かめてください。
+	画面のプログラムなので実行速度は「待ち無し」(speed: 0)で保存し、開いてすぐ実行できるURL(run_url)を教えてください。
+
+保存済みのプログラムを直してもらう場合は、cid(スクリプトのID)とパスワードを伝えます。
+
+	cid が xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx のスクリプトを取得して、
+	ボールの速度をステージごとに10%ずつ速くするように直してください。パスワードは「(保存時の文字列)」です。
+	更新するときは、変更内容をメモに書いてください。
+
+プログラミング学習用に、機能の少ないPG0で作らせることもできます。
+
+	PG0モード(整数のみ、関数なし)で、while文だけを使って九九の表を作るプログラムを作ってください。
+	結果は変数に残し、/run の variables で確認してください。
+
+■オンライン保存について
+・名前は、公開スクリプトの中で重複できません。同じ名前があると保存に失敗します(非公開なら重複できます)。
+・パスワードは更新と削除に必要です。エディタで保存したときと同じ扱いなので、エージェントが保存したものを人がエディタで更新することも、その逆もできます。
+・パスワードは大文字小文字を区別せず、前後の空白を除いて比較します。強い保護ではないので、大事な情報を守る用途には使わないでください。
+・メモはバージョンごとに残り、エディタの「変更履歴」に表示されます。エージェントには、作成時は内容を、更新時は変更点を書くよう指示してください。
+・公開スクリプトは誰でも見られます。個人情報などは入れないでください。
+・エージェントが返すURLは2種類あります。
+	url      エディタで開く
+	run_url  エディタで開いてすぐ実行する(ゲームを人に渡すときはこちら)
+
+■画面(ゲーム)のプログラムについて
+・画面描画ライブラリ(lib/screen.pg0)を使うプログラムは、APIでは画面を出さずに実行されます(ヘッドレス実行)。
+	描画の呼び出しが記録され、キーやタッチの操作を時刻付きで与えてゲームの動きを確かめられます。
+	見た目(レイアウトや色)はAPIでは確認できないので、人がエディタで開いて確認してください。
+・実行速度は「待ち無し」(speed: 0)で保存させてください。他の速度では1文ごとに待ちが入り、画面のプログラムは極端に遅くなります。
+・サウンドは、ブラウザの制限により最初のタップやキー入力の後でないと鳴らないことがあります。
+
+■APIの概要
+すべて https://pg0.jp/api/agent/v1 の下にあり、リクエストとレスポンスはJSONです。詳細はエージェント用マニュアルにあります。
+
+	GET    /manual?lang=ja|en    マニュアル(Markdown)
+	GET    /openapi.json         OpenAPI定義
+	GET    /libraries            関数一覧
+	POST   /check                構文チェック(警告付き)
+	POST   /run                  実行(出力、戻り値、変数、画面の記録を返す)
+	GET    /scripts              保存済みスクリプトの一覧・検索
+	POST   /scripts              新規保存
+	GET    /scripts/{cid}        取得(コード込み)
+	PUT    /scripts/{cid}        更新(パスワード必要)
+	DELETE /scripts/{cid}        削除(パスワード必要)
+	POST   /scripts/{cid}/run    保存済みスクリプトの実行
+	GET    /scripts/{cid}/history 変更履歴
+
+動作確認の例(curl):
+
+	curl -H "Content-Type: application/json" \
+	     -d '{"code":"#import(\"lib/io.pg0\")\nfor (i = 1; i <= 3; i++) { println(i * i) }"}' \
+	     https://pg0.jp/api/agent/v1/run
+
+	{"status":"ok","output":"1\n4\n9\n", ... }
+
+■制限
+・1回の実行は標準5秒(最大30秒)、実行文数やメモリにも上限があります。長い処理は分割するか、ゲームならフレーム数の上限(max_frames)で区切ります。
+・同時に実行できる数には上限があり、超えると少し待ってから再試行するよう応答します(429)。
+・実際の値は https://pg0.jp/api/agent/v1 の limits に載っています。
+・ライブラリの読み込み(#import)は lib/math.pg0、lib/string.pg0、lib/io.pg0、lib/screen.pg0 のみです。URLや他のファイルは読み込めません。
+
+■うまくいかないとき
+・保存で「名前が重複」(409): 別の名前にするか、非公開(private: 1)で保存させる。
+・更新や削除で「パスワード不一致」(401): 保存時のパスワードを伝える。
+・実行結果が status: "timeout": 無限ループか処理が重すぎる。画面のプログラムなら max_frames を指定させる。
+・「スクリプトまたはライブラリの読み込みに失敗しました」: 対応していない #import を使っている。
+・エージェントが言語仕様を勘違いしている(if の波括弧、ブロック内の変数、文字列の演算など): マニュアルの「注意点チェックリスト」を読むよう伝える。
+
+--
+Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.
+    WEB SITE: https://nakka.com/
+    E-MAIL: nakka@nakka.com
+</pre>
+</body>
+</html>
