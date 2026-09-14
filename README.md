@@ -16,7 +16,7 @@
 
 The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) that lets AI agents write, syntax-check, run and store PG0 / PG0.5 programs. Programs run in an isolated worker thread with time, step and memory limits, using the same interpreter as the web editor.
 
-- Index: `GET /agent/v1`
+- Index: `GET /agent/v1` (alias `GET /api/agent/v1`, for reverse proxies that only forward `/api/`)
 - Manual (API usage, language specification, library reference): `GET /agent/v1/manual?lang=en` / `?lang=ja`
 - OpenAPI: `GET /agent/v1/openapi.json`
 - Settings: `agent_settings.js` (API key, limits)
@@ -25,7 +25,7 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 
 サーバには、AIエージェントが PG0 / PG0.5 のプログラムを作成・構文チェック・実行・保存するための HTTP API（`agent_api.js`、`server.js` からマウント）があります。プログラムは Web エディタと同じインタプリタを使い、時間・ステップ数・メモリの制限付きで独立した Worker スレッド内で実行されます。
 
-- インデックス: `GET /agent/v1`
+- インデックス: `GET /agent/v1`（`/api/` しか転送しないリバースプロキシ向けのエイリアス `GET /api/agent/v1`）
 - マニュアル（API の使い方、言語仕様、ライブラリリファレンス）: `GET /agent/v1/manual?lang=ja` / `?lang=en`
 - OpenAPI: `GET /agent/v1/openapi.json`
 - 設定: `agent_settings.js`（API キー、制限値）

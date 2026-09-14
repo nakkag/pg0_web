@@ -40,7 +40,7 @@ Content-Type: application/json
 
 ### 2.1 General
 
-- Base path: `/agent/v1` on the same host as the web editor.
+- Base path: `/agent/v1` on the same host as the web editor. `/api/agent/v1` is an alias with identical behaviour; on https://pg0.jp use `https://pg0.jp/api/agent/v1`. The `base_url` field of the index response tells which prefix you are using.
 - Request and response bodies are JSON (`Content-Type: application/json`, UTF-8). Request bodies are limited to 1 MB.
 - Authentication: none by default. If the server operator configured an API key, send `Authorization: Bearer <key>` (or `X-API-Key: <key>`); otherwise the API answers `401`.
 - Errors of the API itself (not of your program) use HTTP status codes 4xx/5xx and the body `{"error": {"code": "...", "message": "..."}}`. Program failures are reported with HTTP `200` and `status` other than `"ok"` (see 2.3).

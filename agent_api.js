@@ -136,31 +136,32 @@ module.exports = function(app, deps) {
 
 	// ---- discovery ------------------------------------------------------
 	router.get('/', function(req, res) {
-		const b = baseUrl(req);
+		const b = baseUrl(req) + req.baseUrl;
 		res.json({
 			name: 'PG0 agent API',
 			version: 1,
 			description: 'Write, check, run and store programs written in PG0 / PG0.5 (a small language for learning programming).',
+			base_url: b,
 			manual: {
-				ja: `${b}/agent/v1/manual?lang=ja`,
-				en: `${b}/agent/v1/manual?lang=en`
+				ja: `${b}/manual?lang=ja`,
+				en: `${b}/manual?lang=en`
 			},
-			openapi: `${b}/agent/v1/openapi.json`,
-			libraries: `${b}/agent/v1/libraries`,
+			openapi: `${b}/openapi.json`,
+			libraries: `${b}/libraries`,
 			endpoints: [
-				{method: 'GET', path: '/agent/v1/manual', description: 'Full manual (Markdown): API usage, language specification, library reference'},
-				{method: 'GET', path: '/agent/v1/openapi.json', description: 'OpenAPI 3 description of this API'},
-				{method: 'GET', path: '/agent/v1/libraries', description: 'Machine readable list of built-in functions and libraries'},
-				{method: 'POST', path: '/agent/v1/check', description: 'Syntax check a program without running it'},
-				{method: 'POST', path: '/agent/v1/run', description: 'Run a program and get its output, result and variables'},
-				{method: 'GET', path: '/agent/v1/scripts', description: 'List / search stored scripts'},
-				{method: 'POST', path: '/agent/v1/scripts', description: 'Store a new script (opens in the web editor)'},
-				{method: 'GET', path: '/agent/v1/scripts/{cid}', description: 'Get a stored script including its code'},
-				{method: 'PUT', path: '/agent/v1/scripts/{cid}', description: 'Update a stored script (password required)'},
-				{method: 'DELETE', path: '/agent/v1/scripts/{cid}', description: 'Delete a stored script (password required)'},
-				{method: 'POST', path: '/agent/v1/scripts/{cid}/run', description: 'Run a stored script'},
-				{method: 'GET', path: '/agent/v1/scripts/{cid}/history', description: 'List previous versions of a stored script'},
-				{method: 'GET', path: '/agent/v1/scripts/{cid}/history/{time}', description: 'Get a previous version of a stored script'}
+				{method: 'GET', path: '/manual', description: 'Full manual (Markdown): API usage, language specification, library reference'},
+				{method: 'GET', path: '/openapi.json', description: 'OpenAPI 3 description of this API'},
+				{method: 'GET', path: '/libraries', description: 'Machine readable list of built-in functions and libraries'},
+				{method: 'POST', path: '/check', description: 'Syntax check a program without running it'},
+				{method: 'POST', path: '/run', description: 'Run a program and get its output, result and variables'},
+				{method: 'GET', path: '/scripts', description: 'List / search stored scripts'},
+				{method: 'POST', path: '/scripts', description: 'Store a new script (opens in the web editor)'},
+				{method: 'GET', path: '/scripts/{cid}', description: 'Get a stored script including its code'},
+				{method: 'PUT', path: '/scripts/{cid}', description: 'Update a stored script (password required)'},
+				{method: 'DELETE', path: '/scripts/{cid}', description: 'Delete a stored script (password required)'},
+				{method: 'POST', path: '/scripts/{cid}/run', description: 'Run a stored script'},
+				{method: 'GET', path: '/scripts/{cid}/history', description: 'List previous versions of a stored script'},
+				{method: 'GET', path: '/scripts/{cid}/history/{time}', description: 'Get a previous version of a stored script'}
 			],
 			limits: {
 				default_timeout_ms: settings.defaultTimeoutMs,
@@ -200,7 +201,7 @@ module.exports = function(app, deps) {
 				logger.error(e);
 				return apiError(res, 500, 'internal_error', 'OpenAPI document is invalid');
 			}
-			doc.servers = [{url: `${baseUrl(req)}/agent/v1`}];
+			doc.servers = [{url: `${baseUrl(req)}${req.baseUrl}`}];
 			res.json(doc);
 		});
 	});
@@ -573,7 +574,7 @@ module.exports = function(app, deps) {
 	});
 
 	router.use(function(req, res) {
-		apiError(res, 404, 'not_found', `Unknown endpoint ${req.method} ${req.originalUrl}; see /agent/v1`);
+		apiError(res, 404, 'not_found', `Unknown endpoint ${req.method} ${req.originalUrl}; see ${req.baseUrl}`);
 	});
 
 	// JSON errors for malformed bodies and unexpected failures inside this router.
@@ -588,9 +589,11 @@ module.exports = function(app, deps) {
 		apiError(res, 500, 'internal_error', 'Internal Server Error');
 	});
 
+	// /api/agent/v1 is an alias so that a reverse proxy which only forwards /api/ reaches the API too.
 	app.use('/agent/v1', router);
+	app.use('/api/agent/v1', router);
 	// express.json() runs before this router, so its parse errors are caught here at app level.
-	app.use('/agent', function(err, req, res, next) {
+	app.use(['/agent', '/api/agent'], function(err, req, res, next) {
 		if (err && err.type === 'entity.parse.failed') {
 			return apiError(res, 400, 'invalid_json', 'Request body is not valid JSON');
 		}
@@ -602,6 +605,9 @@ module.exports = function(app, deps) {
 	app.get('/agent', function(req, res) {
 		res.redirect('/agent/v1');
 	});
+	app.get('/api/agent', function(req, res) {
+		res.redirect('/api/agent/v1');
+	});
 	app.get('/llms.txt', function(req, res) {
 		const b = baseUrl(req);
 		res.type('text/plain; charset=utf-8').send([
@@ -611,7 +617,7 @@ module.exports = function(app, deps) {
 			'',
 			'## AI agent API',
 			'',
-			`- [API index (JSON)](${b}/agent/v1)`,
+			`- [API index (JSON)](${b}/agent/v1) (alias: ${b}/api/agent/v1)`,
 			`- [Manual, English (Markdown)](${b}/agent/v1/manual?lang=en): API usage, language specification, library reference`,
 			`- [Manual, Japanese (Markdown)](${b}/agent/v1/manual?lang=ja)`,
 			`- [OpenAPI 3](${b}/agent/v1/openapi.json)`,
@@ -626,6 +632,6 @@ module.exports = function(app, deps) {
 		].join('\n'));
 	});
 
-	logger.info('Agent API mounted at /agent/v1');
+	logger.info('Agent API mounted at /agent/v1 and /api/agent/v1');
 	return router;
 };

@@ -40,7 +40,7 @@ Content-Type: application/json
 
 ### 2.1 共通事項
 
-- ベースパス: Web エディタと同じホストの `/agent/v1`。
+- ベースパス: Web エディタと同じホストの `/agent/v1`。`/api/agent/v1` も同じ動作のエイリアスです。https://pg0.jp では `https://pg0.jp/api/agent/v1` を使ってください。インデックスのレスポンスの `base_url` に使用中のプレフィックスが入ります。
 - リクエスト・レスポンスとも JSON（`Content-Type: application/json`、UTF-8）。リクエストボディは 1MB まで。
 - 認証: デフォルトでは不要。サーバ管理者が API キーを設定している場合は `Authorization: Bearer <key>`（または `X-API-Key: <key>`）を付けます。無い場合は `401` になります。
 - API 自体のエラー（プログラムのエラーではない）は HTTP 4xx/5xx と `{"error": {"code": "...", "message": "..."}}` で返します。プログラムの失敗は HTTP `200` で、`status` が `"ok"` 以外になります（2.3 参照）。
