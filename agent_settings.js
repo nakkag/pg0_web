@@ -4,9 +4,9 @@
 // Empty string disables authentication (same as the existing /api endpoints).
 exports.apiKey = '';
 
-// Base URL of the editor, used to build script URLs in responses.
-// Empty string uses the request's host.
-exports.publicUrl = '';
+// Base URL of the site, used to build script URLs and links in responses.
+// Empty string uses the request's X-Forwarded-Host / Host header.
+exports.publicUrl = 'https://pg0.jp';
 
 // Execution limits
 exports.maxConcurrentRuns = 4;

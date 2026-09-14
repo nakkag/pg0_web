@@ -62,7 +62,8 @@ function baseUrl(req) {
 		return settings.publicUrl.replace(/\/$/, '');
 	}
 	const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').toString().split(',')[0];
-	return `${proto}://${req.get('host')}`;
+	const host = (req.headers['x-forwarded-host'] || req.get('host') || '').toString().split(',')[0].trim();
+	return `${proto}://${host}`;
 }
 
 function scriptUrl(req, cid) {
