@@ -1,0 +1,24 @@
+// Settings for the AI agent API (agent_api.js).
+
+// API key required in "Authorization: Bearer <key>" or "X-API-Key" header.
+// Empty string disables authentication (same as the existing /api endpoints).
+exports.apiKey = '';
+
+// Base URL of the editor, used to build script URLs in responses.
+// Empty string uses the request's host.
+exports.publicUrl = '';
+
+// Execution limits
+exports.maxConcurrentRuns = 4;
+exports.defaultTimeoutMs = 5000;
+exports.maxTimeoutMs = 30000;
+exports.defaultMaxSteps = 10000000;
+exports.maxMaxSteps = 100000000;
+exports.maxCodeLength = 200000;
+exports.maxInputLength = 200000;
+exports.maxOutputLength = 1000000;
+exports.workerMemoryMb = 256;
+
+// Script storage
+exports.defaultAuthor = 'AI agent';
+exports.defaultSpeed = 250;
