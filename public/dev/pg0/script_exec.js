@@ -597,7 +597,7 @@ function ScriptExec(scis, sci) {
 				return i;
 			}
 		}
-		for (let i = ei.index; i < token.length; i++) {
+		for (let i = 0; i < token.length; i++) {
 			if (token[i].type === SYM_DEFAULT) {
 				return i;
 			}
