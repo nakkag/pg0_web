@@ -36,6 +36,11 @@ module.exports = {
 			functions: [
 				{name: 'abs', signature: 'abs(n: num) -> num', summary: 'Absolute value.'},
 				{name: 'atan', signature: 'atan(n: num) -> float', summary: 'Arc tangent in radians.'},
+				{name: 'atan2', signature: 'atan2(y: num, x: num) -> float', summary: 'Angle of point (x, y) from the positive x axis in radians (-pi..pi); clockwise on screen.'},
+				{name: 'floor', signature: 'floor(n: num) -> int', summary: 'Rounds down.'},
+				{name: 'ceil', signature: 'ceil(n: num) -> int', summary: 'Rounds up.'},
+				{name: 'round', signature: 'round(n: num) -> int', summary: 'Rounds to the nearest integer (round(-2.5) is -2).'},
+				{name: 'hypot', signature: 'hypot(x: num, y: num) -> num', summary: 'sqrt(x*x + y*y).'},
 				{name: 'cos', signature: 'cos(n: num) -> float', summary: 'Cosine (radians).'},
 				{name: 'exp', signature: 'exp(n: num) -> float', summary: 'e raised to n.'},
 				{name: 'log', signature: 'log(n: num) -> float', summary: 'Natural logarithm. Runtime error for 0 or negative values.'},

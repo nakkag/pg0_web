@@ -418,31 +418,13 @@ fill(list, 3)       // list は {0, 1, 2}
 | `pow(base, exponent)` | 累乗。 |
 | `random(seed = なし)` | [0, 1) の実数。`seed`（数値または文字列）を渡すと再現可能な乱数列を最初から始めてその最初の値を返し、以降の `random()` はその列を続けます。一度もシードを与えなければ本当の乱数です。プログラムを変えずにテストを決定的にしたいときは `/run` の `seed` フィールドを使うと、開始前に同じことが行われます。 |
 | `max(a, b, ...)`, `min(a, b, ...)` | 引数の最大値 / 最小値。配列を渡すとその要素が対象になります（`max({4, 2, 9})` は 9）。 |
+| `floor(n)`, `ceil(n)`, `round(n)` | 切り捨て、切り上げ、四捨五入（`round(-2.5)` は -2。JavaScript と同じ）。整数を返す。 |
+| `hypot(x, y)` | `x*x + y*y` の平方根。 |
+| `atan2(y, x)` | 点 (x, y) の x 軸正方向からの角度（ラジアン、-π～π）。画面では y が下向きなので時計回り。 |
 | `sign(n)` | 1、-1、0。 |
 
 小数部が 0 の結果は整数で返ります（`sqrt(16)` は `4`）。
 
-ライブラリに無い関数は数行で書けます。以下は動作確認済みで、そのままプログラムに貼り付けて使えます。
-
-```
-function floor(x) { var n = int(x)
-  if (x < n) { return n - 1 }
-  return n }
-function ceil(x) { var n = int(x)
-  if (x > n) { return n + 1 }
-  return n }
-function round(x) { return floor(x + 0.5) }
-function hypot(x, y) { return sqrt(x * x + y * y) }
-function atan2(y, x) {
-  var pi = 3.141592653589793
-  if (x > 0) { return atan(y / x) }
-  if (x < 0 && y >= 0) { return atan(y / x) + pi }
-  if (x < 0 && y < 0) { return atan(y / x) - pi }
-  if (y > 0) { return pi / 2 }
-  if (y < 0) { return -pi / 2 }
-  return 0
-}
-```
 
 
 ### 4.3 文字列ライブラリ: `#import("lib/string.pg0")`

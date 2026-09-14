@@ -201,3 +201,57 @@ ScriptExec.lib['min'] = function(ei, param, ret) {
 	ret.v.type = ScriptExec.checkInt(ret.v.num) ? TYPE_INTEGER : TYPE_FLOAT;
 	return 0;
 };
+
+function _mathNumber(p) {
+	if (p.v.type === TYPE_STRING) {
+		return ScriptExec.stringToNumber(p.v.str);
+	}
+	if (p.v.type === TYPE_ARRAY) {
+		return ScriptExec.stringToNumber(ScriptExec.arrayToString(p.v.array));
+	}
+	return p.v.num;
+}
+
+function _mathResult(ret, num, floatResult) {
+	if (isNaN(num)) {
+		throw new Error('Not a Number');
+	}
+	ret.v.num = num;
+	ret.v.type = (!floatResult || ScriptExec.checkInt(num)) ? TYPE_INTEGER : TYPE_FLOAT;
+	return 0;
+}
+
+ScriptExec.lib['floor'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	return _mathResult(ret, Math.floor(_mathNumber(param[0])), false);
+};
+
+ScriptExec.lib['ceil'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	return _mathResult(ret, Math.ceil(_mathNumber(param[0])), false);
+};
+
+ScriptExec.lib['round'] = function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	return _mathResult(ret, Math.round(_mathNumber(param[0])), false);
+};
+
+ScriptExec.lib['hypot'] = function(ei, param, ret) {
+	if (param.length < 2) {
+		return -2;
+	}
+	return _mathResult(ret, Math.hypot(_mathNumber(param[0]), _mathNumber(param[1])), true);
+};
+
+ScriptExec.lib['atan2'] = function(ei, param, ret) {
+	if (param.length < 2) {
+		return -2;
+	}
+	return _mathResult(ret, Math.atan2(_mathNumber(param[0]), _mathNumber(param[1])), true);
+};

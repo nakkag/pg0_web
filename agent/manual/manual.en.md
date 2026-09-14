@@ -418,31 +418,13 @@ Function names are case-insensitive. Types: int, float, num (int or float), str,
 | `pow(base, exponent)` | Power. |
 | `random(seed = none)` | Float in [0, 1). With `seed` (number or string) it restarts a reproducible sequence and returns its first value; following `random()` calls continue the sequence. Never seeded: true random. Use a seed to make tests deterministic without changing the program: the request field `seed` of `/run` does the same before the program starts. |
 | `max(a, b, ...)`, `min(a, b, ...)` | Largest / smallest of the arguments; an array argument contributes its elements (`max({4, 2, 9})` is 9). |
+| `floor(n)`, `ceil(n)`, `round(n)` | Round down, round up, round to nearest (`round(-2.5)` is -2, like JavaScript). Return integers. |
+| `hypot(x, y)` | Square root of `x*x + y*y`. |
+| `atan2(y, x)` | Angle of the point (x, y) from the positive x axis, in radians (-π to π); clockwise on the screen because y grows downwards. |
 | `sign(n)` | 1, -1 or 0. |
 
 Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 
-Functions that the library does not have can be written in a few lines. These are verified and can be pasted into a program:
-
-```
-function floor(x) { var n = int(x)
-  if (x < n) { return n - 1 }
-  return n }
-function ceil(x) { var n = int(x)
-  if (x > n) { return n + 1 }
-  return n }
-function round(x) { return floor(x + 0.5) }
-function hypot(x, y) { return sqrt(x * x + y * y) }
-function atan2(y, x) {
-  var pi = 3.141592653589793
-  if (x > 0) { return atan(y / x) }
-  if (x < 0 && y >= 0) { return atan(y / x) + pi }
-  if (x < 0 && y < 0) { return atan(y / x) - pi }
-  if (y > 0) { return pi / 2 }
-  if (y < 0) { return -pi / 2 }
-  return 0
-}
-```
 
 
 ### 4.3 String library: `#import("lib/string.pg0")`
