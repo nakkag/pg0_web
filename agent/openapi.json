@@ -1,0 +1,1551 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PG0 agent API",
+    "version": "1.0.0",
+    "description": "Write, syntax-check, run and store programs written in PG0 / PG0.5. The full manual (language specification and library reference included) is served as Markdown at GET /manual."
+  },
+  "servers": [
+    {
+      "url": "/api/agent/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Only required when the server is configured with an API key."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "invalid_request"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "RunRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Program source code (UTF-8). Lines are separated by \\n."
+          },
+          "input": {
+            "description": "Lines returned by input(), one per call. A string is split at newlines; an array is used as is.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ],
+            "default": "PG0.5",
+            "description": "Language mode. PG0 = integers only, no functions. PG0.5 = full language."
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "ja"
+            ],
+            "default": "en",
+            "description": "Language of error messages."
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "default": 5000,
+            "description": "Execution time limit in milliseconds (capped by the server)."
+          },
+          "max_steps": {
+            "type": "integer",
+            "default": 10000000,
+            "description": "Maximum number of executed statements (capped by the server)."
+          },
+          "variables": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include the final values of global variables in the response."
+          },
+          "max_frames": {
+            "type": "integer",
+            "default": 10000,
+            "description": "Headless screen: stop with status \"frame_limit\" after this many sleep() calls (frames). Capped by the server."
+          },
+          "max_virtual_ms": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Headless screen: stop with status \"virtual_time_limit\" when the virtual clock (advanced by sleep()) reaches this many milliseconds. Default: no limit."
+          },
+          "screen": {
+            "$ref": "#/components/schemas/ScreenOptions"
+          },
+          "seed": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Seeds random() of lib/math.pg0 for reproducible runs; same as calling random(seed) once before the program starts."
+          },
+          "globals": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play. Keys must be valid PG0 variable names; others are rejected with 400."
+          },
+          "storage": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial key/value store of lib/io.pg0 (loadValue) {key: value}. The final store is returned as \"storage\"."
+          },
+          "globals_at": {
+            "type": "string",
+            "enum": [
+              "start",
+              "first_sleep"
+            ],
+            "default": "start",
+            "description": "When to apply globals: before the first statement, or at the first sleep() call after the program's own initialization (screen programs), which avoids being overwritten by initial assignments and var declarations."
+          },
+          "profile": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return execution steps per source line and per function (response field profile)."
+          },
+          "sources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Additional source files {\"util.pg0\": code}; the program and the sources import them with #import(\"util.pg0\") (.pg0 may be omitted). At most 30 entries of 200,000 characters each."
+          }
+        }
+      },
+      "RunResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error",
+              "timeout",
+              "step_limit",
+              "memory_limit",
+              "frame_limit",
+              "virtual_time_limit"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ]
+          },
+          "output": {
+            "type": "string",
+            "description": "Everything written by print() and println()."
+          },
+          "output_truncated": {
+            "type": "boolean"
+          },
+          "error_output": {
+            "type": "string",
+            "description": "Everything written by error(), one line per call."
+          },
+          "result": {
+            "description": "Value passed to exit, converted to JSON (null when none). Arrays with keys become objects.",
+            "nullable": true
+          },
+          "result_type": {
+            "type": "string",
+            "enum": [
+              "integer",
+              "float",
+              "string",
+              "array"
+            ],
+            "nullable": true
+          },
+          "error": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "nullable": true,
+                "description": "1-based line number in the program."
+              },
+              "source": {
+                "type": "string",
+                "nullable": true,
+                "description": "Source text of that line."
+              },
+              "phase": {
+                "type": "string",
+                "enum": [
+                  "parse",
+                  "runtime",
+                  "internal"
+                ]
+              }
+            }
+          },
+          "variables": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Final values of global variables, converted to JSON."
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "steps": {
+                "type": "integer",
+                "nullable": true
+              },
+              "elapsed_ms": {
+                "type": "integer"
+              },
+              "input_lines_used": {
+                "type": "integer",
+                "nullable": true
+              },
+              "steps_per_frame": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "avg": {
+                    "type": "integer"
+                  },
+                  "max": {
+                    "type": "integer"
+                  },
+                  "max_frame": {
+                    "type": "integer"
+                  },
+                  "first": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "avg_after_first": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                },
+                "description": "Screen programs: execution steps between two sleep() calls. first = frame 0 (usually initialization), avg_after_first excludes it."
+              },
+              "globals_applied": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "start",
+                      "first_sleep"
+                    ]
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ],
+                "nullable": true,
+                "description": "When the globals were applied; false if given but never applied (no sleep()); null without globals."
+              },
+              "waited_ms": {
+                "type": "integer",
+                "description": "Total milliseconds requested by wait(); the API does not actually wait."
+              }
+            }
+          },
+          "screen": {
+            "type": "object",
+            "nullable": true,
+            "description": "Present when lib/screen.pg0 was imported.",
+            "properties": {
+              "started": {
+                "type": "boolean",
+                "description": "startScreen was called."
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "background": {
+                "type": "string",
+                "nullable": true
+              },
+              "fit": {
+                "type": "integer"
+              },
+              "frames": {
+                "type": "integer",
+                "description": "Number of sleep() calls."
+              },
+              "virtual_ms": {
+                "type": "integer",
+                "description": "Virtual clock at the end."
+              },
+              "calls": {
+                "type": "integer",
+                "description": "Number of drawing/sound calls."
+              },
+              "images": {
+                "type": "integer",
+                "description": "Images created with createImage."
+              },
+              "record": {
+                "type": "array",
+                "nullable": true,
+                "description": "When screen.record was requested: frames with their calls.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "frame": {
+                      "type": "integer"
+                    },
+                    "ms": {
+                      "type": "integer"
+                    },
+                    "calls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "fn": {
+                            "type": "string"
+                          },
+                          "args": {
+                            "type": "array",
+                            "items": {}
+                          }
+                        }
+                      }
+                    },
+                    "steps": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Execution steps of the frame."
+                    }
+                  }
+                }
+              },
+              "record_truncated": {
+                "type": "boolean"
+              },
+              "calls_by_function": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "Number of drawing/sound calls per function name."
+              },
+              "frame_steps": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "type": "integer"
+                },
+                "description": "Steps of every frame when screen.frame_steps was requested."
+              },
+              "last_drawn_frame": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "frame": {
+                    "type": "integer"
+                  },
+                  "ms": {
+                    "type": "integer"
+                  },
+                  "steps": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "calls": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "description": "When screen.record_last_drawn was requested."
+              }
+            }
+          },
+          "storage": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Final key/value store of lib/io.pg0; null unless the library was imported."
+          },
+          "profile": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "top_level_steps": {
+                "type": "integer"
+              },
+              "by_function": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "calls": {
+                      "type": "integer"
+                    },
+                    "steps": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "by_line": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "description": "1-based line number -> steps"
+              }
+            },
+            "description": "Present when profile was true."
+          },
+          "truncated": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields replaced by null because the response exceeded the size limit (about 4 MB), in the order screen.record, screen.last_drawn_frame, screen.frame_steps, storage, variables, result, profile. Normally empty."
+          }
+        }
+      },
+      "CheckRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ],
+            "default": "PG0.5"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "ja"
+            ],
+            "default": "en"
+          },
+          "sources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Additional source files {\"util.pg0\": code}; the program and the sources import them with #import(\"util.pg0\") (.pg0 may be omitted). At most 30 entries of 200,000 characters each."
+          }
+        }
+      },
+      "CheckResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "nullable": true
+              },
+              "source": {
+                "type": "string",
+                "nullable": true
+              },
+              "phase": {
+                "type": "string"
+              }
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "block_local_variable",
+                    "split_variable",
+                    "unused_variable",
+                    "keyed_initializer",
+                    "undeclared_variable",
+                    "global_overwrite",
+                    "builtin_shadow"
+                  ]
+                },
+                "line": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Best-effort static warnings; they do not affect ok."
+          }
+        }
+      },
+      "ScriptSummary": {
+        "type": "object",
+        "properties": {
+          "cid": {
+            "type": "string",
+            "description": "Script id (UUID)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ]
+          },
+          "private": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "createTime": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Milliseconds since 1970-01-01 UTC."
+          },
+          "updateTime": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL that opens the script in the web editor."
+          },
+          "speed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              250,
+              500
+            ],
+            "description": "Execution speed used by the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. Use 0 for programs that draw with lib/screen.pg0."
+          },
+          "memo": {
+            "type": "string",
+            "description": "Revision note of this version (present in history listings and details)."
+          },
+          "current": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "History listings only: 1 for the current version, 0 for previous versions."
+          },
+          "run_url": {
+            "type": "string",
+            "description": "URL that opens the script in the web editor and runs it immediately (url + &run=1)."
+          }
+        }
+      },
+      "Script": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ScriptSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "memo": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "ScriptCreate": {
+        "type": "object",
+        "required": [
+          "name",
+          "code",
+          "password"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Script name. Must be unique among public scripts."
+          },
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "description": "Needed later to update or delete the script. The same password works in the web editor."
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 100,
+            "default": "AI agent"
+          },
+          "memo": {
+            "type": "string",
+            "description": "Revision note shown in the editor and in the revision history. Describe the program on creation and what changed on every update."
+          },
+          "private": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0,
+            "description": "1 hides the script from public lists (still reachable by cid)."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ],
+            "default": "PG0.5"
+          },
+          "uuid": {
+            "type": "string",
+            "description": "Optional owner id used to group scripts in listings (GET /scripts?uuid= lists them first, private ones included). When omitted a random id is assigned and not returned."
+          },
+          "speed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              250,
+              500
+            ],
+            "description": "Execution speed used by the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. Use 0 for programs that draw with lib/screen.pg0.",
+            "default": 250
+          },
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "Parse the code before saving; a syntax error rejects the save with 422 syntax_error."
+          }
+        }
+      },
+      "ScriptUpdate": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string",
+            "description": "Revision note for this version: write what changed. Always set it on an update; when omitted the previous memo is carried over, which makes the revision history uninformative."
+          },
+          "private": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ]
+          },
+          "uuid": {
+            "type": "string",
+            "description": "Optional owner id used to group scripts in listings (GET /scripts?uuid= lists them first, private ones included). When omitted a random id is assigned and not returned."
+          },
+          "speed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              250,
+              500
+            ],
+            "description": "Execution speed used by the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. Use 0 for programs that draw with lib/screen.pg0."
+          },
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "Parse the code before saving; a syntax error rejects the save with 422 syntax_error."
+          }
+        }
+      },
+      "ScriptRunRequest": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PG0",
+              "PG0.5"
+            ],
+            "description": "Defaults to the stored script's mode."
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "ja"
+            ]
+          },
+          "timeout_ms": {
+            "type": "integer"
+          },
+          "max_steps": {
+            "type": "integer"
+          },
+          "variables": {
+            "type": "boolean"
+          },
+          "max_frames": {
+            "type": "integer",
+            "default": 10000,
+            "description": "Headless screen: stop with status \"frame_limit\" after this many sleep() calls (frames). Capped by the server."
+          },
+          "max_virtual_ms": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Headless screen: stop with status \"virtual_time_limit\" when the virtual clock (advanced by sleep()) reaches this many milliseconds. Default: no limit."
+          },
+          "screen": {
+            "$ref": "#/components/schemas/ScreenOptions"
+          },
+          "seed": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Seeds random() of lib/math.pg0 for reproducible runs; same as calling random(seed) once before the program starts."
+          },
+          "globals": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial global variables {name: value}. JSON numbers/strings/arrays/objects become integers or floats/strings/arrays/keyed arrays. Pass a previous run's \"variables\" to continue a long play. Keys must be valid PG0 variable names; others are rejected with 400."
+          },
+          "storage": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Initial key/value store of lib/io.pg0 (loadValue) {key: value}. The final store is returned as \"storage\"."
+          },
+          "globals_at": {
+            "type": "string",
+            "enum": [
+              "start",
+              "first_sleep"
+            ],
+            "default": "start",
+            "description": "When to apply globals: before the first statement, or at the first sleep() call after the program's own initialization (screen programs), which avoids being overwritten by initial assignments and var declarations."
+          },
+          "profile": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return execution steps per source line and per function (response field profile)."
+          }
+        }
+      },
+      "ScreenOptions": {
+        "type": "object",
+        "description": "Options for programs that import lib/screen.pg0 (headless mode).",
+        "properties": {
+          "touch": {
+            "type": "array",
+            "description": "Pointer timeline (order does not matter; the entry that became due last applies). State entries: {ms | frame, x, y, touch (default 1), button (0 left, 1 middle, 2 right)} apply from their virtual time / frame index on. Short form: {ms | frame, tap: {x, y}, frames (default 1)} touches for that many frames.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ms": {
+                  "type": "number"
+                },
+                "frame": {
+                  "type": "integer"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "touch": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    1
+                  ]
+                },
+                "button": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    1,
+                    2
+                  ]
+                },
+                "tap": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "frames": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "For tap: force no touch for this many frames afterwards."
+                }
+              }
+            }
+          },
+          "keys": {
+            "type": "array",
+            "description": "Keyboard timeline (order does not matter; the entry that became due last applies). State entries: {ms | frame, keys: [...]} list the held keys (KeyboardEvent.key names) from then on; [] releases all. Short forms: {ms | frame, tap: key | [keys]} presses for one frame, {ms | frame, hold: key | [keys], frames: n} for n frames; taps/holds are added on top of the held keys.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ms": {
+                  "type": "number"
+                },
+                "frame": {
+                  "type": "integer"
+                },
+                "keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "tap": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "hold": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "frames": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "For tap/hold: force the keys released for this many frames afterwards."
+                }
+              }
+            }
+          },
+          "record": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return the drawing calls grouped by frame in screen.record."
+          },
+          "max_calls": {
+            "type": "integer",
+            "default": 2000,
+            "description": "Maximum number of recorded calls (capped by the server); further calls set record_truncated."
+          },
+          "record_frames": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "integer"
+              },
+              "to": {
+                "type": "integer"
+              }
+            },
+            "description": "Record only frames from..to (inclusive)."
+          },
+          "record_functions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Record only these functions (case-insensitive)."
+          },
+          "record_image_frames": {
+            "type": "boolean",
+            "default": false,
+            "description": "Record every frame that calls createImage completely, even outside record_frames and regardless of record_functions, so images can be reproduced from a partial recording."
+          },
+          "record_exclude_functions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Record everything except these functions (case-insensitive)."
+          },
+          "frame_steps": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return screen.frame_steps: execution steps of every frame (first 100000)."
+          },
+          "record_last_drawn": {
+            "type": "boolean",
+            "default": false,
+            "description": "Return screen.last_drawn_frame: the complete call list of the last frame that drew anything, independent of record and its filters."
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    },
+    {}
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "API index: endpoints, manual URLs and limits",
+        "responses": {
+          "200": {
+            "description": "Index"
+          }
+        }
+      }
+    },
+    "/manual": {
+      "get": {
+        "summary": "Full manual as Markdown (API usage, language specification, library reference)",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en",
+                "ja"
+              ]
+            },
+            "description": "Defaults to Accept-Language, then English."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Markdown text",
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "This document",
+        "responses": {
+          "200": {
+            "description": "OpenAPI document"
+          }
+        }
+      }
+    },
+    "/libraries": {
+      "get": {
+        "summary": "Machine readable list of built-in functions and libraries",
+        "responses": {
+          "200": {
+            "description": "Library list"
+          }
+        }
+      }
+    },
+    "/check": {
+      "post": {
+        "summary": "Syntax check a program without running it",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Check result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/run": {
+      "post": {
+        "summary": "Run a program",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Run result (also for programs that fail; see status)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Code or input too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many concurrent runs; retry after the Retry-After header (1 second)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The server is short of free memory; retry after the Retry-After header (2 seconds)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scripts": {
+      "get": {
+        "summary": "List or search stored scripts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Space separated words (at most the first 10) matched against name and author."
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Owner id; scripts with this owner are listed first, private ones included."
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Script list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scripts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScriptSummary"
+                      }
+                    },
+                    "skip": {
+                      "type": "integer"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Store a new script",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created script",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Script"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A public script with the same name exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "check was true and the code has a syntax error (error.detail holds message, line, source)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scripts/{cid}": {
+      "parameters": [
+        {
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get a stored script including its code",
+        "responses": {
+          "200": {
+            "description": "Script",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Script"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a stored script (only the fields given are changed); the previous version is kept in the history, so set \"memo\" to what changed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated script",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Script"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong password"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Name conflict"
+          },
+          "422": {
+            "description": "check was true and the code has a syntax error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a stored script",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Wrong password"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/scripts/{cid}/run": {
+      "parameters": [
+        {
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Run a stored script",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Run result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/scripts/{cid}/history": {
+      "parameters": [
+        {
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Revision history: the current version first (current = 1), then previous versions, newest first, each with its memo",
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScriptSummary"
+                      }
+                    },
+                    "skip": {
+                      "type": "integer"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scripts/{cid}/history/{time}": {
+      "parameters": [
+        {
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "time",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "description": "updateTime of the version"
+        }
+      ],
+      "get": {
+        "summary": "Get a previous version of a stored script",
+        "responses": {
+          "200": {
+            "description": "Script version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Script"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  }
+}

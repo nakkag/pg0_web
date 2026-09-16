@@ -14,6 +14,35 @@ ScriptExec.lib['println'] = async function(ei, param, ret) {
 	return 0;
 };
 
+// wait(ms): pauses the program for ms milliseconds (stopped early by the stop button).
+ScriptExec.lib['wait'] = async function(ei, param, ret) {
+	if (param.length === 0) {
+		return -2;
+	}
+	let time = 0;
+	switch (param[0].v.type) {
+	case TYPE_ARRAY:
+		time = parseInt(ScriptExec.stringToNumber(pg0_string.arrayToString(param[0].v.array)));
+		break;
+	case TYPE_STRING:
+		time = parseInt(ScriptExec.stringToNumber(param[0].v.str));
+		break;
+	default:
+		time = parseInt(param[0].v.num);
+		break;
+	}
+	if (isNaN(time) || time <= 0) {
+		return 0;
+	}
+	const st = new Date().getTime();
+	let en = st;
+	while (en - st <= time && run) {
+		await new Promise(resolve => setTimeout(resolve, 1));
+		en = new Date().getTime();
+	}
+	return 0;
+};
+
 function _getIoId() {
 	if (ev.currentContent.cid) {
 		return 'cid_' + ev.currentContent.cid;

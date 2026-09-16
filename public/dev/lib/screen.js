@@ -1338,7 +1338,31 @@ ScriptExec.lib['stopsound'] = async function(ei, param, ret) {
 	return 0;
 }
 
-function _screenPlaySound(frequency, start, end, volume, callback) {
+// Background music track: replaces the previous bgm only, sound effects keep playing.
+ScriptExec.lib['bgm'] = async function(ei, param, ret) {
+	_screenStopSound('bgm');
+	if (param.length === 0 || param[0].v.type !== TYPE_ARRAY || param[0].v.array.length === 0) {
+		return 0;
+	}
+	if (ScriptExec.lib['$op'] && ScriptExec.lib['$op'].mute) {
+		return 0;
+	}
+	let repeat = 1;
+	if (param.length >= 2 && param[1].v.type === TYPE_ARRAY) {
+		let vi = _screenGetArrayValue(param[1].v.array, 'repeat');
+		if (vi && (vi.v.type === TYPE_INTEGER || vi.v.type === TYPE_FLOAT)) {
+			repeat = vi.v.num;
+		}
+	}
+	if (repeat) {
+		_screenRepeatSounds(param[0].v.array, 'bgm');
+	} else {
+		_screenPlayMusic(param[0].v.array, null, 'bgm');
+	}
+	return 0;
+};
+
+function _screenPlaySound(frequency, start, end, volume, callback, group) {
 	if (!ScriptExec.lib['$audio_ctx']) {
 		ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 	}
@@ -1347,6 +1371,7 @@ function _screenPlaySound(frequency, start, end, volume, callback) {
 	gainNode.gain.value = volume * 0.5;
 	const oscillator = ctx.createOscillator();
 	oscillator.type = 'square';
+	oscillator.group = group || '';
 	oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
 	oscillator.connect(gainNode).connect(ctx.destination);
 	oscillator.start(ctx.currentTime + (start / 1000));
@@ -1365,7 +1390,7 @@ function _screenPlaySound(frequency, start, end, volume, callback) {
 	}
 	ScriptExec.lib['$oscillators'].push(oscillator);
 }
-function _screenPlayMusic(array, callback) {
+function _screenPlayMusic(array, callback, group) {
 	let start = 0;
 	let baseVolume = 1.0;
 	array.forEach(function(d, i) {
@@ -1389,25 +1414,30 @@ function _screenPlayMusic(array, callback) {
 				volume = d.v.array[2].v.num;
 			}
 			if (i === array.length - 1) {
-				_screenPlaySound(frequency, start, len, volume, callback);
+				_screenPlaySound(frequency, start, len, volume, callback, group);
 			} else {
-				_screenPlaySound(frequency, start, len, volume, null);
+				_screenPlaySound(frequency, start, len, volume, null, group);
 			}
 			start += len;
 		}
 	});
 }
-function _screenRepeatSounds(array) {
+function _screenRepeatSounds(array, group) {
 	_screenPlayMusic(array, function() {
-		_screenRepeatSounds(array);
-	});
+		_screenRepeatSounds(array, group);
+	}, group);
 }
-function _screenStopSound() {
+function _screenStopSound(group) {
+	const remain = [];
 	ScriptExec.lib['$oscillators'].forEach(function(oscillator) {
+		if (group && oscillator.group !== group) {
+			remain.push(oscillator);
+			return;
+		}
 		oscillator.stopSound = 1;
 		oscillator.stop();
 	});
-	ScriptExec.lib['$oscillators'] = [];
+	ScriptExec.lib['$oscillators'] = remain;
 }
 
 function _screenKeyDown(e) {

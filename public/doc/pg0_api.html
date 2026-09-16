@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<title>PG0 - AIでプログラミング</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+	<meta name="color-scheme" content="light dark">
+	<style>
+:root {
+	--bg: #f6f7f9; --card: #ffffff; --text: #1f2933; --muted: #5f6b7a; --line: #dfe3e8;
+	--accent: #1a73e8; --accent-bg: #e8f0fe; --note-bg: #fff8e1; --note-line: #f2c14e; --code-bg: #f1f3f5; --pre-bg: #1e2430; --pre-text: #e6edf3;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0f1419; --card: #161c24; --text: #e6edf3; --muted: #9aa7b4; --line: #2a3340;
+		--accent: #6cb0ff; --accent-bg: #16283d; --note-bg: #2a2410; --note-line: #c9a227; --code-bg: #232b36; --pre-bg: #0b0f14; --pre-text: #e6edf3;
+	}
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+	margin: 0; background: var(--bg); color: var(--text);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+	font-size: 16px; line-height: 1.75;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.page { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
+header.hero { padding: 8px 0 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+header.hero .kicker { color: var(--muted); font-size: 14px; margin: 0 0 4px; }
+header.hero h1 { font-size: 28px; line-height: 1.3; margin: 0 0 10px; }
+header.hero p.lead { margin: 0; color: var(--muted); }
+.lang { float: right; font-size: 14px; margin-top: 4px; }
+.lang a { color: var(--accent); text-decoration: none; }
+nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 20px 0 28px; }
+nav.toc strong { display: block; margin-bottom: 6px; font-size: 14px; color: var(--muted); }
+nav.toc ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 24px; }
+nav.toc li { break-inside: avoid; }
+nav.toc a { color: var(--accent); text-decoration: none; }
+nav.toc a:hover { text-decoration: underline; }
+section { margin: 0 0 36px; }
+h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--accent-bg); }
+h3 { font-size: 17px; margin: 22px 0 8px; }
+p { margin: 0 0 12px; }
+ul, ol { margin: 0 0 12px; padding-left: 24px; }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.92em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--pre-bg); color: var(--pre-text); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 0 0 14px; }
+pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+.prompt { position: relative; white-space: pre-wrap; word-break: break-word; padding-top: 22px; }
+.prompt::before { content: attr(data-label); position: absolute; top: 0; right: 0; font-size: 11px; letter-spacing: .04em; color: #a8b3c0; background: rgba(255,255,255,.08); padding: 2px 10px; border-radius: 0 10px 0 8px; }
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 0 0 12px; }
+.steps li { position: relative; padding: 10px 14px 10px 52px; margin: 0 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 14px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; text-align: center; line-height: 28px; font-size: 14px; }
+.note { background: var(--note-bg); border-left: 4px solid var(--note-line); padding: 10px 14px; border-radius: 6px; margin: 0 0 14px; }
+.note strong { display: block; margin-bottom: 2px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 0 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h3 { margin: 0 0 6px; font-size: 16px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--accent-bg); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; }
+dl.links { margin: 0 0 14px; }
+dl.links dt { font-weight: 600; margin-top: 8px; }
+dl.links dd { margin: 0; }
+dl.links dd a { word-break: break-all; }
+footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+@media (max-width: 600px) {
+	.page { padding: 16px 14px 40px; }
+	header.hero h1 { font-size: 23px; }
+	nav.toc ol { columns: 1; }
+	.lang { float: none; display: block; margin: 0 0 8px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="hero">
+	<span class="lang"><a href="pg0_api_eng.html">English</a></span>
+	<p class="kicker">プログラミング言語 PG0</p>
+	<h1>AIでプログラミング</h1>
+	<p class="lead">AIにお願いして、PG0のプログラムを作ってもらう方法です。むずかしい操作はいりません。AIに「こんなプログラムを作って」とたのむだけです。</p>
+</header>
+
+<nav class="toc">
+	<strong>もくじ</strong>
+	<ol>
+		<li><a href="#what">どんなことができるの?</a></li>
+		<li><a href="#need">用意するもの</a></li>
+		<li><a href="#flow">使い方(3ステップ)</a></li>
+		<li><a href="#prompt">AIへのお願いの例</a></li>
+		<li><a href="#fix">直してもらうとき</a></li>
+		<li><a href="#rule">名前とパスワードのきまり</a></li>
+		<li><a href="#game">ゲームを作るとき</a></li>
+		<li><a href="#trouble">こまったとき</a></li>
+		<li><a href="#more">もっとくわしく知りたい人へ</a></li>
+	</ol>
+</nav>
+
+<section id="what">
+	<h2>どんなことができるの?</h2>
+	<p>PG0には、AIがプログラムを作るための「入り口(API)」があります。AIはこの入り口を使って、次のことができます。</p>
+	<div class="cards">
+		<div class="card"><h3>プログラムを作る</h3><p>あなたのお願いどおりに、PG0のプログラムを書きます。</p></div>
+		<div class="card"><h3>ちゃんと動くかためす</h3><p>作ったプログラムを自分で動かして、まちがいがあれば直します。</p></div>
+		<div class="card"><h3>オンラインに保存する</h3><p>できあがったプログラムを保存して、開くためのURL(リンク)を教えてくれます。</p></div>
+	</div>
+	<p>あなたは、AIが教えてくれたURLを開くだけで、このエディタでプログラムを動かしたり、中身を見たり、自分で書きかえたりできます。</p>
+</section>
+
+<section id="need">
+	<h2>用意するもの</h2>
+	<ul>
+		<li><strong>インターネットを見られるAI。</strong> たとえば Claude Code や、Webを調べられるチャットAIです。AIがインターネットのページを読めることが必要です。</li>
+		<li><strong>パスワードにする言葉。</strong> あとでプログラムを直してもらうときに使います。わすれないようにメモしておきましょう。</li>
+	</ul>
+	<div class="note"><strong>お金や登録はいりません</strong>PG0の入り口(API)は、だれでも無料で使えます。</div>
+</section>
+
+<section id="flow">
+	<h2>使い方(3ステップ)</h2>
+	<ol class="steps">
+		<li><strong>AIにお願いする。</strong> 下の「お願いの例」をコピーして、作りたいものに書きかえて、AIに送ります。</li>
+		<li><strong>AIが作って、ためして、保存する。</strong> AIはPG0の説明書を読んでからプログラムを書き、動かしてたしかめ、オンラインに保存します。おわるとURLを教えてくれます。</li>
+		<li><strong>URLを開いて動かす。</strong> エディタが開くので、▶ボタンで実行します。気に入らないところがあれば、AIに直してもらいます(<a href="#fix">直してもらうとき</a>)。</li>
+	</ol>
+	<p>保存したプログラムは、エディタのメニューの「オンラインを開く」から、名前で探して開くこともできます。</p>
+</section>
+
+<section id="prompt">
+	<h2>AIへのお願いの例</h2>
+	<p>お願いの文には、かならず<strong>PG0の説明書のURL</strong>を入れてください。AIはこの説明書を読んで、PG0の書き方を知ります。「(  )」の中は自分で書きかえます。</p>
+
+	<h3>ふつうのプログラム</h3>
+<pre class="prompt" data-label="お願いの例"><code>PG0.5でプログラムを作ってください。
+まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで、PG0の書き方と使い方を覚えてください。
+作ってほしいもの: 1から100までの数のうち、素数だけを表示する。
+できたら動かしてたしかめてから、オンラインに保存してください。
+名前は「素数さがし」、作者は「(あなたの名前)」、パスワードは「(自分で決めた言葉)」にしてください。
+最後に、開くためのURLを教えてください。</code></pre>
+
+	<h3>ゲーム</h3>
+<pre class="prompt" data-label="お願いの例"><code>PG0.5で、画面をタッチしてあそぶブロックくずしを作ってください。
+まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んで、PG0の書き方と画面の使い方を覚えてください。
+できたらオンラインに保存してください。実行速度は「待ち無し」にしてください。
+名前は「ブロックくずし」、作者は「(あなたの名前)」、パスワードは「(自分で決めた言葉)」です。
+最後に、開いてすぐあそべるURLを教えてください。</code></pre>
+
+	<h3>クイズや計算</h3>
+<pre class="prompt" data-label="お願いの例"><code>PG0.5で、九九のクイズを出すプログラムを作ってください。
+まず https://pg0.jp/api/agent/v1/manual?lang=ja を読んでください。
+ランダムに問題を出して、答えを入力すると正解かどうか表示してください。10問で終わりにしてください。
+できたらオンラインに保存して、名前は「九九クイズ」、作者は「(あなたの名前)」、パスワードは「(自分で決めた言葉)」にして、URLを教えてください。</code></pre>
+</section>
+
+<section id="fix">
+	<h2>直してもらうとき</h2>
+	<p>保存したプログラムを直してもらうには、AIに<strong>プログラムのID</strong>と<strong>パスワード</strong>を伝えます。IDは、URLの <code>cid=</code> のうしろにある長い文字列です。</p>
+<pre class="prompt" data-label="お願いの例"><code>IDが (URLのcid=のうしろの文字列) のプログラムを直してください。パスワードは「(自分で決めた言葉)」です。
+ボールがだんだん速くなるようにしてください。
+直したら、なにを変えたかをメモに書いて保存してください。</code></pre>
+	<p>直した内容は「変更履歴」に残ります。前のほうがよかったときは、エディタのメニューの「変更履歴」から前のプログラムを開けます。</p>
+</section>
+
+<section id="rule">
+	<h2>名前とパスワードのきまり</h2>
+	<ul>
+		<li><strong>名前は、ほかの人と同じにできません。</strong> 同じ名前のプログラムがすでにあると保存できないので、AIに別の名前にしてもらいます。</li>
+		<li><strong>パスワードは、直すときと消すときに必要です。</strong> 大文字と小文字はどちらでもかまいません。わすれると直せなくなるので、メモしておきましょう。</li>
+		<li><strong>保存したプログラムは、みんなが見られます。</strong> 本名や住所、電話番号などは入れないでください。</li>
+		<li>だれにも見せたくないときは、AIに「非公開で保存して」とお願いします。非公開でも、URLを知っている人は開けます。</li>
+	</ul>
+</section>
+
+<section id="game">
+	<h2>ゲームを作るとき</h2>
+	<ul>
+		<li>AIはゲームの中身(点数の計算やキャラクターの動き)はためせますが、<strong>画面の見た目は見られません。</strong> 色や文字の位置がおかしいときは、あなたがAIに「文字がはみ出している」「ボールが小さすぎる」のように伝えてください。</li>
+		<li>ゲームは<strong>実行速度を「待ち無し」</strong>で保存してもらいます。ほかの速度だと、動きがとてもおそくなります。</li>
+		<li>音が出るゲームは、画面を一度タッチ(またはキーをおす)してから音が鳴りはじめます。</li>
+	</ul>
+</section>
+
+<section id="trouble">
+	<h2>こまったとき</h2>
+	<div class="table-wrap">
+	<table>
+		<tr><th>こんなとき</th><th>どうする?</th></tr>
+		<tr><td>AIが「PG0が分からない」と言う</td><td>お願いの文に説明書のURL(https://pg0.jp/api/agent/v1/manual?lang=ja)が入っているかたしかめて、「まずこのページを読んで」と伝えます。</td></tr>
+		<tr><td>「同じ名前があって保存できない」と言われた</td><td>別の名前にしてもらいます。</td></tr>
+		<tr><td>「パスワードがちがう」と言われた</td><td>保存したときのパスワードを伝えます。</td></tr>
+		<tr><td>プログラムが止まらない、おわらない</td><td>AIに「無限ループになっていないか調べて直して」と伝えます。</td></tr>
+		<tr><td>動くけれど、思っていたのとちがう</td><td>どこがちがうかを、なるべく具体的にAIに伝えます。「10回で終わってほしい」「文字を大きく」など。</td></tr>
+	</table>
+	</div>
+</section>
+
+<section id="more">
+	<h2>もっとくわしく知りたい人へ</h2>
+	<p>AIが読む説明書は、人が読んでもかまいません。PG0の書き方や、AI用の入り口(API)の細かい使い方が書いてあります。</p>
+	<ul>
+		<li><a href="https://pg0.jp/api/agent/v1/manual?lang=ja">AI用の説明書(日本語)</a> / <a href="https://pg0.jp/api/agent/v1/manual?lang=en">英語</a></li>
+		<li><a href="pg0.5.html">PG0.5の言語仕様</a> / <a href="pg0.5_lib.html">ライブラリリファレンス</a></li>
+	</ul>
+</section>
+<footer>Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.<br>WEB SITE: <a href="https://nakka.com/">https://nakka.com/</a> / E-MAIL: nakka@nakka.com</footer>
+</div>
+</body>
+</html>

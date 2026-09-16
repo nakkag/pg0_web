@@ -84,6 +84,9 @@ app.use(function (req, res, next) {
 });
 app.use('/', express.static('public'));
 
+// AI agent API (/api/agent/v1): program execution and script storage, see agent_api.js
+require('./agent_api.js')(app, {getDB: getDB, addHistory: addHistory, logger: logger});
+
 app.options('*', function (req, res) {
 	res.sendStatus(200);
 });
