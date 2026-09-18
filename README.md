@@ -16,7 +16,7 @@
 
 ## Server settings
 
-`server_settings.js` holds the default values. Copy `server_settings.local.js.sample` to `server_settings.local.js` and write only the values of this server there; they override `server_settings.js`. `server_settings.local.js` is ignored by git, so the settings are kept when the sources are replaced.
+`server_settings.js` holds the default values. Copy it to `server_settings.local.js` and write the values of this server there; they override `server_settings.js`. Only the values written in the local file are overridden, so entries that keep their default can be removed. `server_settings.local.js` is ignored by git, so the settings are kept when the sources are replaced.
 
 ## AI agent API
 
@@ -29,7 +29,7 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 
 ## サーバの設定
 
-既定値は `server_settings.js` にあります。`server_settings.local.js.sample` を `server_settings.local.js` にコピーし、このサーバ固有の値だけを記述してください。記述した値が `server_settings.js` より優先されます。`server_settings.local.js` は git の管理対象外なので、ソースを置き換えても設定は残ります。
+既定値は `server_settings.js` にあります。これを `server_settings.local.js` にコピーし、このサーバの値を記述してください。記述した値が `server_settings.js` より優先されます。記述した項目だけが上書きされるので、既定値のままでよい項目は削除して構いません。`server_settings.local.js` は git の管理対象外なので、ソースを置き換えても設定は残ります。
 
 ## AIエージェント用API
 

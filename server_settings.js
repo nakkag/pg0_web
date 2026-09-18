@@ -17,6 +17,6 @@ exports.authorLength = 100;
 const fs = require('fs');
 const path = require('path');
 const localFile = path.join(__dirname, 'server_settings.local.js');
-if (fs.existsSync(localFile)) {
+if (__filename !== localFile && fs.existsSync(localFile)) {
 	Object.assign(exports, require(localFile));
 }
