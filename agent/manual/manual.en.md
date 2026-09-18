@@ -203,12 +203,24 @@ A program written for PG0 mode runs unchanged in PG0.5 mode except that `/` may 
 - One statement per line, or several on one line separated by `;`.
 - Comments: `//` to the end of the line. There is no block comment.
 - Blocks are `{ ... }`. The bodies of `if`, `else`, `while`, `for`, `do`, `switch` and `function` **must** be blocks; a single statement without braces is a syntax error.
-- A statement continues on the next line only if the line ends with an operator:
+- A statement continues on the next line if the line ends with an operator:
 
 ```
 a = 1 +
     2        // a = 3
 ```
+
+- Inside `( )`, `[ ]` and an array initializer `{ }` a line break does not end the statement, so the closing bracket may go on its own line:
+
+```
+a = {
+    1,
+    2,
+    3
+}
+```
+
+  A block `{ }` is not affected: inside a block it is still one statement per line, so wrap an expression in parentheses to continue it (`x = (a + b` then `+ c)`).
 
 - Keywords (`if`, `else`, `while`, `for`, `do`, `switch`, `case`, `default`, `break`, `continue`, `return`, `function`, `var`, `exit`) are lower case only.
 - Statements are executed top to bottom; functions may be defined before or after their use.
@@ -390,7 +402,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 16. A variable first assigned inside `{}` is local to that block and vanishes afterwards. Create accumulators, result arrays and flags at the top level (`total = 0`) before the loop or `if` that fills them.
 17. `{x, y}` with bare variables creates keyed elements `"x"` and `"y"`; write `{x + 0, y + 0}` for a plain list.
 18. Screen programs: call `sleep()` once per loop iteration (it is the frame boundary in the API and the only pause in the browser), use radians for angles, and remember that `drawText(x, y)` places the top-left of the text at (x, y).
-19. A multi-line array initializer continues only while each line ends with an operator, so keep the closing brace on the line of the last element: `a[] = {1,\n 2,\n 3}` is fine, `a[] = {1,\n 2\n}` is a syntax error.
+19. Line breaks are free inside `( )`, `[ ]` and an array initializer `{ }` (`a[] = {1,\n 2,\n 3\n}`). A block `{ }` is different: inside it, it is still one statement per line, so `x = a + b\n + c` is two statements and `x` is `a + b`. Wrap it in parentheses to continue: `x = (a + b\n + c)`.
 20. Inside a function, assigning to a name updates the global of that name if it already exists; otherwise the variable is function-local, and one first assigned inside an `if`/`for` block of the function is local to that block. Declare the function's working variables with `var` at the top of the function, and create shared state at the top level before calling the function.
 21. `m = mons[0]` copies the element; changing `m["hp"]` leaves `mons[0]` untouched. Write `mons[0]["hp"] = ...` to modify the element in place.
 22. `int(time())` overflows 32 bits (`time()` is milliseconds since 1970). Take a remainder first, for example `int(time() % 65521)`, or keep the float.

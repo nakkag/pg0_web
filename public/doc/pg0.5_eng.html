@@ -243,6 +243,14 @@ The truth value in expressions is defined as follows.
 	Example: Writing 'a = 1 + 2' over two lines.
 		a = 1 + // Continues to next line
 		    2
+	Inside '(~)', '[~]' and an array initializer '{~}' a line break does not end
+	the statement, so the closing bracket can be written on its own line.
+		a = {
+			1,
+			2,
+			3
+		}
+	A block '{~}' is not affected: inside a block it is still one statement per line.
 ### Blocks
 	Blocks are denoted by { to } and group multiple statements into a single unit.
 		{
