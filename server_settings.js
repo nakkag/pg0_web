@@ -1,3 +1,6 @@
+// Sample settings. Copy this file to server_settings.local.js and edit it;
+// the server reads server_settings.local.js when it exists.
+
 exports.dbOption = 'mongodb://user:pass@127.0.0.1:27017/pg0';
 
 exports.key = 'privkey.pem';
@@ -11,12 +14,3 @@ exports.maxCount = 100;
 
 exports.nameLength = 100;
 exports.authorLength = 100;
-
-// Local settings (server_settings.local.js) override the values above.
-// The file is not tracked by git, so it survives replacing the sources.
-const fs = require('fs');
-const path = require('path');
-const localFile = path.join(__dirname, 'server_settings.local.js');
-if (__filename !== localFile && fs.existsSync(localFile)) {
-	Object.assign(exports, require(localFile));
-}

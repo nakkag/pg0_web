@@ -1,4 +1,5 @@
-// Settings for the AI agent API (agent_api.js).
+// Sample settings for the AI agent API (agent_api.js). Copy this file to
+// agent_settings.local.js and edit it; the API reads agent_settings.local.js when it exists.
 
 // API key required in "Authorization: Bearer <key>" or "X-API-Key" header.
 // Empty string disables authentication (same as the existing /api endpoints).

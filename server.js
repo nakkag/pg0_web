@@ -1,6 +1,8 @@
-const settings = require('./server_settings.js');
-
 const fs = require('fs');
+const path = require('path');
+const settings = require(fs.existsSync(path.join(__dirname, 'server_settings.local.js')) ?
+	'./server_settings.local.js' : './server_settings.js');
+
 const https = require('https');
 const mongodb = require('mongodb');
 const crypto = require('crypto');

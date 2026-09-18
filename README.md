@@ -14,9 +14,9 @@
 - [PG0.5用ライブラリ リファレンス](https://pg0.jp/doc/pg0.5_lib.html)
 - [AIでプログラミング](https://pg0.jp/doc/pg0_api.html)
 
-## Server settings
+## Settings
 
-`server_settings.js` holds the default values. Copy it to `server_settings.local.js` and write the values of this server there; they override `server_settings.js`. Only the values written in the local file are overridden, so entries that keep their default can be removed. `server_settings.local.js` is ignored by git, so the settings are kept when the sources are replaced.
+`server_settings.js` (server) and `agent_settings.js` (AI agent API) are samples. Copy them to `server_settings.local.js` / `agent_settings.local.js` and edit those; the server reads the `.local.js` file when it exists and falls back to the sample when it does not. The local file is used on its own, so keep every entry in it. Both `.local.js` files are ignored by git, so the settings are kept when the sources are replaced.
 
 ## AI agent API
 
@@ -25,11 +25,11 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 - Index: `GET /api/agent/v1`
 - Manual (API usage, language specification, library reference): `GET /api/agent/v1/manual?lang=en` / `?lang=ja`
 - OpenAPI: `GET /api/agent/v1/openapi.json`
-- Settings: `agent_settings.js` (API key, limits)
+- Settings: `agent_settings.local.js`, or `agent_settings.js` when it does not exist (API key, limits)
 
-## サーバの設定
+## 設定
 
-既定値は `server_settings.js` にあります。これを `server_settings.local.js` にコピーし、このサーバの値を記述してください。記述した値が `server_settings.js` より優先されます。記述した項目だけが上書きされるので、既定値のままでよい項目は削除して構いません。`server_settings.local.js` は git の管理対象外なので、ソースを置き換えても設定は残ります。
+`server_settings.js`（サーバ）と `agent_settings.js`（AIエージェント用API）はサンプルです。それぞれ `server_settings.local.js` / `agent_settings.local.js` にコピーして編集してください。`.local.js` があればそちらを、無ければサンプルを読み込みます。`.local.js` だけを読むので、項目はすべて残したまま値を変更してください。`.local.js` は git の管理対象外なので、ソースを置き換えても設定は残ります。
 
 ## AIエージェント用API
 
@@ -38,4 +38,4 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 - インデックス: `GET /api/agent/v1`
 - マニュアル（API の使い方、言語仕様、ライブラリリファレンス）: `GET /api/agent/v1/manual?lang=ja` / `?lang=en`
 - OpenAPI: `GET /api/agent/v1/openapi.json`
-- 設定: `agent_settings.js`（API キー、制限値）
+- 設定: `agent_settings.local.js`、無い場合は `agent_settings.js`（API キー、制限値）
