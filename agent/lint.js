@@ -254,9 +254,15 @@ function lint(src, lang) {
 	}
 	// Whether the assignment starting after token index k (the "=") reads "name" on its right-hand side.
 	function rhsReads(k, name) {
+		let depth = 0;
 		for (let j = k + 1; j < tokens.length; j++) {
 			const p = tokens[j];
-			if (p.t === 'nl' || (p.t === 'op' && p.v === ';')) {
+			if (p.t === 'op' && (p.v === '(' || p.v === '[' || p.v === '{')) {
+				depth++;
+			} else if (p.t === 'op' && (p.v === ')' || p.v === ']' || p.v === '}')) {
+				depth--;
+			}
+			if ((p.t === 'nl' || (p.t === 'op' && p.v === ';')) && depth <= 0) {
 				return false;
 			}
 			if (p.t === 'id' && p.v === name) {

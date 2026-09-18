@@ -257,9 +257,10 @@ function ScriptParse(sci) {
 			break;
 		case "\n":
 			pi.line++;
-			if (!pi.concat ||
-				prevType === SYM_EXIT || prevType === SYM_RETURN ||
-				prevType === SYM_BREAK || prevType === SYM_CONTINUE) {
+			if (pi.brackets.length === 0 &&
+				(!pi.concat ||
+					prevType === SYM_EXIT || prevType === SYM_RETURN ||
+					prevType === SYM_BREAK || prevType === SYM_CONTINUE)) {
 				pi.type = SYM_LINEEND;
 				pi.concat = true;
 			} else {
@@ -533,12 +534,30 @@ function ScriptParse(sci) {
 		return {type: type, line: line};
 	}
 
+	// Brackets of an expression. While one is open a line break does not end the statement.
+	function bracketOpen(pi) {
+		pi.brackets.push({type: pi.type, line: pi.line});
+	}
+
+	function bracketClose(pi) {
+		pi.brackets.pop();
+	}
+
+	// Error for a closing bracket that is missing: at the end of the script it points at the opening one.
+	function bracketError(pi) {
+		if (pi.type === SYM_EOF && pi.brackets.length > 0) {
+			return Script.error(sci, errMsg.ERR_PARENTHESES, pi.brackets[pi.brackets.length - 1].line);
+		}
+		return Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+	}
+
 	function primary(pi) {
 		let token;
 		switch (pi.type) {
 		case SYM_BOPEN:
 			token = createToken(SYM_BOPEN_PRIMARY, pi.line);
 			pi.token.push(token);
+			bracketOpen(pi);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -552,12 +571,14 @@ function ScriptParse(sci) {
 				return;
 			}
 			if (pi.type !== SYM_BCLOSE) {
-				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+				pi.err = bracketError(pi);
 				return;
 			}
+			bracketClose(pi);
 			getToken(pi);
 			break;
 		case SYM_OPEN:
+			bracketOpen(pi);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -567,9 +588,10 @@ function ScriptParse(sci) {
 				return;
 			}
 			if (pi.type !== SYM_CLOSE) {
-				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+				pi.err = bracketError(pi);
 				return;
 			}
+			bracketClose(pi);
 			getToken(pi);
 			break;
 		case SYM_FUNC:
@@ -589,6 +611,7 @@ function ScriptParse(sci) {
 				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 				return;
 			}
+			bracketOpen(pi);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -598,9 +621,10 @@ function ScriptParse(sci) {
 				return;
 			}
 			if (pi.type !== SYM_CLOSE) {
-				pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+				pi.err = bracketError(pi);
 				return;
 			}
+			bracketClose(pi);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -676,6 +700,7 @@ function ScriptParse(sci) {
 			return;
 		}
 		while (pi.type === SYM_ARRAYOPEN) {
+			bracketOpen(pi);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -686,12 +711,13 @@ function ScriptParse(sci) {
 					return;
 				}
 				if (pi.type !== SYM_ARRAYCLOSE) {
-					pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+					pi.err = bracketError(pi);
 					return;
 				}
 				const token = createToken(SYM_ARRAY, pi.line);
 				pi.token.push(token);
 			}
+			bracketClose(pi);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -1057,6 +1083,7 @@ function ScriptParse(sci) {
 			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 			return;
 		}
+		bracketOpen(pi);
 		getToken(pi);
 		if (pi.err) {
 			return;
@@ -1072,9 +1099,10 @@ function ScriptParse(sci) {
 			return;
 		}
 		if (pi.type !== SYM_CLOSE) {
-			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			pi.err = bracketError(pi);
 			return;
 		}
+		bracketClose(pi);
 		pi.concat = !isDo;
 		getToken(pi);
 		if (pi.err) {
@@ -1241,6 +1269,7 @@ function ScriptParse(sci) {
 			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 			return;
 		}
+		bracketOpen(pi);
 		getToken(pi);
 		if (pi.err) {
 			return;
@@ -1300,9 +1329,10 @@ function ScriptParse(sci) {
 		pi.token = tk;
 		// )
 		if (pi.type !== SYM_CLOSE) {
-			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			pi.err = bracketError(pi);
 			return;
 		}
+		bracketClose(pi);
 		// Loop
 		token = createToken(SYM_LOOP, -1);
 		pi.token.push(token);
@@ -1464,6 +1494,7 @@ function ScriptParse(sci) {
 			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 			return;
 		}
+		bracketOpen(pi);
 		getToken(pi);
 		if (pi.err) {
 			return;
@@ -1475,9 +1506,10 @@ function ScriptParse(sci) {
 		}
 		// )
 		if (pi.type !== SYM_CLOSE) {
-			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
+			pi.err = bracketError(pi);
 			return;
 		}
+		bracketClose(pi);
 		pi.concat = true;
 		getToken(pi);
 		if (pi.err) {
@@ -1678,6 +1710,7 @@ function ScriptParse(sci) {
 			decl: false,
 			case_end: false,
 			condition: false,
+			brackets: [],
 			level: 0,
 			line: 0,
 			err: null
