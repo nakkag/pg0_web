@@ -2,3 +2,4 @@ node_modules/
 package-lock.json
 desktop.ini
 server_settings.local.js
+agent_settings.local.js

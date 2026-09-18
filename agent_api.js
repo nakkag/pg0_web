@@ -8,7 +8,8 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 
-const settings = require('./agent_settings.js');
+const settings = require(fs.existsSync(path.join(__dirname, 'agent_settings.local.js')) ?
+	'./agent_settings.local.js' : './agent_settings.js');
 const {createRunner, normalizeMode, validateScreen} = require('./agent/pg0_runner.js');
 const libraries = require('./agent/libraries.js');
 const {lint} = require('./agent/lint.js');
