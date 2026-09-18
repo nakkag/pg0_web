@@ -14,6 +14,10 @@
 - [PG0.5用ライブラリ リファレンス](https://pg0.jp/doc/pg0.5_lib.html)
 - [AIでプログラミング](https://pg0.jp/doc/pg0_api.html)
 
+## Server settings
+
+`server_settings.js` holds the default values. Copy `server_settings.local.js.sample` to `server_settings.local.js` and write only the values of this server there; they override `server_settings.js`. `server_settings.local.js` is ignored by git, so the settings are kept when the sources are replaced.
+
 ## AI agent API
 
 The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) that lets AI agents write, syntax-check, run and store PG0 / PG0.5 programs. Programs run in an isolated worker thread with time, step and memory limits, using the same interpreter as the web editor.
@@ -22,6 +26,10 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 - Manual (API usage, language specification, library reference): `GET /api/agent/v1/manual?lang=en` / `?lang=ja`
 - OpenAPI: `GET /api/agent/v1/openapi.json`
 - Settings: `agent_settings.js` (API key, limits)
+
+## サーバの設定
+
+既定値は `server_settings.js` にあります。`server_settings.local.js.sample` を `server_settings.local.js` にコピーし、このサーバ固有の値だけを記述してください。記述した値が `server_settings.js` より優先されます。`server_settings.local.js` は git の管理対象外なので、ソースを置き換えても設定は残ります。
 
 ## AIエージェント用API
 
