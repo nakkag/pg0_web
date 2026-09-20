@@ -877,8 +877,19 @@ async function _exec(scis, sci, imp) {
 					let res;
 					let buf;
 					try {
+						// Scripts come from this host only: a relative path, or an
+						// absolute URL of this host (a share URL with cid= goes
+						// through the server, which looks the script up).
 						if (/^(https|http):\/\//i.test(file)) {
-							res = await fetch(apiServer + '/import/?url=' + file);
+							const url = new URL(file);
+							if (url.hostname.toLowerCase() !== location.hostname.toLowerCase()) {
+								throw('Security error');
+							}
+							if (/cid *= */.test(file)) {
+								res = await fetch(apiServer + '/import/?url=' + encodeURIComponent(file));
+							} else {
+								res = await fetch(file);
+							}
 						} else {
 							res = await fetch(file);
 						}
