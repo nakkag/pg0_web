@@ -70,14 +70,22 @@ app.use(log4js.connectLogger(logger));
 app.use(express.json({
 	limit: '1mb'
 }));
+// Cross-origin callers are the origins listed in the settings; any other
+// origin gets no CORS headers (same-origin use needs none).
+const allowOrigins = Array.isArray(settings.allowOrigins) ? settings.allowOrigins : [];
 app.use(function (req, res, next) {
-	res.header('Access-Control-Allow-Origin', req.headers.origin);
-	res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
-	res.header('Access-Control-Allow-Methods', 'POST, GET, PUT, DELETE, OPTIONS');
-	res.header('Access-Control-Allow-Credentials', true);
-	res.header('Access-Control-Max-Age', '86400');
+	if (req.headers.origin && allowOrigins.includes(req.headers.origin)) {
+		res.header('Access-Control-Allow-Origin', req.headers.origin);
+		res.header('Vary', 'Origin');
+		res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
+		res.header('Access-Control-Allow-Methods', 'POST, GET, PUT, DELETE, OPTIONS');
+		res.header('Access-Control-Allow-Credentials', true);
+		res.header('Access-Control-Max-Age', '86400');
+	}
 
-	res.header('Content-Security-Policy', 'upgrade-insecure-requests');
+	// The pages may be framed by this site only (the AI page embeds /dev/).
+	res.header('Content-Security-Policy', "upgrade-insecure-requests; frame-ancestors 'self'");
+	res.header('X-Frame-Options', 'SAMEORIGIN');
 	res.header('X-Content-Type-Options', 'nosniff');
 	res.header('X-XSS-Protection', '1; mode=block');
 	res.header('Expect-CT', 'max-age=7776000, enforce');

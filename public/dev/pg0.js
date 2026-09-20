@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 				cv.clear();
 				checkMenu();
 				if (window.parent && window.parent.postMessage) {
-					window.parent.postMessage({type: 'pg0', event: 'new', content: ev.currentContent}, '*');
+					window.parent.postMessage({type: 'pg0', event: 'new', content: contentInfo()}, location.origin);
 				}
 				break;
 			case 'menu-online-open':
@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 				vv.clear();
 				cv.clear();
 				if (window.parent && window.parent.postMessage) {
-					window.parent.postMessage({type: 'pg0', event: 'read', content: ev.currentContent}, '*');
+					window.parent.postMessage({type: 'pg0', event: 'read', content: contentInfo()}, location.origin);
 				}
 			} catch(err) {
 				console.error(err);
@@ -754,7 +754,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 		setTimeout(function() {
 			document.getElementById('main').style.display = 'block';
 			if (window.parent && window.parent.postMessage) {
-				window.parent.postMessage({type: 'pg0', event: 'load', content: ev.currentContent}, '*');
+				window.parent.postMessage({type: 'pg0', event: 'load', content: contentInfo()}, location.origin);
 			}
 		}, 100);
 	}, 10);
@@ -798,6 +798,13 @@ ScriptExec.lib['input'] = async function(ei, param, ret) {
 	}
 	return 0;
 };
+
+// What the embedding page (the same origin only) is told about the open
+// program: its identity, never its text, undo history or password.
+function contentInfo() {
+	const cc = ev.currentContent || {};
+	return {cid: cc.cid || '', name: cc.name || '', modify: !!cc.modify};
+}
 
 // Exec script
 let run = false;

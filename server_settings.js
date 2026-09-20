@@ -8,6 +8,8 @@ exports.cert = 'cert.pem';
 
 exports.httpsPort = 443;
 exports.httpPort = 80;
+// Origins (scheme://host[:port]) allowed to call the API from another site.
+exports.allowOrigins = [];
 
 exports.listCount = 30;
 exports.maxCount = 100;
