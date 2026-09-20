@@ -59,7 +59,7 @@ if (_lang === 'ja') {
 		ERR_PARENTHESES: '対応する括弧がありません',
 		ERR_BLOCK: 'ブロック「{～}」がありません',
 		ERR_DIVZERO: '0 で除算をしました',
-		ERR_OPERATOR: '間違ったな演算子です',
+		ERR_OPERATOR: '間違った演算子です',
 		ERR_ARRAYOPERATOR: '配列に使えない演算子です',
 		ERR_ALLOC: 'メモリの確保に失敗しました',
 		ERR_ARGUMENTCNT: '引数が少なすぎます',
