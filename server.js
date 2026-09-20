@@ -93,38 +93,30 @@ app.options('*', function (req, res) {
 	res.sendStatus(200);
 });
 
+// Imports a script stored on this server (a share URL with cid=). Other
+// URLs are not fetched: the server must not act as a proxy to the network.
 app.get('/import', async (req, res) => {
+	const url = String(req.query.url || '').replace(/\r\n/, '');
+	if (!/cid *= */.test(url)) {
+		return res.status(400).send('Only scripts on this server can be imported.');
+	}
+	let cid = '';
 	try {
-		const url = req.query.url.replace(/\r\n/, '');
-		if (/cid *= */.test(url)) {
-			let cid = '';
-			try {
-				const cUrl = new URL(url);
-				cid = cUrl.searchParams.get('cid');
-			} catch (error) {
-				const result = url.match(/cid *= *([a-zA-Z0-9\-]+)/);
-				if (result && result.length >= 2) {
-					cid = result[1];
-				}
-			}
-			try {
-				const db = await getDB();
-				const doc = await db.collection('script').findOne({cid: cid});
-				if (!doc) {
-					return res.status(404).send('Not found.');
-				}
-				res.send(doc.code);
-			} catch (error) {
-				logger.error(error);
-				return res.status(500).send('Internal Server Error.');
-			}
-		} else {
-			const r = await fetch(url);
-			if (!r.ok) {
-				return res.status(r.status).send(r.statusText);
-			}
-			await r.body.pipe(res);
+		const cUrl = new URL(url);
+		cid = cUrl.searchParams.get('cid');
+	} catch (error) {
+		const result = url.match(/cid *= *([a-zA-Z0-9\-]+)/);
+		if (result && result.length >= 2) {
+			cid = result[1];
 		}
+	}
+	try {
+		const db = await getDB();
+		const doc = await db.collection('script').findOne({cid: cid});
+		if (!doc) {
+			return res.status(404).send('Not found.');
+		}
+		res.send(doc.code);
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
