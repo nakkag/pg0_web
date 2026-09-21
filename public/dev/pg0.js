@@ -7,8 +7,8 @@ const options = {
 	showLineNum: true,
 	boundary: {
 		verX: 400,
-		verY: 150,
-		consoleY: 150,
+		verY: 100,
+		consoleY: 100,
 		variable: 200
 	}
 };
@@ -91,15 +91,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	// Load settings
 	if (!settingView.load()) {
-		// In the agent the editor shares the window with the chat, so in a
-		// portrait pane the variables and the console start smaller: at their
-		// own height they would leave the editor a few lines tall. A taller
-		// pane keeps more of them, up to the usual height.
-		if (inAgent && checkOrientation() === 0) {
-			const h = Math.round(window.innerHeight * 0.18);
-			options.boundary.verY = Math.min(options.boundary.verY, h);
-			options.boundary.consoleY = Math.min(options.boundary.consoleY, h);
-		}
 		settingView.save();
 		setTimeout(function() {
 			if (!pg0_string.searchParams(location.search).cid && !inAgent) {
