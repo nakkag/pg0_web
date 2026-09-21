@@ -81,10 +81,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-top').textContent = resource.MENU_TOP;
 
 	// The AI agent page embeds PG0 in a frame (only this site may, see the
-	// frame-ancestors header), so in a frame the agent is already open and its
-	// menu item is left out: following it would draw the agent page, frames and
-	// all, inside the editor pane.
-	if (window.self !== window.top) {
+	// frame-ancestors header), so in a frame the agent is already open: its
+	// menu item is left out, because following it would draw the agent page,
+	// frames and all, inside the editor pane.
+	const inAgent = (window.self !== window.top);
+	if (inAgent) {
 		document.getElementById('menu-ai-agent').parentElement.hidden = true;
 	}
 
@@ -92,13 +93,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 	if (!settingView.load()) {
 		settingView.save();
 		setTimeout(function() {
-			if (!pg0_string.searchParams(location.search).cid) {
+			if (!pg0_string.searchParams(location.search).cid && !inAgent) {
 				messageView.callback = function() {
-					if (!window.open(resource.TUTORIAL_URL, '_blank')) {
-						location.href = resource.TUTORIAL_URL;
-					}
+					location.href = resource.AI_AGENT_URL;
 				};
-				messageView.show(resource.MSG_TUTORIAL);
+				messageView.show(resource.MSG_AI_AGENT);
 			}
 		}, 100);
 	}
