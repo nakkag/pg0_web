@@ -77,8 +77,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 	document.getElementById('menu-manual-pg0').textContent = resource.MENU_MANUAL_PG0;
 	document.getElementById('menu-manual-pg05').textContent = resource.MENU_MANUAL_PG05;
 	document.getElementById('menu-manual-lib').textContent = resource.MENU_MANUAL_LIB;
-	document.getElementById('menu-manual-api').textContent = resource.MENU_MANUAL_API;
+	document.getElementById('menu-ai-agent').textContent = resource.MENU_AI_AGENT;
 	document.getElementById('menu-top').textContent = resource.MENU_TOP;
+
+	// The AI agent page embeds PG0 in a frame (only this site may, see the
+	// frame-ancestors header), so in a frame the agent is already open and its
+	// menu item is left out: following it would draw the agent page, frames and
+	// all, inside the editor pane.
+	if (window.self !== window.top) {
+		document.getElementById('menu-ai-agent').parentElement.hidden = true;
+	}
 
 	// Load settings
 	if (!settingView.load()) {
@@ -611,10 +619,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 					location.href = resource.MANUAL_LIB_URL;
 				}
 				break;
-			case 'menu-manual-api':
-				if (!window.open(resource.MANUAL_API_URL, '_blank')) {
-					location.href = resource.MANUAL_API_URL;
-				}
+			case 'menu-ai-agent':
+				location.href = resource.AI_AGENT_URL;
 				break;
 			case 'menu-top':
 				location.href = resource.TOP_URL;
