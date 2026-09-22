@@ -101,6 +101,13 @@ body::before {
 	display: block;
 }
 
+/* reset.css gives hr a display of its own, which the hidden attribute alone
+   does not override */
+.menu ul li[hidden],
+.menu ul hr[hidden] {
+	display: none;
+}
+
 .menu ul li.disable {
 	opacity: 0.5;
 }

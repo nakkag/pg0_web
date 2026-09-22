@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	const inAgent = (window.self !== window.top);
 	if (inAgent) {
 		document.getElementById('menu-ai-agent').parentElement.hidden = true;
+		document.getElementById('menu-ai-agent-line').hidden = true;
 	}
 
 	// Load settings
