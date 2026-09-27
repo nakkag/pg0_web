@@ -84,10 +84,12 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 
 	// Key events
 	ScriptExec.lib['$key'] = [];
-	ScriptExec.lib['$keyTimer'] = null;
+	ScriptExec.lib['$keyCodes'] = {};
 	if (!ScriptExec.lib['$show']) {
 		document.addEventListener('keydown', _screenKeyDown, false);
 		document.addEventListener('keyup', _screenKeyUp, false);
+		window.addEventListener('blur', _screenKeyClear, false);
+		document.addEventListener('visibilitychange', _screenKeyClear, false);
 	}
 
 	let back = document.getElementById('lib-screen-back');
@@ -431,6 +433,8 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			window.removeEventListener('orientationchange', _screenResizeDelay, false);
 			document.removeEventListener('keydown', _screenKeyDown, false);
 			document.removeEventListener('keyup', _screenKeyUp, false);
+			window.removeEventListener('blur', _screenKeyClear, false);
+			document.removeEventListener('visibilitychange', _screenKeyClear, false);
 			ScriptExec.lib['$show'] = false;
 		}
 	}, 100);
@@ -1440,24 +1444,49 @@ function _screenStopSound(group) {
 	ScriptExec.lib['$oscillators'] = remain;
 }
 
+// A key stays pressed until its keyup. The browser repeats keydown only for
+// the last key pressed (and not at all when the OS turns repeating off), so a
+// held key must not be dropped for want of repeats.
 function _screenKeyDown(e) {
 	e.preventDefault();
+	const prev = e.code ? ScriptExec.lib['$keyCodes'][e.code] : undefined;
+	if (prev !== undefined && prev !== e.key) {
+		_screenKeyRemove(prev);
+	}
+	if (e.code) {
+		ScriptExec.lib['$keyCodes'][e.code] = e.key;
+	}
 	if (!ScriptExec.lib['$key'].includes(e.key)) {
 		ScriptExec.lib['$key'].push(e.key);
 	}
-	if (ScriptExec.lib['$keyTimer']) {
-		clearTimeout(ScriptExec.lib['$keyTimer']);
-	}
-	ScriptExec.lib['$keyTimer'] = setTimeout(function() {
-		ScriptExec.lib['$keyTimer'] = null;
-		ScriptExec.lib['$key'] = [];
-	}, 1000);
 }
 function _screenKeyUp(e) {
 	e.preventDefault();
+	// The key a keydown recorded for this physical key: with Shift pressed or
+	// released in between, the keyup names it differently ("a" and "A").
+	const key = (e.code && ScriptExec.lib['$keyCodes'][e.code] !== undefined) ? ScriptExec.lib['$keyCodes'][e.code] : e.key;
+	if (e.code) {
+		delete ScriptExec.lib['$keyCodes'][e.code];
+	}
+	_screenKeyRemove(key);
+	_screenKeyRemove(e.key);
+	// While Command is held on a Mac, the other keys send no keyup.
+	if (e.key === 'Meta') {
+		_screenKeyClear();
+	}
+}
+function _screenKeyRemove(key) {
 	ScriptExec.lib['$key'] = ScriptExec.lib['$key'].filter(function(d) {
-		return d !== e.key;
+		return d !== key;
 	});
+}
+// Keyups are not sent to a window that has lost the focus or been hidden.
+function _screenKeyClear(e) {
+	if (e && e.type === 'visibilitychange' && document.visibilityState !== 'hidden') {
+		return;
+	}
+	ScriptExec.lib['$key'] = [];
+	ScriptExec.lib['$keyCodes'] = {};
 }
 
 function _screenResizeDelay() {
