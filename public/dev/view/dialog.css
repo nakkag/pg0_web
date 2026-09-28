@@ -398,6 +398,13 @@
 .file-tag:hover {
 	background-color: #ccc;
 }
+/* Trimming the text to cap height and baseline centers it whatever the fallback font's ascent and descent. */
+@supports (text-box: trim-both cap alphabetic) {
+	.file-tag {
+		text-box: trim-both cap alphabetic;
+		padding: 6px 8px;
+	}
+}
 
 .file-menu {
 	position: absolute;
