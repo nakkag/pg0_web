@@ -286,7 +286,8 @@ const onlineOpenView = (function () {
 		const filter = document.getElementById('online-open-filter');
 		const frame = filter.getBoundingClientRect();
 		const rect = chip.getBoundingClientRect();
-		const margin = document.getElementById('online-open-filter-next').offsetWidth || 36;
+		// The width of the arrow (or of the fade on touch screens), also while it is hidden.
+		const margin = parseFloat(getComputedStyle(document.getElementById('online-open-filter-next')).width) || 36;
 		if (rect.left < frame.left + margin) {
 			filter.scrollLeft -= frame.left + margin - rect.left;
 		} else if (rect.right > frame.right - margin) {
