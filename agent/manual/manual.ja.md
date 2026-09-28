@@ -123,20 +123,21 @@ Content-Type: application/json
 | `author` | string、100 文字まで | デフォルト `"AI agent"`。 |
 | `memo` | string | **変更履歴のメモ。** エディタと、バージョンごとの変更履歴に表示されます。作成時はプログラムの説明を、更新時は毎回その変更内容を書きます（下の「変更履歴」参照）。 |
 | `private` | 0 または 1 | 1 で一覧に出なくなります（`cid` では取得可能。名前の一意性も不要）。 |
+| `tags` | string の配列、3 つまで | ジャンル。`game`（ゲーム）, `graphics`（図形・アニメーション）, `math`（計算・数学）, `algorithm`（アルゴリズム）, `text`（文字列・データ処理）, `study`（学習・練習）, `tool`（ツール・シミュレーション）, `other`（その他）から選びます（一覧は `GET /api/agent/v1` の `script_tags`）。エディタの「オンラインを開く」でジャンルとして表示・絞り込みされるので、公開するスクリプトには内容に合うものを 1～2 個付けてください。不明な ID は `400 invalid_request`。省略すると未設定（絞り込みでは `other` 扱い）。 |
 | `mode` | `"PG0.5"` または `"PG0"` | エディタと `/scripts/{cid}/run` が使うモード。 |
 | `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。省略するとランダムな ID が割り当てられ、レスポンスには含まれません。後で自分のスクリプト（非公開分を含む）を一覧したいときは、推測されにくい ID を自分で決めて毎回渡してください。 |
 | `speed` | 0, 1, 250, 500 のいずれか | Web エディタでの実行速度。1 文ごとの待ち時間（ミリ秒）で、0 = 待ち無し、1 = 速い、250 = 普通（デフォルト）、500 = 遅い。**`lib/screen.pg0` を使うプログラムは 0 にしてください。** 待ちがあると描画やアニメーションが極端に遅くなります。 |
 | `check` | boolean | `true` にすると保存前に `code` を構文解析し、通らなければ `422 syntax_error`（詳細は `error.detail`）で保存を拒否します。指定しなければ保存時に構文チェックは行われないので、先に `/check` を実行してください。 |
 
-レスポンス `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。`url` は Web エディタでスクリプトを開く URL、`run_url`（`url` + `&run=1`）は開いてすぐ実行する URL で、ゲームを人に渡すときはこちらを使います。
+レスポンス `201`: `{"cid", "name", "author", "mode", "private", "tags", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。`url` は Web エディタでスクリプトを開く URL、`run_url`（`url` + `&run=1`）は開いてすぐ実行する URL で、ゲームを人に渡すときはこちらを使います。
 
-`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, mode, uuid, speed, check のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
+`PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, tags, mode, uuid, speed, check のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
 `DELETE /api/agent/v1/scripts/{cid}`: ボディ `{"password": "..."}`。レスポンス `{"deleted": true, "cid": "..."}`。
 
 試作を繰り返す間は `"private": 1`（必要なら自分の `uuid` も）で保存し、エディタの公開一覧に試作版が並ばないようにしてください。完成したら最後の `PUT` で公開に切り替えます。
 
-`GET /api/agent/v1/scripts?q=単語&uuid=所有者&skip=0&count=30`: `{"scripts": [要約...], "skip", "count"}`。`q` の単語（空白区切り）は名前と作者に対して照合されます（先頭 10 語まで）。
+`GET /api/agent/v1/scripts?q=単語&uuid=所有者&tag=game&sort=popular&skip=0&count=30`: `{"scripts": [要約...], "skip", "count", "tag", "sort"}`。`q` の単語（空白区切り）は名前と作者に対して照合されます（先頭 10 語まで）。`tag` でジャンルを絞り込めます（`other` はジャンル未設定のスクリプトにも一致）。`sort` は公開スクリプトの並び順で、`popular`（閲覧数順、デフォルト）か `new`（更新日時の新しい順）。`uuid` が一致する自分のスクリプトは常に新しい順で先頭に並びます。
 
 `POST /api/agent/v1/scripts/{cid}/run`: `/run` から `code` を除いたボディ。`mode` は保存時のモードがデフォルトです。
 

@@ -123,20 +123,21 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `author` | string, max 100 | Default `"AI agent"`. |
 | `memo` | string | **Revision note.** Shown in the editor and, per version, in the revision history. On creation describe the program; on every update describe what changed (see "Revision history" below). |
 | `private` | 0 or 1 | 1 hides the script from lists (still reachable by `cid`, and the name need not be unique). |
+| `tags` | array of string, at most 3 | Genres, chosen from `game`, `graphics` (graphics and animation), `math`, `algorithm`, `text` (text and data processing), `study` (study and practice), `tool` (tools and simulation) and `other` (the list is `script_tags` in `GET /api/agent/v1`). The editor's "Open online" list shows them as genre badges and filters by them, so give a public script one or two that fit. An unknown id is a `400 invalid_request`. When omitted the script has no genre (the `other` filter matches it). |
 | `mode` | `"PG0.5"` or `"PG0"` | Mode used by the editor and by `/scripts/{cid}/run`. |
 | `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. When omitted a random id is assigned and not returned, so choose a hard-to-guess id of your own and send it every time if you want to list your scripts (private ones included) later. |
 | `speed` | 0, 1, 250 or 500 | Execution speed in the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. **Set 0 for programs that use `lib/screen.pg0`**: with a wait, drawing and animation become extremely slow. |
 | `check` | boolean | `true` parses `code` before saving and rejects the request with `422 syntax_error` (details in `error.detail`) when it does not parse. Without it, saving never checks the code, so run `/check` yourself first. |
 
-Response `201`: `{"cid", "name", "author", "mode", "private", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC. `url` opens the script in the web editor; `run_url` (`url` + `&run=1`) opens and runs it immediately, which is the link to hand to a person for a game.
+Response `201`: `{"cid", "name", "author", "mode", "private", "tags", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC. `url` opens the script in the web editor; `run_url` (`url` + `&run=1`) opens and runs it immediately, which is the link to hand to a person for a game.
 
-`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, mode, uuid, speed, check}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
+`PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, tags, mode, uuid, speed, check}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
 `DELETE /api/agent/v1/scripts/{cid}`: body `{"password": "..."}`. Response `{"deleted": true, "cid": "..."}`.
 
 While iterating on a program, save it with `"private": 1` (and optionally a `uuid` of your own) so that trial versions do not appear in the public list of the editor; switch to public with a final `PUT` when it is done.
 
-`GET /api/agent/v1/scripts?q=words&uuid=owner&skip=0&count=30`: `{"scripts": [summary...], "skip", "count"}`. `q` words (at most the first 10) are matched against name and author.
+`GET /api/agent/v1/scripts?q=words&uuid=owner&tag=game&sort=popular&skip=0&count=30`: `{"scripts": [summary...], "skip", "count", "tag", "sort"}`. `q` words (at most the first 10) are matched against name and author. `tag` keeps one genre only (`other` also matches scripts without a genre). `sort` orders the public scripts: `popular` (by view count, the default) or `new` (latest update first). Your own scripts (matching `uuid`) always come first, newest first.
 
 `POST /api/agent/v1/scripts/{cid}/run`: same body as `/run` without `code`; `mode` defaults to the stored mode.
 

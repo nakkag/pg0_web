@@ -90,6 +90,7 @@ function summarizeScript(req, doc) {
 		speed: normalizeSpeed(doc.speed) !== null ? normalizeSpeed(doc.speed) : settings.defaultSpeed,
 		createTime: doc.createTime || null,
 		updateTime: doc.updateTime,
+		tags: Array.isArray(doc.tags) ? doc.tags : [],
 		url: scriptUrl(req, doc.cid),
 		run_url: scriptUrl(req, doc.cid) + '&run=1'
 	};
@@ -118,6 +119,9 @@ module.exports = function(app, deps) {
 	const logger = deps.logger || console;
 	const getDB = deps.getDB;
 	const addHistory = deps.addHistory;
+	// Genre tag ids and the validator are shared with the editor API (server.js).
+	const scriptTags = Array.isArray(deps.tags) ? deps.tags : [];
+	const normalizeTags = typeof deps.normalizeTags === 'function' ? deps.normalizeTags : function() { return []; };
 	const runner = createRunner(settings);
 	const router = express.Router();
 
@@ -167,8 +171,8 @@ module.exports = function(app, deps) {
 				{method: 'GET', path: '/libraries', description: 'Machine readable list of built-in functions and libraries'},
 				{method: 'POST', path: '/check', description: 'Syntax check a program without running it'},
 				{method: 'POST', path: '/run', description: 'Run a program and get its output, result and variables'},
-				{method: 'GET', path: '/scripts', description: 'List / search stored scripts'},
-				{method: 'POST', path: '/scripts', description: 'Store a new script (opens in the web editor); "memo" is the revision note'},
+				{method: 'GET', path: '/scripts', description: 'List / search stored scripts; filter by genre with tag=, order with sort=popular|new'},
+				{method: 'POST', path: '/scripts', description: 'Store a new script (opens in the web editor); "memo" is the revision note, "tags" the genres (see script_tags)'},
 				{method: 'GET', path: '/scripts/{cid}', description: 'Get a stored script including its code'},
 				{method: 'PUT', path: '/scripts/{cid}', description: 'Update a stored script (password required); write what changed in "memo"'},
 				{method: 'DELETE', path: '/scripts/{cid}', description: 'Delete a stored script (password required)'},
@@ -191,7 +195,8 @@ module.exports = function(app, deps) {
 				default_recorded_calls: settings.defaultRecordedCalls,
 				max_recorded_calls: settings.maxRecordedCalls,
 				max_response_length: settings.maxResponseLength
-			}
+			},
+			script_tags: scriptTags
 		});
 	});
 
@@ -447,14 +452,30 @@ module.exports = function(app, deps) {
 		const count = clampInt(req.query.count, 30, 1, 100);
 		const uuid = req.query.uuid ? String(req.query.uuid) : null;
 		const q = (req.query.q || '').toString().trim();
+		const tag = (req.query.tag || '').toString().trim();
+		if (tag && !scriptTags.includes(tag)) {
+			return apiError(res, 400, 'invalid_request', '"tag" must be one of ' + scriptTags.join(', '));
+		}
+		const sort = (req.query.sort || 'popular').toString();
+		if (sort !== 'popular' && sort !== 'new') {
+			return apiError(res, 400, 'invalid_request', '"sort" must be "popular" or "new"');
+		}
 		try {
 			const db = await getDB();
-			const cond = {};
+			const conds = [];
 			if (q) {
-				cond.$and = q.split(/\s+/).slice(0, 10).map(function(d) {
-					return {keyword: new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')};
+				q.split(/\s+/).slice(0, 10).forEach(function(d) {
+					conds.push({keyword: new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')});
 				});
 			}
+			if (tag === 'other') {
+				// Scripts saved without tags count as "other".
+				conds.push({$or: [{tags: 'other'}, {tags: {$exists: false}}, {tags: {$size: 0}}]});
+			} else if (tag) {
+				conds.push({tags: tag});
+			}
+			const cond = conds.length ? {$and: conds} : {};
+			const pubSort = sort === 'new' ? {updateTime: -1} : {showCount: -1, updateTime: -1};
 			const ret = [];
 			if (uuid) {
 				const mine = db.collection('script').find(Object.assign({uuid: uuid}, cond)).sort({updateTime: -1}).limit(count).skip(skip);
@@ -466,11 +487,11 @@ module.exports = function(app, deps) {
 			if (uuid) {
 				pub.uuid = {$ne: uuid};
 			}
-			const cursor = db.collection('script').find(pub).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
+			const cursor = db.collection('script').find(pub).sort(pubSort).limit(count).skip(skip);
 			for await (const doc of cursor) {
 				ret.push(summarizeScript(req, doc));
 			}
-			res.json({scripts: ret, skip: skip, count: count});
+			res.json({scripts: ret, skip: skip, count: count, tag: tag, sort: sort});
 		} catch (error) {
 			logger.error(error);
 			apiError(res, 500, 'internal_error', 'Internal Server Error');
@@ -514,6 +535,14 @@ module.exports = function(app, deps) {
 		if (body.speed !== undefined && body.speed !== null && normalizeSpeed(body.speed) === null) {
 			apiError(res, 400, 'invalid_request', '"speed" must be one of ' + SPEED_VALUES.join(', ') + ' (0 = no wait, 1 = fast, 250 = normal, 500 = slow)');
 			return null;
+		}
+		if (body.tags !== undefined) {
+			const tags = normalizeTags(body.tags);
+			if (tags === null) {
+				apiError(res, 400, 'invalid_request', '"tags" must be an array of at most 3 of: ' + scriptTags.join(', '));
+				return null;
+			}
+			body.tags = tags;
 		}
 		return body;
 	}
@@ -572,6 +601,7 @@ module.exports = function(app, deps) {
 				// A random owner id keeps scripts without uuid out of listings for the empty owner id.
 				uuid: body.uuid ? String(body.uuid) : crypto.randomUUID(),
 				private: isPrivate,
+				tags: body.tags || [],
 				code: body.code,
 				speed: (body.speed !== undefined && body.speed !== null) ? normalizeSpeed(body.speed) : settings.defaultSpeed,
 				keyword: name + ' ' + author,
@@ -644,6 +674,7 @@ module.exports = function(app, deps) {
 				memo: body.memo !== undefined ? (body.memo || '') : (doc.memo || ''),
 				uuid: body.uuid !== undefined ? (String(body.uuid || '') || crypto.randomUUID()) : (doc.uuid || crypto.randomUUID()),
 				private: isPrivate,
+				tags: body.tags !== undefined ? body.tags : (Array.isArray(doc.tags) ? doc.tags : []),
 				code: body.code !== undefined ? body.code : doc.code,
 				speed: (body.speed !== undefined && body.speed !== null) ? normalizeSpeed(body.speed) : (normalizeSpeed(doc.speed) !== null ? normalizeSpeed(doc.speed) : settings.defaultSpeed),
 				keyword: name + ' ' + author,
