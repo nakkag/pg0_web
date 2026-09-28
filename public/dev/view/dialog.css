@@ -269,9 +269,16 @@
 @media (hover: none), (pointer: coarse) {
 	.filter-scroll {
 		pointer-events: none;
+		width: 16px;
 	}
 	.filter-scroll img {
 		display: none;
+	}
+	#online-open-filter-prev {
+		background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+	}
+	#online-open-filter-next {
+		background: linear-gradient(to left, #fff, rgba(255, 255, 255, 0));
 	}
 }
 #online-open-sort {
