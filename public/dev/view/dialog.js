@@ -268,6 +268,30 @@ const onlineOpenView = (function () {
 		});
 		document.getElementById('online-open-sort').value = me.sort();
 		document.getElementById('online-open-sort').disabled = (me.filter() === 'mine');
+		const active = document.querySelector('#online-open-filter .tag-chip.active');
+		if (active) {
+			me.scrollChipIntoView(active);
+		}
+		me.updateScrollButtons();
+	};
+	// The arrows on both ends of the chip row show only while more chips lie that way.
+	me.updateScrollButtons = function() {
+		const filter = document.getElementById('online-open-filter');
+		const max = filter.scrollWidth - filter.clientWidth;
+		document.getElementById('online-open-filter-prev').hidden = (filter.scrollLeft <= 1);
+		document.getElementById('online-open-filter-next').hidden = (filter.scrollLeft >= max - 1);
+	};
+	// Scrolls the chip row (not the dialog) so the chip is clear of the arrows.
+	me.scrollChipIntoView = function(chip) {
+		const filter = document.getElementById('online-open-filter');
+		const frame = filter.getBoundingClientRect();
+		const rect = chip.getBoundingClientRect();
+		const margin = document.getElementById('online-open-filter-next').offsetWidth || 36;
+		if (rect.left < frame.left + margin) {
+			filter.scrollLeft -= frame.left + margin - rect.left;
+		} else if (rect.right > frame.right - margin) {
+			filter.scrollLeft += rect.right - (frame.right - margin);
+		}
 	};
 	me.reload = function() {
 		document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
@@ -466,6 +490,89 @@ const onlineOpenView = (function () {
 			chip.textContent = label;
 			document.getElementById('online-open-filter').appendChild(chip);
 		});
+
+		const filter = document.getElementById('online-open-filter');
+		filter.addEventListener('scroll', me.updateScrollButtons, false);
+		window.addEventListener('resize', function() {
+			if (document.getElementById('online-open').style.display === 'block') {
+				me.updateScrollButtons();
+			}
+		}, false);
+		document.getElementById('online-open-filter-prev').addEventListener('click', function(e) {
+			filter.scrollBy({left: -filter.clientWidth * 0.7, behavior: 'smooth'});
+		}, false);
+		document.getElementById('online-open-filter-next').addEventListener('click', function(e) {
+			filter.scrollBy({left: filter.clientWidth * 0.7, behavior: 'smooth'});
+		}, false);
+		// A vertical mouse wheel scrolls the chip row sideways.
+		filter.addEventListener('wheel', function(e) {
+			if (filter.scrollWidth <= filter.clientWidth) {
+				return;
+			}
+			let delta = (Math.abs(e.deltaX) > Math.abs(e.deltaY)) ? e.deltaX : e.deltaY;
+			if (e.deltaMode === 1) {
+				delta *= 16;
+			} else if (e.deltaMode === 2) {
+				delta *= filter.clientWidth;
+			}
+			e.preventDefault();
+			filter.scrollLeft += delta;
+		}, {passive: false});
+		// Dragging with the mouse scrolls the chip row; the click that ends a drag selects nothing.
+		// Touch keeps the browser's own swipe scrolling.
+		let drag = null;
+		let dragged = false;
+		filter.addEventListener('pointerdown', function(e) {
+			dragged = false;
+			drag = null;
+			if (e.pointerType !== 'mouse' || e.button !== 0) {
+				return;
+			}
+			drag = {id: e.pointerId, x: e.clientX, left: filter.scrollLeft, moved: false};
+		}, false);
+		filter.addEventListener('pointermove', function(e) {
+			if (!drag || e.pointerId !== drag.id) {
+				return;
+			}
+			const dx = e.clientX - drag.x;
+			if (!drag.moved) {
+				if (Math.abs(dx) <= 5) {
+					return;
+				}
+				drag.moved = true;
+				filter.setPointerCapture(e.pointerId);
+				filter.classList.add('dragging');
+			}
+			filter.scrollLeft = drag.left - dx;
+		}, false);
+		const endDrag = function(e) {
+			if (!drag || e.pointerId !== drag.id) {
+				return;
+			}
+			if (drag.moved) {
+				filter.classList.remove('dragging');
+				if (e.type === 'pointerup') {
+					// The click, if any, follows in the same task.
+					dragged = true;
+					setTimeout(function() {
+						dragged = false;
+					}, 0);
+				}
+			}
+			drag = null;
+		};
+		filter.addEventListener('pointerup', endDrag, false);
+		filter.addEventListener('pointercancel', endDrag, false);
+		filter.addEventListener('click', function(e) {
+			if (dragged) {
+				dragged = false;
+				e.stopPropagation();
+				e.preventDefault();
+			}
+		}, true);
+		filter.addEventListener('dragstart', function(e) {
+			e.preventDefault();
+		}, false);
 		for (let key in resource.ONLINE_OPEN_SORT) {
 			const op = document.createElement('option');
 			op.value = key;

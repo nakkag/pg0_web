@@ -18,7 +18,7 @@
 	<link rel="apple-touch-icon" href="image/icon.png">
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
-	<link rel="stylesheet" type="text/css" href="view/dialog.css?v=32">
+	<link rel="stylesheet" type="text/css" href="view/dialog.css?v=33">
 	<link rel="stylesheet" type="text/css" href="view/editor.css?v=40">
 	<link rel="stylesheet" type="text/css" href="view/variable.css?v=28">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=8">
@@ -26,7 +26,7 @@
 	<script type="text/javascript" src="pg0/script_common.js?v=5"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=13"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=17"></script>
-	<script type="text/javascript" src="view/dialog.js?v=59"></script>
+	<script type="text/javascript" src="view/dialog.js?v=60"></script>
 	<script type="text/javascript" src="view/editor.js?v=179"></script>
 	<script type="text/javascript" src="view/variable.js?v=26"></script>
 	<script type="text/javascript" src="view/console.js?v=10"></script>
@@ -123,7 +123,11 @@
 		<a href="#" class="close"></a>
 		<div id="online-open-search"><input type="search" class="setting-item" id="online-open-search-text"></input><input type="image" src="image/search.svg" id="online-open-search-button"></input></div>
 		<div id="online-open-toolbar">
-			<div id="online-open-filter"></div>
+			<div id="online-open-filter-wrap">
+				<div id="online-open-filter"></div>
+				<button type="button" class="filter-scroll" id="online-open-filter-prev" tabindex="-1" aria-hidden="true" hidden><img src="image/left.svg" alt="" /></button>
+				<button type="button" class="filter-scroll" id="online-open-filter-next" tabindex="-1" aria-hidden="true" hidden><img src="image/right.svg" alt="" /></button>
+			</div>
 			<select class="setting-item" id="online-open-sort"></select>
 		</div>
 		<div id="online-open-list"></div>
