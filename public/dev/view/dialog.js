@@ -342,10 +342,8 @@ const onlineOpenView = (function () {
 						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span>' + tags + '</div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
-				// Own scripts (mine) ride on the first page only; paging counts the public part.
-				const pageCount = scripts.filter((script) => !script.mine).length;
-				if (pageCount >= listCount) {
-					me.skip += pageCount;
+				if (scripts.length >= listCount) {
+					me.skip += scripts.length;
 					const readNode = document.createElement('div');
 					readNode.classList.add('read-item');
 					readNode.tabIndex = 0;
