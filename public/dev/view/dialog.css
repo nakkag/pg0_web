@@ -216,16 +216,63 @@
 	gap: 8px;
 	margin-top: 10px;
 }
-#online-open-filter {
+#online-open-filter-wrap {
+	position: relative;
 	flex: 1 1 auto;
 	min-width: 0;
+}
+#online-open-filter {
 	overflow-x: auto;
 	white-space: nowrap;
 	padding: 2px 0;
 	scrollbar-width: none;
+	user-select: none;
 }
 #online-open-filter::-webkit-scrollbar {
 	display: none;
+}
+#online-open-filter.dragging, #online-open-filter.dragging .tag-chip {
+	cursor: grabbing;
+}
+.filter-scroll {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 36px;
+	display: flex;
+	align-items: center;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+}
+.filter-scroll[hidden] {
+	display: none;
+}
+.filter-scroll img {
+	width: 20px;
+	opacity: 0.5;
+}
+.filter-scroll:hover img {
+	opacity: 0.8;
+}
+#online-open-filter-prev {
+	left: 0;
+	justify-content: flex-start;
+	background: linear-gradient(to right, #fff 55%, rgba(255, 255, 255, 0));
+}
+#online-open-filter-next {
+	right: 0;
+	justify-content: flex-end;
+	background: linear-gradient(to left, #fff 55%, rgba(255, 255, 255, 0));
+}
+/* Touch screens swipe the row, so the ends only fade and let touches through. */
+@media (hover: none) {
+	.filter-scroll {
+		pointer-events: none;
+	}
+	.filter-scroll img {
+		display: none;
+	}
 }
 #online-open-sort {
 	flex: 0 0 auto;
@@ -339,8 +386,9 @@
 	display: inline-block;
 	cursor: pointer;
 	font-size: calc(var(--font-size) * 0.7);
-	padding: 1px 8px;
-	margin-left: 5px;
+	line-height: 1.2;
+	padding: 3px 8px;
+	margin: 2px 0 2px 5px;
 	border-radius: 10px;
 	background-color: #e5e5e5;
 	color: #555;
