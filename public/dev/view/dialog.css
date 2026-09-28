@@ -265,8 +265,8 @@
 	justify-content: flex-end;
 	background: linear-gradient(to left, #fff 55%, rgba(255, 255, 255, 0));
 }
-/* Touch screens swipe the row, so the ends only fade and let touches through. */
-@media (hover: none) {
+/* Touch screens (smartphones and tablets) swipe the row, so the ends only fade and let touches through. */
+@media (hover: none), (pointer: coarse) {
 	.filter-scroll {
 		pointer-events: none;
 	}
