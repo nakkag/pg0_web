@@ -2,6 +2,10 @@
 
 const listCount = 30;
 
+function tagLabel(id) {
+	return (resource.ONLINE_TAGS && resource.ONLINE_TAGS[id]) || id;
+}
+
 const settingView = (function () {
 	const me = {};
 
@@ -19,6 +23,8 @@ const settingView = (function () {
 			options.author = op.author || '';
 			options.password = op.password || '';
 			options.keyword = op.keyword || '';
+			options.listFilter = op.listFilter || '';
+			options.listSort = op.listSort || 'popular';
 			options.uuid = op.uuid || crypto.randomUUID();
 			return true;
 		}
@@ -155,12 +161,28 @@ const onlineOpenView = (function () {
 				document.activeElement.click();
 			} else if (document.activeElement.classList.contains('file-menu')) {
 				me.showMenu(e.target);
+			} else if (document.activeElement.classList.contains('tag-chip')) {
+				document.activeElement.click();
 			}
+		}
+		if (e.key === ' ' && document.activeElement.classList.contains('tag-chip')) {
+			e.preventDefault();
+			document.activeElement.click();
 		}
 	};
 	me.openEvent = async function(e) {
 		if (e.target.closest('.file-menu')) {
 			me.showMenu(e.target);
+			return;
+		}
+		const chip = e.target.closest('#online-open-filter .tag-chip');
+		if (chip) {
+			me.setFilter(chip.dataset.filter);
+			return;
+		}
+		const badge = e.target.closest('.file-tag');
+		if (badge) {
+			me.setFilter(badge.dataset.tag);
 			return;
 		}
 		if (e.target.id === 'online-open-copy') {
@@ -234,11 +256,41 @@ const onlineOpenView = (function () {
 			}
 		}
 	};
+	me.filter = function() {
+		return options.listFilter || '';
+	};
+	me.sort = function() {
+		return options.listSort === 'new' ? 'new' : 'popular';
+	};
+	me.renderFilter = function() {
+		document.querySelectorAll('#online-open-filter .tag-chip').forEach((chip) => {
+			chip.classList.toggle('active', chip.dataset.filter === me.filter());
+		});
+		document.getElementById('online-open-sort').value = me.sort();
+		document.getElementById('online-open-sort').disabled = (me.filter() === 'mine');
+	};
+	me.reload = function() {
+		document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
+		me.skip = 0;
+		me.getList();
+	};
+	me.setFilter = function(filter) {
+		options.listFilter = filter;
+		settingView.save();
+		me.renderFilter();
+		me.reload();
+	};
 	me.getList = async function() {
 		try {
 			const id = me.id = Math.random().toString(36).slice(-8);
 			const keyword = document.getElementById('online-open-search-text').value;
-			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?count=${listCount}&skip=${me.skip}&uuid=${options.uuid}`)).json();
+			const params = new URLSearchParams({count: listCount, skip: me.skip, uuid: options.uuid, sort: me.sort()});
+			if (me.filter() === 'mine') {
+				params.set('mine', '1');
+			} else if (me.filter()) {
+				params.set('tag', me.filter());
+			}
+			const scripts = await (await fetch(`${apiServer}/api/script/${encodeURIComponent(keyword)}?${params}`)).json();
 			if (id !== me.id) {
 				return;
 			}
@@ -259,12 +311,17 @@ const onlineOpenView = (function () {
 						const date = new Date(script.updateTime);
 						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 					}
+					const tags = (Array.isArray(script.tags) ? script.tags : []).map((tag) => {
+						return '<span class="file-tag" data-tag="' + pg0_string.escapeHTML(tag) + '">' + pg0_string.escapeHTML(tagLabel(tag)) + '</span>';
+					}).join('');
 					nameNode.innerHTML = '<div><span class="file-name ' + ((script.private) ? 'file-private' : '') + '">' + pg0_string.escapeHTML(script.name || '') + '</span></div>' +
-						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
+						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span>' + tags + '</div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 					document.getElementById('online-open-list').appendChild(nameNode);
 				});
-				if (scripts.length >= listCount) {
-					me.skip += scripts.length;
+				// Own scripts (mine) ride on the first page only; paging counts the public part.
+				const pageCount = scripts.filter((script) => !script.mine).length;
+				if (pageCount >= listCount) {
+					me.skip += pageCount;
 					const readNode = document.createElement('div');
 					readNode.classList.add('read-item');
 					readNode.tabIndex = 0;
@@ -289,6 +346,7 @@ const onlineOpenView = (function () {
 				ev.currentContent.cid = cid;
 				ev.currentContent.author = script.author || '';
 				ev.currentContent.private = script.private;
+				ev.currentContent.tags = Array.isArray(script.tags) ? script.tags : [];
 				ev.saveState();
 				vv.clear();
 				cv.clear();
@@ -341,12 +399,11 @@ const onlineOpenView = (function () {
 		document.getElementById('online-open').style.display = 'block';
 		document.getElementById('online-open').focus();
 		document.getElementById('online-open-search-text').value = options.keyword || '';
+		me.renderFilter();
 		document.addEventListener('keydown', me.keyEvent, false);
 		document.addEventListener('click', me.openEvent, false);
 
-		document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
-		me.skip = 0;
-		me.getList();
+		me.reload();
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
@@ -396,17 +453,40 @@ const onlineOpenView = (function () {
 		document.getElementById('online-open-history').textContent = resource.ONLINE_OPEN_HISTORY;
 		document.getElementById('online-open-remove').textContent = resource.ONLINE_OPEN_REMOVE;
 
+		const chips = [['', resource.ONLINE_OPEN_FILTER_ALL], ['mine', resource.ONLINE_OPEN_FILTER_MINE]];
+		for (let key in resource.ONLINE_TAGS) {
+			chips.push([key, resource.ONLINE_TAGS[key]]);
+		}
+		chips.forEach(([filter, label]) => {
+			const chip = document.createElement('span');
+			chip.classList.add('tag-chip');
+			chip.dataset.filter = filter;
+			chip.tabIndex = 0;
+			chip.setAttribute('role', 'button');
+			chip.textContent = label;
+			document.getElementById('online-open-filter').appendChild(chip);
+		});
+		for (let key in resource.ONLINE_OPEN_SORT) {
+			const op = document.createElement('option');
+			op.value = key;
+			op.textContent = resource.ONLINE_OPEN_SORT[key];
+			document.getElementById('online-open-sort').append(op);
+		}
+		document.getElementById('online-open-sort').addEventListener('change', function(e) {
+			options.listSort = e.target.value;
+			settingView.save();
+			me.reload();
+		}, false);
+
 		document.querySelector('#online-open .close').addEventListener('click', function(e) {
 			me.close();
 		}, false);
 		document.getElementById('online-open-search-button').addEventListener('click', async function(e) {
-			document.getElementById('online-open-list').innerHTML = '<img src="image/load.svg" id="loading" />';
 			try {
 				const keyword = document.getElementById('online-open-search-text').value;
 				options.keyword = keyword;
 				settingView.save();
-				me.skip = 0;
-				me.getList();
+				me.reload();
 			} catch(e) {
 				console.error(e);
 			}
@@ -549,6 +629,7 @@ const onlineHistoryView = (function () {
 				ev.currentContent.cid = me.cid;
 				ev.currentContent.author = script.author;
 				ev.currentContent.private = script.private;
+				ev.currentContent.tags = Array.isArray(script.tags) ? script.tags : [];
 				ev.saveState();
 				vv.clear();
 				cv.clear();
@@ -685,6 +766,11 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-author').value = options.author || '';
 		document.getElementById('online-save-password').value = options.password || '';
 		document.getElementById('online-save-memo').value = '';
+		const tagSelect = document.getElementById('online-save-tags');
+		tagSelect.value = (ev.currentContent.tags || [])[0] || 'other';
+		if (tagSelect.selectedIndex < 0) {
+			tagSelect.value = 'other';
+		}
 		if (ev.currentContent.cid) {
 			document.getElementById('online-save-new').checked = false;
 			document.getElementById('online-save-new').parentElement.style.display = 'block';
@@ -705,6 +791,13 @@ const onlineSaveView = (function () {
 		document.getElementById('online-save-author-title').textContent = resource.ONLINE_SAVE_AUTHOR_TITLE;
 		document.getElementById('online-save-password-title').textContent = resource.ONLINE_SAVE_PASSWORD_TITLE;
 		document.getElementById('online-save-memo-title').textContent = resource.ONLINE_SAVE_MEMO_TITLE;
+		document.getElementById('online-save-tags-title').textContent = resource.ONLINE_SAVE_TAGS_TITLE;
+		for (let key in resource.ONLINE_TAGS) {
+			const op = document.createElement('option');
+			op.value = key;
+			op.textContent = resource.ONLINE_TAGS[key];
+			document.getElementById('online-save-tags').append(op);
+		}
 		document.getElementById('online-save-new-title').textContent = resource.ONLINE_SAVE_NEW_TITLE;
 		document.getElementById('online-save-private-title').textContent = resource.ONLINE_SAVE_PRIVATE_TITLE;
 		document.getElementById('online-save-button').value = resource.ONLINE_SAVE_BUTTON;
@@ -724,6 +817,7 @@ const onlineSaveView = (function () {
 			const author = document.getElementById('online-save-author').value.trim();
 			const password = document.getElementById('online-save-password').value;
 			const memo = document.getElementById('online-save-memo').value;
+			const tags = [document.getElementById('online-save-tags').value];
 			const privateMode = document.getElementById('online-save-private').checked ? 1 : 0;
 			if (!filename) {
 				alert(resource.ONLINE_ERROR_NAME_NOT_ENTERED);
@@ -746,7 +840,8 @@ const onlineSaveView = (function () {
 				uuid: options.uuid,
 				code: ev.getText(),
 				speed: options.execSpeed,
-				private: privateMode
+				private: privateMode,
+				tags: tags
 			};
 			let method = 'POST';
 			let url = `${apiServer}/api/script`;
@@ -770,6 +865,7 @@ const onlineSaveView = (function () {
 					ev.currentContent.author = author;
 					ev.currentContent.password = password;
 					ev.currentContent.private = privateMode;
+					ev.currentContent.tags = tags;
 					if (method === 'POST') {
 						const data = await res.json();
 						ev.currentContent.cid = data.cid;

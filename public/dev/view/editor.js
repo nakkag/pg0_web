@@ -585,7 +585,7 @@ function editorView(editor, lineNumber) {
 	}
 
 	function initContent() {
-		return {text: '', name: '', modify: false, caret: [0, 0], input: [0, 0], undo: [], redo: []};
+		return {text: '', name: '', tags: [], modify: false, caret: [0, 0], input: [0, 0], undo: [], redo: []};
 	}
 
 	function tagEscape(str) {

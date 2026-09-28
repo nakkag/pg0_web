@@ -51,11 +51,139 @@ async function getScriptFromKeyword(keyword) {
 		if (!doc) {
 			return null;
 		}
-		return [{cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private}];
+		return [listItem(doc)];
 	} catch (error) {
 		logger.error(error);
 	}
 	return null;
+}
+
+const MAX_TAGS = 3;
+// A server_settings.local.js written before tags existed has no list; use the sample's.
+const scriptTags = (Array.isArray(settings.tags) && settings.tags.length) ?
+	settings.tags : require('./server_settings.js').tags;
+
+function listItem(doc, mine) {
+	const item = {cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private,
+		tags: Array.isArray(doc.tags) ? doc.tags : []};
+	if (mine) {
+		item.mine = 1;
+	}
+	return item;
+}
+
+// Returns the trimmed, deduplicated tag list, or null when the value is not a valid one.
+function normalizeTags(value) {
+	if (value === undefined || value === null) {
+		return [];
+	}
+	if (!Array.isArray(value)) {
+		return null;
+	}
+	const ret = [];
+	for (const v of value) {
+		if (typeof v !== 'string') {
+			return null;
+		}
+		const tag = v.trim();
+		if (!scriptTags.includes(tag)) {
+			return null;
+		}
+		if (!ret.includes(tag)) {
+			ret.push(tag);
+		}
+	}
+	if (ret.length > MAX_TAGS) {
+		return null;
+	}
+	return ret;
+}
+
+// 'other' also matches scripts saved without tags.
+function tagCondition(tag) {
+	if (!tag) {
+		return null;
+	}
+	if (tag === 'other') {
+		return {$or: [{tags: 'other'}, {tags: {$exists: false}}, {tags: {$size: 0}}]};
+	}
+	return {tags: tag};
+}
+
+function keywordConditions(keyword) {
+	return keyword.split(/\s+/).filter(Boolean).slice(0, 10).map(function(d) {
+		return {keyword: new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')};
+	});
+}
+
+const SORT_ORDERS = {
+	popular: {showCount: -1, updateTime: -1},
+	new: {updateTime: -1}
+};
+
+// Parses the list query; sends a 400 and returns null for an unknown tag or sort.
+function parseListQuery(req, res) {
+	const skip = parseInt(req.query.skip || 0) || 0;
+	let count = parseInt(req.query.count || settings.listCount) || settings.listCount;
+	if (count < 0) {
+		count = settings.listCount;
+	}
+	if (count > settings.maxCount) {
+		count = settings.maxCount;
+	}
+	const tag = String(req.query.tag || '');
+	if (tag && !scriptTags.includes(tag)) {
+		res.status(400).json({type: 'tag', allowed: scriptTags});
+		return null;
+	}
+	const sort = String(req.query.sort || 'popular');
+	if (!SORT_ORDERS[sort]) {
+		res.status(400).json({type: 'sort', allowed: Object.keys(SORT_ORDERS)});
+		return null;
+	}
+	return {skip: skip, count: count, uuid: req.query.uuid, tag: tag, mine: req.query.mine === '1', sort: sort};
+}
+
+function withConditions(base, conds) {
+	return conds.length ? Object.assign({$and: conds}, base) : base;
+}
+
+// Three modes: the caller's own scripts (mine), every public script of a genre
+// (tag), or the caller's own scripts followed by other people's public ones.
+// In the last mode the own scripts are attached to the first page only and
+// marked with mine: 1, so the client pages over the public part alone.
+async function listScripts(q, conds) {
+	const db = await getDB();
+	const ret = [];
+	const tagCond = tagCondition(q.tag);
+	if (q.mine) {
+		const cursor = db.collection('script').find(withConditions({uuid: q.uuid}, tagCond ? conds.concat([tagCond]) : conds))
+			.sort(SORT_ORDERS.new).limit(q.count).skip(q.skip);
+		for await (const doc of cursor) {
+			ret.push(listItem(doc));
+		}
+		return ret;
+	}
+	if (tagCond) {
+		const cursor = db.collection('script').find(withConditions({private: {$ne: 1}}, conds.concat([tagCond])))
+			.sort(SORT_ORDERS[q.sort]).limit(q.count).skip(q.skip);
+		for await (const doc of cursor) {
+			ret.push(listItem(doc));
+		}
+		return ret;
+	}
+	if (q.skip === 0) {
+		const cursor = db.collection('script').find(withConditions({uuid: q.uuid}, conds)).sort(SORT_ORDERS.new).limit(q.count);
+		for await (const doc of cursor) {
+			ret.push(listItem(doc, true));
+		}
+	}
+	const cursor = db.collection('script').find(withConditions({uuid: {$ne: q.uuid}, private: {$ne: 1}}, conds))
+		.sort(SORT_ORDERS[q.sort]).limit(q.count).skip(q.skip);
+	for await (const doc of cursor) {
+		ret.push(listItem(doc));
+	}
+	return ret;
 }
 
 const express = require('express');
@@ -95,7 +223,7 @@ app.use(function (req, res, next) {
 app.use('/', express.static('public'));
 
 // AI agent API (/api/agent/v1): program execution and script storage, see agent_api.js
-require('./agent_api.js')(app, {getDB: getDB, addHistory: addHistory, logger: logger});
+require('./agent_api.js')(app, {getDB: getDB, addHistory: addHistory, logger: logger, tags: scriptTags, normalizeTags: normalizeTags});
 
 app.options('*', function (req, res) {
 	res.sendStatus(200);
@@ -132,26 +260,12 @@ app.get('/import', async (req, res) => {
 });
 
 app.get('/api/script', async (req, res) => {
-	const skip = parseInt(req.query.skip || 0);
-	let count = parseInt(req.query.count || settings.listCount);
-	if (count < 0) {
-		count = settings.listCount;
-	}
-	if (count > settings.maxCount) {
-		count = settings.maxCount;
+	const q = parseListQuery(req, res);
+	if (!q) {
+		return;
 	}
 	try {
-		const db = await getDB();
-		const ret = [];
-		let cursor = db.collection('script').find({uuid: req.query.uuid}).sort({updateTime: -1}).limit(count).skip(skip);
-		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
-		}
-		cursor = db.collection('script').find({uuid: {$ne: req.query.uuid}, private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
-		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
-		}
-		res.json(ret);
+		res.json(await listScripts(q, []));
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
@@ -164,32 +278,12 @@ app.get('/api/script/:keyword', async (req, res) => {
 		res.json(r);
 		return;
 	}
-
-	const skip = parseInt(req.query.skip || 0);
-	let count = parseInt(req.query.count || settings.listCount);
-	if (count < 0) {
-		count = settings.listCount;
-	}
-	if (count > settings.maxCount) {
-		count = settings.maxCount;
+	const q = parseListQuery(req, res);
+	if (!q) {
+		return;
 	}
 	try {
-		const db = await getDB();
-		const list = req.params.keyword.split(' ');
-		const regs = [];
-		list.forEach(function(d) {
-			regs.push({keyword: new RegExp(d, 'i')});
-		});
-		const ret = [];
-		let cursor = await db.collection('script').find({$and: regs, uuid: req.query.uuid}).sort({updateTime: -1}).limit(count).skip(skip);
-		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
-		}
-		cursor = await db.collection('script').find({$and: regs, uuid: {$ne: req.query.uuid}, private: {$ne: 1}}).sort({showCount: -1, updateTime: -1}).limit(count).skip(skip);
-		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private});
-		}
-		res.json(ret);
+		res.json(await listScripts(q, keywordConditions(req.params.keyword)));
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
@@ -284,6 +378,10 @@ app.post('/api/script', async (req, res) => {
 	if (req.body.author && req.body.author.length > settings.authorLength) {
 		return res.status(413).json({type: 'author', max: settings.authorLength});
 	}
+	const tags = normalizeTags(req.body.tags);
+	if (tags === null) {
+		return res.status(400).json({type: 'tags', allowed: scriptTags, max: MAX_TAGS});
+	}
 
 	let newCid = crypto.randomUUID();
 	const time = new Date().getTime();
@@ -312,6 +410,7 @@ app.post('/api/script', async (req, res) => {
 			memo: req.body.memo,
 			uuid: req.body.uuid,
 			private: req.body.private,
+			tags: tags,
 			code: req.body.code,
 			speed: req.body.speed,
 			keyword: req.body.name + ' ' + req.body.author,
@@ -335,6 +434,10 @@ app.put('/api/script/:cid', async (req, res) => {
 	}
 	if (req.body.author && req.body.author.length > settings.authorLength) {
 		return res.status(413).json({type: 'author', max: settings.authorLength});
+	}
+	const tags = normalizeTags(req.body.tags);
+	if (tags === null) {
+		return res.status(400).json({type: 'tags', allowed: scriptTags, max: MAX_TAGS});
 	}
 
 	try {
@@ -360,6 +463,7 @@ app.put('/api/script/:cid', async (req, res) => {
 			memo: req.body.memo,
 			uuid: req.body.uuid,
 			private: req.body.private,
+			tags: tags,
 			code: req.body.code,
 			speed: req.body.speed,
 			keyword: req.body.name + ' ' + req.body.author,

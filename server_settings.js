@@ -16,3 +16,6 @@ exports.maxCount = 100;
 
 exports.nameLength = 100;
 exports.authorLength = 100;
+
+// Genre tags a script may carry (at most 3); ids are stored in the DB, labels live in the client.
+exports.tags = ['game', 'graphics', 'math', 'algorithm', 'text', 'study', 'tool', 'other'];

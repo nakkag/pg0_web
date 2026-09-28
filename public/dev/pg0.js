@@ -5,6 +5,8 @@ const options = {
 	execSpeed: 250,
 	fontSize: 18,
 	showLineNum: true,
+	listFilter: '',
+	listSort: 'popular',
 	boundary: {
 		verX: 400,
 		verY: 100,

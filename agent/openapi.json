@@ -575,6 +575,23 @@
               1
             ]
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "game",
+                "graphics",
+                "math",
+                "algorithm",
+                "text",
+                "study",
+                "tool",
+                "other"
+              ]
+            },
+            "description": "Genre tags (at most 3). Shown as badges in the editor's \"Open online\" list."
+          },
           "createTime": {
             "type": "integer",
             "nullable": true,
@@ -671,6 +688,25 @@
             "default": 0,
             "description": "1 hides the script from public lists (still reachable by cid)."
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "game",
+                "graphics",
+                "math",
+                "algorithm",
+                "text",
+                "study",
+                "tool",
+                "other"
+              ]
+            },
+            "maxItems": 3,
+            "uniqueItems": true,
+            "description": "Genre tags, at most 3: game, graphics (graphics and animation), math, algorithm, text (text and data), study (study and practice), tool (tools and simulation), other. Shown and filtered in the editor's \"Open online\" list; give a public script one or two that fit. Unknown ids are rejected with 400 invalid_request."
+          },
           "mode": {
             "type": "string",
             "enum": [
@@ -729,6 +765,25 @@
               0,
               1
             ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "game",
+                "graphics",
+                "math",
+                "algorithm",
+                "text",
+                "study",
+                "tool",
+                "other"
+              ]
+            },
+            "maxItems": 3,
+            "uniqueItems": true,
+            "description": "Genre tags, at most 3 (see ScriptCreate). Replaces the stored list; omitted keeps the current tags."
           },
           "mode": {
             "type": "string",
@@ -1210,6 +1265,37 @@
               "type": "string"
             },
             "description": "Owner id; scripts with this owner are listed first, private ones included."
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "game",
+                "graphics",
+                "math",
+                "algorithm",
+                "text",
+                "study",
+                "tool",
+                "other"
+              ]
+            },
+            "description": "Keep only scripts with this genre tag. \"other\" also matches scripts saved without tags."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "popular",
+                "new"
+              ],
+              "default": "popular"
+            },
+            "description": "Order of the public scripts: popular (view count, then latest update) or new (latest update first). Scripts owned by uuid always come first, newest first."
           },
           {
             "name": "skip",
