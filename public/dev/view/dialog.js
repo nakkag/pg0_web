@@ -493,20 +493,38 @@ const onlineOpenView = (function () {
 
 		const filter = document.getElementById('online-open-filter');
 		filter.addEventListener('scroll', me.updateScrollButtons, false);
+		// A chip reached with the keyboard is kept clear of the arrows.
+		filter.addEventListener('focusin', function(e) {
+			if (!e.target.classList.contains('tag-chip')) {
+				return;
+			}
+			let visible = true;
+			try {
+				visible = e.target.matches(':focus-visible');
+			} catch (err) {
+			}
+			if (visible) {
+				me.scrollChipIntoView(e.target);
+			}
+		}, false);
 		window.addEventListener('resize', function() {
 			if (document.getElementById('online-open').style.display === 'block') {
 				me.updateScrollButtons();
 			}
 		}, false);
+		// An arrow hides at the end of the row; a quick extra click must not select the chip under it.
+		let arrowTime = 0;
 		document.getElementById('online-open-filter-prev').addEventListener('click', function(e) {
+			arrowTime = Date.now();
 			filter.scrollBy({left: -filter.clientWidth * 0.7, behavior: 'smooth'});
 		}, false);
 		document.getElementById('online-open-filter-next').addEventListener('click', function(e) {
+			arrowTime = Date.now();
 			filter.scrollBy({left: filter.clientWidth * 0.7, behavior: 'smooth'});
 		}, false);
-		// A vertical mouse wheel scrolls the chip row sideways.
-		filter.addEventListener('wheel', function(e) {
-			if (filter.scrollWidth <= filter.clientWidth) {
+		// A vertical mouse wheel over the row or its arrows scrolls the chips sideways.
+		document.getElementById('online-open-filter-wrap').addEventListener('wheel', function(e) {
+			if (e.ctrlKey || filter.scrollWidth <= filter.clientWidth) {
 				return;
 			}
 			let delta = (Math.abs(e.deltaX) > Math.abs(e.deltaY)) ? e.deltaX : e.deltaY;
@@ -525,6 +543,7 @@ const onlineOpenView = (function () {
 		filter.addEventListener('pointerdown', function(e) {
 			dragged = false;
 			drag = null;
+			filter.classList.remove('dragging');
 			if (e.pointerType !== 'mouse' || e.button !== 0) {
 				return;
 			}
@@ -532,6 +551,12 @@ const onlineOpenView = (function () {
 		}, false);
 		filter.addEventListener('pointermove', function(e) {
 			if (!drag || e.pointerId !== drag.id) {
+				return;
+			}
+			if (!(e.buttons & 1)) {
+				// The button was released outside the row.
+				filter.classList.remove('dragging');
+				drag = null;
 				return;
 			}
 			const dx = e.clientX - drag.x;
@@ -564,7 +589,7 @@ const onlineOpenView = (function () {
 		filter.addEventListener('pointerup', endDrag, false);
 		filter.addEventListener('pointercancel', endDrag, false);
 		filter.addEventListener('click', function(e) {
-			if (dragged) {
+			if (dragged || Date.now() - arrowTime < 500) {
 				dragged = false;
 				e.stopPropagation();
 				e.preventDefault();

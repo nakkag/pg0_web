@@ -226,6 +226,7 @@
 	white-space: nowrap;
 	padding: 2px 0;
 	scrollbar-width: none;
+	user-select: none;
 }
 #online-open-filter::-webkit-scrollbar {
 	display: none;
@@ -263,6 +264,15 @@
 	right: 0;
 	justify-content: flex-end;
 	background: linear-gradient(to left, #fff 55%, rgba(255, 255, 255, 0));
+}
+/* Touch screens swipe the row, so the ends only fade and let touches through. */
+@media (hover: none) {
+	.filter-scroll {
+		pointer-events: none;
+	}
+	.filter-scroll img {
+		display: none;
+	}
 }
 #online-open-sort {
 	flex: 0 0 auto;
