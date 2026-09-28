@@ -63,13 +63,9 @@ const MAX_TAGS = 3;
 const scriptTags = (Array.isArray(settings.tags) && settings.tags.length) ?
 	settings.tags : require('./server_settings.js').tags;
 
-function listItem(doc, mine) {
-	const item = {cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private,
+function listItem(doc) {
+	return {cid: doc.cid, name: doc.name, author: doc.author, updateTime: doc.updateTime, private: doc.private,
 		tags: Array.isArray(doc.tags) ? doc.tags : []};
-	if (mine) {
-		item.mine = 1;
-	}
-	return item;
 }
 
 // Returns the trimmed, deduplicated tag list, or null when the value is not a valid one.
@@ -148,39 +144,19 @@ function withConditions(base, conds) {
 	return conds.length ? Object.assign({$and: conds}, base) : base;
 }
 
-// Three modes: the caller's own scripts (mine), every public script of a genre
-// (tag), or the caller's own scripts followed by other people's public ones.
-// In the last mode the own scripts are attached to the first page only and
-// marked with mine: 1, so the client pages over the public part alone.
+// Two modes: the caller's own scripts, private ones included, newest first (mine),
+// or everyone's public scripts, optionally of one genre, in the requested order.
 async function listScripts(q, conds) {
 	const db = await getDB();
-	const ret = [];
 	const tagCond = tagCondition(q.tag);
-	if (q.mine) {
-		const cursor = db.collection('script').find(withConditions({uuid: q.uuid}, tagCond ? conds.concat([tagCond]) : conds))
-			.sort(SORT_ORDERS.new).limit(q.count).skip(q.skip);
-		for await (const doc of cursor) {
-			ret.push(listItem(doc));
-		}
-		return ret;
-	}
 	if (tagCond) {
-		const cursor = db.collection('script').find(withConditions({private: {$ne: 1}}, conds.concat([tagCond])))
-			.sort(SORT_ORDERS[q.sort]).limit(q.count).skip(q.skip);
-		for await (const doc of cursor) {
-			ret.push(listItem(doc));
-		}
-		return ret;
+		conds = conds.concat([tagCond]);
 	}
-	if (q.skip === 0) {
-		const cursor = db.collection('script').find(withConditions({uuid: q.uuid}, conds)).sort(SORT_ORDERS.new).limit(q.count);
-		for await (const doc of cursor) {
-			ret.push(listItem(doc, true));
-		}
-	}
-	const cursor = db.collection('script').find(withConditions({uuid: {$ne: q.uuid}, private: {$ne: 1}}, conds))
-		.sort(SORT_ORDERS[q.sort]).limit(q.count).skip(q.skip);
-	for await (const doc of cursor) {
+	const cursor = q.mine ?
+		db.collection('script').find(withConditions({uuid: q.uuid}, conds)).sort(SORT_ORDERS.new) :
+		db.collection('script').find(withConditions({private: {$ne: 1}}, conds)).sort(SORT_ORDERS[q.sort]);
+	const ret = [];
+	for await (const doc of cursor.limit(q.count).skip(q.skip)) {
 		ret.push(listItem(doc));
 	}
 	return ret;
