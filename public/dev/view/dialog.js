@@ -570,6 +570,13 @@ const onlineOpenView = (function () {
 			}
 			filter.scrollLeft = drag.left - dx;
 		}, false);
+		// A press that leaves the row before it turns into a drag is dropped, so a later drag
+		// that enters the row with the button held does not pick it up.
+		filter.addEventListener('pointerleave', function(e) {
+			if (drag && !drag.moved && e.pointerId === drag.id) {
+				drag = null;
+			}
+		}, false);
 		const endDrag = function(e) {
 			if (!drag || e.pointerId !== drag.id) {
 				return;
