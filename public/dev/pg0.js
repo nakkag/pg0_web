@@ -857,6 +857,8 @@ async function exec(_step) {
 			return v.remove();
 		});
 	}
+	// The seeded random sequence of the previous run does not carry over
+	delete ScriptExec.lib['$random'];
 	const extension = options.execMode === 'PG0' ? false : true;
 	const sci = Script.initScriptInfo(buf, {extension: extension});
 	const scis = [sci];
