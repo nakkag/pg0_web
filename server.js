@@ -310,11 +310,11 @@ app.get('/api/script/history/:cid', async (req, res) => {
 		const ret = [];
 		const cdoc = await db.collection('script').findOne({cid: req.params.cid});
 		if (cdoc) {
-			ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, memo: cdoc.memo, updateTime: cdoc.updateTime});
+			ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, memo: cdoc.memo, tags: Array.isArray(cdoc.tags) ? cdoc.tags : [], updateTime: cdoc.updateTime});
 		}
 		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
 		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, memo: doc.memo, updateTime: doc.updateTime});
+			ret.push({cid: doc.cid, name: doc.name, author: doc.author, memo: doc.memo, tags: Array.isArray(doc.tags) ? doc.tags : [], updateTime: doc.updateTime});
 		}
 		res.json(ret);
 	} catch (error) {
@@ -506,7 +506,8 @@ async function diffHistory(cid) {
 						doc1.password === doc2.password &&
 						doc1.memo === doc2.memo &&
 						doc1.code === doc2.code &&
-						doc1.speed === doc2.speed) {
+						doc1.speed === doc2.speed &&
+						JSON.stringify(doc1.tags || []) === JSON.stringify(doc2.tags || [])) {
 						ret = true;
 					}
 				}
