@@ -1253,7 +1253,7 @@ ScriptExec.lib['inkey'] = async function(ei, param, ret) {
 	}
 	if (param[0].v.type === TYPE_ARRAY) {
 		const m = param[0].v.array.some(function(a) {
-			const text = ScriptExec.getValueString(a.v);
+			const text = ScriptExec.getValueString(a.v).toLowerCase();
 			const r = ScriptExec.lib['$key'].find(function(key) {
 				return (key.toLowerCase() === text);
 			});
