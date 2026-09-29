@@ -375,9 +375,8 @@ ScriptExec.lib['inkey'] = async function(ei, param, ret) {
 		return 0;
 	}
 	if (param[0].v.type === TYPE_ARRAY) {
-		// Same as the browser library: names given in an array must already be lower case.
 		const missing = param[0].v.array.some(function(a) {
-			const text = ScriptExec.getValueString(a.v);
+			const text = ScriptExec.getValueString(a.v).toLowerCase();
 			return !keys.some(function(key) { return key.toLowerCase() === text; });
 		});
 		ret.v.type = TYPE_INTEGER;
