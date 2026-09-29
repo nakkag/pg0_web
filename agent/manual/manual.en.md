@@ -514,7 +514,7 @@ Results with no fractional part are returned as integers (`sqrt(16)` is `4`).
 
 | Function | Description |
 |---|---|
-| `trim(s)` | Removes spaces and tabs at both ends. |
+| `trim(s)` | Removes whitespace at both ends (spaces, tabs, line breaks, full-width spaces; like JavaScript `trim`). |
 | `to_lower(s)`, `to_upper(s)` | Case conversion. |
 | `str_match(pattern, s)` | Wildcard match, `*` any run of characters, `?` one character, case-insensitive; returns 1/0. |
 | `substring(s, begin, length = -1)` | Substring; negative `begin` counts from the end; negative `length` means to the end. |

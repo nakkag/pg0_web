@@ -60,7 +60,7 @@ module.exports = {
 			import: '#import("lib/string.pg0")',
 			available: true,
 			functions: [
-				{name: 'trim', signature: 'trim(text: str) -> str', summary: 'Removes leading and trailing spaces and tabs.'},
+				{name: 'trim', signature: 'trim(text: str) -> str', summary: 'Removes leading and trailing whitespace (spaces, tabs, line breaks, full-width spaces; like JavaScript trim).'},
 				{name: 'to_lower', signature: 'to_lower(text: str) -> str', summary: 'Lower case.'},
 				{name: 'to_upper', signature: 'to_upper(text: str) -> str', summary: 'Upper case.'},
 				{name: 'str_match', signature: 'str_match(pattern: str, text: str) -> int', summary: 'Wildcard match (* any characters, ? one character), case-insensitive. 1 on match.'},
