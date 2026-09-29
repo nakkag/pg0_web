@@ -97,11 +97,17 @@ ScriptExec.lib['removevalue'] = function(ei, param, ret) {
 	return 0;
 };
 
+// Always returns a string ("" when the clipboard cannot be read)
 ScriptExec.lib['get_clipboard'] = async function(ei, param, ret) {
-	if (navigator.clipboard) {
-		ret.v.str = await navigator.clipboard.readText();
-		ret.v.type = TYPE_STRING;
-		delete ret.v.num;
+	ret.v.str = '';
+	ret.v.type = TYPE_STRING;
+	delete ret.v.num;
+	if (navigator.clipboard && navigator.clipboard.readText) {
+		try {
+			ret.v.str = await navigator.clipboard.readText();
+		} catch (e) {
+			console.error(e);
+		}
 	}
 	return 0;
 };
@@ -119,9 +125,14 @@ ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	if (navigator.clipboard) {
-		navigator.clipboard.writeText(str);
-		ret.v.num = 1;
+	// 1 only when the text was written
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		try {
+			await navigator.clipboard.writeText(str);
+			ret.v.num = 1;
+		} catch (e) {
+			console.error(e);
+		}
 	}
 	return 0;
 };
