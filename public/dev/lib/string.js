@@ -109,13 +109,13 @@ ScriptExec.lib['substring'] = function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[0].v);
 	}
-	let begin = param[1].v.num;
+	let begin = _stringInt(param[1]);
 	if (begin < 0) {
 		begin = str.length + begin;
 	}
 	let length = -1;
 	if (param.length >= 3) {
-		length = param[2].v.num;
+		length = _stringInt(param[2]);
 	}
 	if (length < 0) {
 		ret.v.str = str.substring(begin);
@@ -144,7 +144,7 @@ ScriptExec.lib['in_string'] = function(ei, param, ret) {
 	}
 	let from = 0;
 	if (param.length >= 3) {
-		from = param[2].v.num;
+		from = _stringInt(param[2]);
 	}
 	ret.v.num = str.indexOf(search, from);
 	ret.v.type = TYPE_INTEGER;
@@ -180,3 +180,14 @@ ScriptExec.lib['split'] = function(ei, param, ret) {
 	delete ret.v.num;
 	return 0;
 };
+
+// Integer value of a parameter (strings and arrays are converted like numbers)
+function _stringInt(p) {
+	let n = p.v.num;
+	if (p.v.type === TYPE_STRING) {
+		n = ScriptExec.stringToNumber(p.v.str);
+	} else if (p.v.type === TYPE_ARRAY) {
+		n = ScriptExec.stringToNumber(ScriptExec.arrayToString(p.v.array));
+	}
+	return Math.trunc(n) || 0;
+}
