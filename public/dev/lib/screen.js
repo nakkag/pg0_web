@@ -298,7 +298,6 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	if (!iconic) {
 		iconic = document.createElement('div');
 		iconic.setAttribute('id', 'lib-screen-iconic');
-		iconic.innerHTML = '-';
 		iconic.innerHTML = '<img src="lib/image/sc_icon.svg">';
 		iconic.style.zIndex = 502;
 		iconic.style.position = 'absolute';
@@ -401,9 +400,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			screen.style.backgroundColor = color.v.str;
 			ScriptExec.lib['$offscreen'].style.backgroundColor = color.v.str;
 		}
+		// Any value but 0 fits the screen to the window
 		const fit = _screenGetArrayValue(param[2].v.array, 'fit');
-		if (fit) {
-			screen.setAttribute('fit', fit.v.num);
+		if (fit && (fit.v.type === TYPE_INTEGER || fit.v.type === TYPE_FLOAT)) {
+			screen.setAttribute('fit', fit.v.num !== 0 ? 1 : 0);
 		}
 	}
 	if (!ScriptExec.lib['$show']) {
@@ -1532,7 +1532,8 @@ function _screenResize() {
 		close.style.right = 'env(safe-area-inset-right)';
 		close.style.top = 'env(safe-area-inset-top)';
 	}
-	if (screen.getAttribute('fit') !== '1' && iconic.textContent === '-') {
+	// Without fit the screen is shown 1:1, except while it is minimized
+	if (screen.getAttribute('fit') !== '1' && !back.classList.contains('icon')) {
 		screen.style.transform = 'unset';
 		ScriptExec.lib['$scale'] = 1;
 		return;
