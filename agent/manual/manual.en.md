@@ -256,7 +256,7 @@ print(other)                       // 0: "other" inside the loop was a different
 
   The loop variable of `for (i = 0; ...)` is created outside the block and stays available.
 - Functions can read and assign global variables (variables of the top level).
-- Names: letters, digits, `_` and non-ASCII (full-width) characters; may not start with a digit. In this implementation variable names are **case-sensitive** (`A` and `a` are different variables); function names are case-insensitive.
+- Names: letters, digits, `_` and non-ASCII (full-width) characters; may not start with a digit. Variable names **ignore the case of half-width (ASCII) letters** (`A` and `a` are the same variable; `variables` and the like use the spelling the program wrote first); full-width letters are told apart. Function names are case-insensitive too.
 - A variable holds one value of any type; assigning changes its type (`a = 1` then `a = "x"` is fine).
 
 ### 3.5 Arrays
@@ -391,7 +391,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 4. Floats print with 16 decimals (`3.5000000000000000`). Integer-valued results print as integers.
 5. Integers are 32-bit and wrap silently.
 6. Strings only support `+`, `==`, `!=`. Ordering comparisons on strings are runtime errors.
-7. Variable names are case-sensitive; keywords must be lower case; function names are case-insensitive.
+7. Variable and function names ignore the case of half-width letters; keywords must be lower case.
 8. `=` inside a condition is a syntax error; use `==`.
 9. Unknown variables silently read as `0`; typos do not raise errors (use `#option("strict")` while debugging).
 10. `s[i]` on a string destroys the string; use `array(s)`, `code(s, i)` or `substring`.
@@ -410,7 +410,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 23. `continue` inside a `switch` acts on the enclosing loop (as in C), and `return` works inside a `switch`.
 24. A `&` reference parameter also accepts an array element such as `a[i][j]` (the element itself is referenced), which is handy for writing into nested elements recursively.
 25. Inside an array initializer, `{}` (an empty array) and unary-minus expressions such as `-1` are keyless elements (only the bare variables of item 17 become keyed).
-26. Variable names are case-sensitive but array keys are not (`b["K"]` and `b["k"]` are the same element), so a program that manages values by variable name in an array cannot tell `A` from `a`.
+26. Neither variable names nor array keys tell half-width upper and lower case apart (`Score` and `score` are the same variable; `b["K"]` and `b["k"]` are the same element), so do not keep separate values under names that differ only in case. The names in `/run`'s `variables` use the spelling the program wrote first, and `globals` names match the program's variables whatever their case.
 
 ### 3.12 Building one system from several sources
 

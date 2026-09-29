@@ -396,11 +396,14 @@ async function main(opt) {
 		if (!vi) {
 			return;
 		}
-		Object.keys(opt.globals).forEach(function(name) {
-			if (!safeGlobalName(name)) {
+		Object.keys(opt.globals).forEach(function(given) {
+			if (!safeGlobalName(given)) {
 				return;
 			}
-			const v = jsonToValue(opt.globals[name]);
+			// A variable the program already has, whatever the case of its half-width letters.
+			const folded = Script.foldName(given);
+			const name = Object.keys(vi).find(function(k) { return Script.foldName(k) === folded; }) || given;
+			const v = jsonToValue(opt.globals[given]);
 			if (hasOwn.call(vi, name) && vi[name] && typeof vi[name] === 'object') {
 				delete vi[name].num;
 				delete vi[name].str;

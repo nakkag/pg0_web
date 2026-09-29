@@ -534,6 +534,18 @@ function ScriptParse(sci) {
 		return {type: type, line: line};
 	}
 
+	// Variable names are the same whatever the case of their half-width
+	// letters: every spelling of a name takes the one the program used first.
+	function variableName(pi, str) {
+		const ref = str.substring(0, 1) === '&' ? '&' : '';
+		const name = ref ? str.substring(1) : str;
+		const key = Script.foldName(name);
+		if (!(key in pi.names)) {
+			pi.names[key] = name;
+		}
+		return ref + pi.names[key];
+	}
+
 	// Brackets of an expression. While one is open a line break does not end the statement.
 	function bracketOpen(pi) {
 		pi.brackets.push({type: pi.type, line: pi.line});
@@ -637,7 +649,7 @@ function ScriptParse(sci) {
 			} else {
 				token = createToken(pi.type, pi.line);
 			}
-			token.buf = pi.str;
+			token.buf = variableName(pi, pi.str);
 			pi.token.push(token);
 			getToken(pi);
 			break;
@@ -1711,6 +1723,7 @@ function ScriptParse(sci) {
 			case_end: false,
 			condition: false,
 			brackets: [],
+			names: Object.create(null),
 			level: 0,
 			line: 0,
 			err: null
@@ -1729,6 +1742,8 @@ function ScriptParse(sci) {
 			await callbacks.error(pi.err);
 			return;
 		}
+		// The spellings the program uses, for names given from outside (exec).
+		Object.defineProperty(pi.token, 'names', {value: pi.names});
 		await callbacks.success(pi.token);
 	};
 }

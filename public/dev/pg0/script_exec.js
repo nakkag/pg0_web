@@ -1444,6 +1444,16 @@ function ScriptExec(scis, sci) {
 		that.callback = (typeof callbacks.callback === 'function') ? callbacks.callback : Script.noop;
 
 		sci.ei = initExecInfo(token);
+		// Names given from outside take the program's spelling of the same variable.
+		if (vi && token.names) {
+			Object.keys(vi).forEach(function(name) {
+				const spelling = token.names[Script.foldName(name)];
+				if (spelling !== undefined && spelling !== name && !(spelling in vi)) {
+					vi[spelling] = vi[name];
+					delete vi[name];
+				}
+			});
+		}
 		sci.ei.vi = vi;
 		const retvi = ScriptExec.initValueInfo();
 		retvi.v.num = null;
