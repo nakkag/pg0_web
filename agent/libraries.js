@@ -96,7 +96,7 @@ module.exports = {
 				'Store screen programs with "speed": 0 (no wait) so that the web editor does not pause after every statement.'
 			],
 			functions: [
-				{name: 'startScreen', signature: 'startScreen(width: int, height: int, option: arr = {}) -> int', summary: 'Opens the screen. option: {"color": background color string, "fit": 1 (default) scales the screen to the browser window, 0 shows it at 1:1}.'},
+				{name: 'startScreen', signature: 'startScreen(width: int, height: int, option: arr = {}) -> int', summary: 'Opens the screen. option: {"color": background color string, "fit": 1 (default) scales the screen to the browser window, 0 shows it at 1:1}. Size it around 1080 (about 1920x1080 landscape, 1080x1920 portrait, 1080x1080 square); with fit it is scaled to the window, so a small screen such as 320x240 is not needed.'},
 				{name: 'sleep', signature: 'sleep(ms: num) -> int', summary: 'Waits ms milliseconds (browser). Headless: advances the virtual clock and counts one frame. Call it once per game-loop iteration.'},
 				{name: 'time', signature: 'time() -> float', summary: 'Milliseconds since 1970-01-01 UTC (returned as float). Headless: virtual clock, advanced by 1 ms per call.'},
 				{name: 'timeString', signature: 'timeString(ms: num, format: str = "") -> str', summary: 'Formats a time; format uses YYYY MM DD hh mm ss (or M D h m s without zero padding). Without format: locale date and time.'},

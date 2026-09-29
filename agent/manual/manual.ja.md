@@ -570,7 +570,7 @@ exit vlen(6, 8)             // 10
 |---|---|
 | `max_frames` | `sleep()` の呼び出し回数がこの値に達したら停止。デフォルト 10000。サーバの上限は `GET /api/agent/v1` に載っています。 |
 | `max_virtual_ms` | 仮想時計がこのミリ秒に達したら停止。デフォルトは無制限。 |
-| `screen.touch` | ポインタのタイムライン: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`。各要素はその仮想時刻から次の要素までの状態。`touch` の既定は 1、`button` の既定は 0。 |
+| `screen.touch` | ポインタのタイムライン: `[{"ms": 500, "x": 960, "y": 540, "touch": 1, "button": 0}, {"ms": 700, "x": 960, "y": 540, "touch": 0}]`。各要素はその仮想時刻から次の要素までの状態。`touch` の既定は 1、`button` の既定は 0。 |
 | `screen.keys` | キーボードのタイムライン: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`。各要素はその仮想時刻以降に押されているキーの一覧。`[]` で全て離します。簡易表記: `{"ms": 500, "tap": "Enter"}` はちょうど 1 フレームだけ押す（`"gap": n` を付けるとその後 n フレームは離した状態を強制するので、連続フレームの 2 回の tap を、押下エッジを検出するプログラムでも 2 回として扱える）、`{"ms": 500, "hold": "ArrowDown", "frames": 8}` は 8 フレーム押し続ける（`tap`/`hold` は文字列またはキーの配列）。どの要素も `"ms"` の代わりに `"frame": n`（0 始まりのフレーム番号）で指定できます。tap/hold は開始時刻が `ms` 以上になる最初のフレームから始まり、`keys` で押されているキーに加算されます。 |
 | `screen.record` | `true` で描画呼び出しを返します。 |
 | `screen.max_calls` | 記録する呼び出しの上限（デフォルト 2000）。超えると `record_truncated` が `true` になります。`calls` は数え続けます。 |
@@ -581,15 +581,15 @@ exit vlen(6, 8)             // 10
 | `screen.frame_steps` | `true` にすると各フレームの実行ステップ数の配列（先頭 100000 フレーム）を `screen.frame_steps` で返します。スパイクの位置を安く特定できます。 |
 | `screen.record_last_drawn` | `true` にすると、何かを描いた最後のフレームの全呼び出しを `screen.last_drawn_frame` で返します。`record`、`record_frames`、各フィルタとは独立です。変化があったときだけ再描画するプログラム（dirty フラグ方式）が `frame_limit` で止まったとき、再生すべきフレームがこれです。 |
 
-タッチの要素も簡易表記 `{"ms": 500, "tap": {"x": 330, "y": 300}}`（1 フレームだけタッチ。`"frames": n` で複数フレーム）と `"ms"` の代わりの `"frame"` を使えます。要素の順序は問いません。各時点では最後に到達した状態要素が有効になり、tap/hold はそれぞれの時刻で評価されます。各要素は `ms` か `frame` のどちらか一方を必ず持ち、タッチは数値の `x`/`y`、キーは `keys`、`tap`、`hold` のいずれかが必要です。満たさない場合は `400 invalid_request` で該当要素を示して拒否します（例: `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`）。
+タッチの要素も簡易表記 `{"ms": 500, "tap": {"x": 960, "y": 540}}`（1 フレームだけタッチ。`"frames": n` で複数フレーム）と `"ms"` の代わりの `"frame"` を使えます。要素の順序は問いません。各時点では最後に到達した状態要素が有効になり、tap/hold はそれぞれの時刻で評価されます。各要素は `ms` か `frame` のどちらか一方を必ず持ち、タッチは数値の `x`/`y`、キーは `keys`、`tap`、`hold` のいずれかが必要です。満たさない場合は `400 invalid_request` で該当要素を示して拒否します（例: `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`）。
 
 **レスポンスの `screen`**（ライブラリを import した場合に存在）:
 
 ```json
-{"started": true, "width": 320, "height": 240, "background": "#000000", "fit": 1,
+{"started": true, "width": 1920, "height": 1080, "background": "#000000", "fit": 1,
  "frames": 100, "virtual_ms": 1600, "calls": 401, "images": 0,
- "record": [{"frame": 0, "ms": 0, "calls": [{"fn": "startScreen", "args": [320, 240, {"color": "#000000"}]},
-                                            {"fn": "drawCircle", "args": [20, 20, 10, {"color": "#ffcc00", "fill": 1}]}]},
+ "record": [{"frame": 0, "ms": 0, "calls": [{"fn": "startScreen", "args": [1920, 1080, {"color": "#000000"}]},
+                                            {"fn": "drawCircle", "args": [120, 120, 60, {"color": "#ffcc00", "fill": 1}]}]},
             {"frame": 1, "ms": 16, "calls": []}],
  "record_truncated": false}
 ```
@@ -602,7 +602,7 @@ exit vlen(6, 8)             // 10
 
 | 関数 | 説明 |
 |---|---|
-| `startScreen(width, height, option = {})` | 画面を開く。`option`: `{"color": 背景色, "fit": 1}`。最初に 1 回呼ぶ。 |
+| `startScreen(width, height, option = {})` | 画面を開く。`option`: `{"color": 背景色, "fit": 1}`。最初に 1 回呼ぶ。大きさは 1080 前後を基準にする（横長 1920 × 1080、縦長 1080 × 1920、正方形 1080 × 1080 くらい）。`"fit": 1` でウィンドウに合わせて拡大縮小されるので、小さい画面（320 × 240 など）にする必要はない。文字（`fontsize` 40～80 くらい）・線の太さ・移動量もこの大きさに合わせる。 |
 | `sleep(ms)` | ブラウザ: 少なくとも `ms` ミリ秒待つ。待ちは 1ms のタイマーで確認しているが、ブラウザは数回続くと約 4ms に間引くため、`sleep(16)` は実際には 17～20ms 程度になり、フレーム間隔は正確には揃わない。安定させるには `time()` で計って残りだけ待つ（例: 30fps なら `sleep(max(1, 32 - (time() - t0)))`。`max` は `lib/math.pg0`）。ヘッドレス: 仮想時計を進めてフレームを終える。ゲームループ 1 周に 1 回。 |
 | `time()` | 1970-01-01 UTC からのミリ秒（実数）。分解能は 1ms（ブラウザによっては少し粗くなる）。ヘッドレスでは仮想。 |
 | `timeString(ms, format = "")` | 時刻の書式化。`YYYY MM DD hh mm ss`（ゼロ埋め）または `M D h m s`。`format` 省略時はロケールの日時。 |
@@ -652,17 +652,17 @@ if (!resumed) {
 
 ```
 #import("lib/screen.pg0")
-startScreen(320, 240, {"color": "#000000"})
-x = 160; y = 120; score = 0
+startScreen(1920, 1080, {"color": "#000000"})
+x = 960; y = 540; score = 0
 while (1) {
   t = inTouch()
   if (t["touch"]) { x = t["x"]; y = t["y"]; score++ }
-  if (inKey("ArrowLeft")) { x -= 4 }
-  if (inKey("ArrowRight")) { x += 4 }
+  if (inKey("ArrowLeft")) { x -= 24 }
+  if (inKey("ArrowRight")) { x += 24 }
   startOffscreen()
-  drawRect(0, 0, 320, 240, {"color": "#000000", "fill": 1})
-  drawCircle(x, y, 10, {"color": "#ffcc00", "fill": 1})
-  drawText("score " + score, 4, 4, {"color": "#ffffff", "fontsize": 16})
+  drawRect(0, 0, 1920, 1080, {"color": "#000000", "fill": 1})
+  drawCircle(x, y, 60, {"color": "#ffcc00", "fill": 1})
+  drawText("score " + score, 24, 24, {"color": "#ffffff", "fontsize": 64})
   endOffscreen()
   sleep(16)
 }
@@ -673,12 +673,12 @@ while (1) {
 ```json
 {"code": "...上のプログラム...",
  "max_frames": 300,
- "screen": {"touch": [{"ms": 500, "x": 50, "y": 60}, {"ms": 600, "x": 50, "y": 60, "touch": 0}],
+ "screen": {"touch": [{"ms": 500, "x": 300, "y": 360}, {"ms": 600, "x": 300, "y": 360, "touch": 0}],
             "keys": [{"ms": 1000, "keys": ["ArrowRight"]}, {"ms": 1500, "keys": []}],
             "record": true, "max_calls": 50}}
 ```
 
-期待される結果: `status` は `"frame_limit"`、`screen.frames` は 300、`variables.score` は 6（ポインタは仮想時刻 500～599 ミリ秒の間押されており、512, 528, ..., 592 ミリ秒から始まるフレームがそれを見る）、`variables.x` は 50 + 4 × 31 = 174（ArrowRight は 1000～1499 ミリ秒の間押されており、1008～1488 ミリ秒から始まる 31 フレーム分）、`screen.record` には最初の 50 呼び出しが座標付きで入ります。
+期待される結果: `status` は `"frame_limit"`、`screen.frames` は 300、`variables.score` は 6（ポインタは仮想時刻 500～599 ミリ秒の間押されており、512, 528, ..., 592 ミリ秒から始まるフレームがそれを見る）、`variables.x` は 300 + 24 × 31 = 1044（ArrowRight は 1000～1499 ミリ秒の間押されており、1008～1488 ミリ秒から始まる 31 フレーム分）、`screen.record` には最初の 50 呼び出しが座標付きで入ります。
 
 ## 5. 例
 
@@ -726,11 +726,11 @@ POST /api/agent/v1/scripts
 下の跳ねるボールのプログラムは `lib/screen.pg0` を import しています。`/run` ではヘッドレスで実行され（4.5 参照）、`max_frames` で無限ループを止め、`variables` でボールの最終位置が分かります。
 
 ```json
-{"code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}",
+{"code": "#import(\"lib/screen.pg0\")\nstartScreen(1920, 1080, {\"color\": \"#000000\"})\nx = 120; y = 120; dx = 18; dy = 12\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 1920, 1080, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 60, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 60 || x > 1860) { dx = -dx }\n  if (y < 60 || y > 1020) { dy = -dy }\n  sleep(16)\n}",
  "max_frames": 100, "screen": {"record": true, "max_calls": 10}}
 ```
 
-レスポンス（抜粋）: `"status": "frame_limit"`、`"variables": {"x": 302, "y": 220, "dx": -3, "dy": 2}`、`"screen": {"frames": 100, "virtual_ms": 1600, "calls": 401, "record": [...], "record_truncated": true}`。
+レスポンス（抜粋）: `"status": "frame_limit"`、`"variables": {"x": 1812, "y": 744, "dx": -18, "dy": -12}`、`"screen": {"frames": 100, "virtual_ms": 1600, "calls": 401, "record": [...], "record_truncated": true}`。
 
 人に渡すときは `"speed": 0` で保存します。
 

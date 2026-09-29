@@ -570,7 +570,7 @@ Steps count interpreted tokens, not work: copying a large array into a parameter
 |---|---|
 | `max_frames` | Stop after this many `sleep()` calls. Default 10000, server maximum in `GET /api/agent/v1`. |
 | `max_virtual_ms` | Stop when the virtual clock reaches this many ms. Default none. |
-| `screen.touch` | Pointer timeline: `[{"ms": 500, "x": 330, "y": 300, "touch": 1, "button": 0}, {"ms": 700, "x": 330, "y": 300, "touch": 0}]`. Each entry is the state from its virtual time until the next entry. `touch` defaults to 1, `button` to 0. |
+| `screen.touch` | Pointer timeline: `[{"ms": 500, "x": 960, "y": 540, "touch": 1, "button": 0}, {"ms": 700, "x": 960, "y": 540, "touch": 0}]`. Each entry is the state from its virtual time until the next entry. `touch` defaults to 1, `button` to 0. |
 | `screen.keys` | Keyboard timeline: `[{"ms": 100, "keys": ["ArrowLeft"]}, {"ms": 400, "keys": []}]`. Each entry lists the keys held from its virtual time on; `[]` releases all keys. Short forms: `{"ms": 500, "tap": "Enter"}` presses a key for exactly one frame (add `"gap": n` to force the key released for n frames afterwards, so that two taps on consecutive frames are seen as two presses by programs that detect edges), `{"ms": 500, "hold": "ArrowDown", "frames": 8}` for 8 frames (`tap`/`hold` accept a string or an array of keys). Every entry may use `"frame": n` (frame index, 0-based) instead of `"ms"`. A tap/hold starts in the first frame whose start time is at or after `ms`, and is added on top of the held keys of the `keys` entries. |
 | `screen.record` | `true` returns the drawing calls. |
 | `screen.max_calls` | Cap on recorded calls (default 2000). Beyond it `record_truncated` becomes `true`; `calls` keeps counting. |
@@ -581,15 +581,15 @@ Steps count interpreted tokens, not work: copying a large array into a parameter
 | `screen.frame_steps` | `true` returns `screen.frame_steps`, an array with the number of execution steps of every frame (first 100000 frames), to locate spikes cheaply. |
 | `screen.record_last_drawn` | `true` returns `screen.last_drawn_frame`, the complete call list of the last frame in which anything was drawn, independent of `record`, `record_frames` and the filters. For programs that redraw only when something changed (dirty flag), this is the frame to replay when the run ended with `frame_limit`. |
 
-Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. The order of the entries does not matter: at any moment the state entry that became due last applies, and taps/holds are evaluated by their own time. Every entry must have exactly one of `ms` or `frame`, numeric `x`/`y` for touch, and `keys`, `tap` or `hold` for keys; otherwise the request is rejected with `400 invalid_request` naming the entry, for example `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`.
+Touch entries also accept the short form `{"ms": 500, "tap": {"x": 960, "y": 540}}` (touch for one frame, or `"frames": n`) and `"frame"` instead of `"ms"`. The order of the entries does not matter: at any moment the state entry that became due last applies, and taps/holds are evaluated by their own time. Every entry must have exactly one of `ms` or `frame`, numeric `x`/`y` for touch, and `keys`, `tap` or `hold` for keys; otherwise the request is rejected with `400 invalid_request` naming the entry, for example `"screen.keys[2]" needs exactly one of "ms" ... or "frame" ...`.
 
 **Response field `screen`** (present when the library was imported):
 
 ```json
-{"started": true, "width": 320, "height": 240, "background": "#000000", "fit": 1,
+{"started": true, "width": 1920, "height": 1080, "background": "#000000", "fit": 1,
  "frames": 100, "virtual_ms": 1600, "calls": 401, "images": 0,
- "record": [{"frame": 0, "ms": 0, "calls": [{"fn": "startScreen", "args": [320, 240, {"color": "#000000"}]},
-                                            {"fn": "drawCircle", "args": [20, 20, 10, {"color": "#ffcc00", "fill": 1}]}]},
+ "record": [{"frame": 0, "ms": 0, "calls": [{"fn": "startScreen", "args": [1920, 1080, {"color": "#000000"}]},
+                                            {"fn": "drawCircle", "args": [120, 120, 60, {"color": "#ffcc00", "fill": 1}]}]},
             {"frame": 1, "ms": 16, "calls": []}],
  "record_truncated": false}
 ```
@@ -602,7 +602,7 @@ Touch entries also accept the short form `{"ms": 500, "tap": {"x": 330, "y": 300
 
 | Function | Description |
 |---|---|
-| `startScreen(width, height, option = {})` | Opens the screen. `option`: `{"color": background, "fit": 1}`. Call it once at the start. |
+| `startScreen(width, height, option = {})` | Opens the screen. `option`: `{"color": background, "fit": 1}`. Call it once at the start. Size it around 1080 (about 1920 × 1080 landscape, 1080 × 1920 portrait, 1080 × 1080 square); with `"fit": 1` it is scaled to the window, so there is no need for a small screen such as 320 × 240. Size text (`fontsize` 40 to 80 or so), line widths and movement to match. |
 | `sleep(ms)` | Browser: pauses at least `ms` milliseconds; the wait is checked with a 1 ms timer that browsers slow down to about 4 ms after a few rounds, so `sleep(16)` typically lasts 17 to 20 ms and frames are not exactly regular. For steady pacing measure with `time()` and sleep the remainder, for example `sleep(max(1, 32 - (time() - t0)))` for 30 fps (`max` from `lib/math.pg0`). Headless: advance the virtual clock, end the frame. One call per game-loop iteration. |
 | `time()` | Milliseconds since 1970-01-01 UTC as a float, 1 ms resolution (browsers may coarsen it slightly). Headless: virtual. |
 | `timeString(ms, format = "")` | Formats a time; `YYYY MM DD hh mm ss` (zero padded) or `M D h m s`. Without `format`: locale date and time. |
@@ -652,17 +652,17 @@ Only variables and the key/value store are carried over: images created with `cr
 
 ```
 #import("lib/screen.pg0")
-startScreen(320, 240, {"color": "#000000"})
-x = 160; y = 120; score = 0
+startScreen(1920, 1080, {"color": "#000000"})
+x = 960; y = 540; score = 0
 while (1) {
   t = inTouch()
   if (t["touch"]) { x = t["x"]; y = t["y"]; score++ }
-  if (inKey("ArrowLeft")) { x -= 4 }
-  if (inKey("ArrowRight")) { x += 4 }
+  if (inKey("ArrowLeft")) { x -= 24 }
+  if (inKey("ArrowRight")) { x += 24 }
   startOffscreen()
-  drawRect(0, 0, 320, 240, {"color": "#000000", "fill": 1})
-  drawCircle(x, y, 10, {"color": "#ffcc00", "fill": 1})
-  drawText("score " + score, 4, 4, {"color": "#ffffff", "fontsize": 16})
+  drawRect(0, 0, 1920, 1080, {"color": "#000000", "fill": 1})
+  drawCircle(x, y, 60, {"color": "#ffcc00", "fill": 1})
+  drawText("score " + score, 24, 24, {"color": "#ffffff", "fontsize": 64})
   endOffscreen()
   sleep(16)
 }
@@ -673,12 +673,12 @@ Run it with a scenario:
 ```json
 {"code": "...the program above...",
  "max_frames": 300,
- "screen": {"touch": [{"ms": 500, "x": 50, "y": 60}, {"ms": 600, "x": 50, "y": 60, "touch": 0}],
+ "screen": {"touch": [{"ms": 500, "x": 300, "y": 360}, {"ms": 600, "x": 300, "y": 360, "touch": 0}],
             "keys": [{"ms": 1000, "keys": ["ArrowRight"]}, {"ms": 1500, "keys": []}],
             "record": true, "max_calls": 50}}
 ```
 
-Expected: `status` `"frame_limit"`, `screen.frames` 300, `variables.score` 6 (the pointer is down for virtual ms 500 to 599; the frames starting at 512, 528, ..., 592 see it), `variables.x` 50 + 4 × 31 = 174 (ArrowRight is held from 1000 to 1499 ms, which covers the 31 frames starting at 1008 to 1488), and `screen.record` showing the first 50 calls with their coordinates.
+Expected: `status` `"frame_limit"`, `screen.frames` 300, `variables.score` 6 (the pointer is down for virtual ms 500 to 599; the frames starting at 512, 528, ..., 592 see it), `variables.x` 300 + 24 × 31 = 1044 (ArrowRight is held from 1000 to 1499 ms, which covers the 31 frames starting at 1008 to 1488), and `screen.record` showing the first 50 calls with their coordinates.
 
 ## 5. Examples
 
@@ -726,11 +726,11 @@ The `201` response contains `"url": "https://<host>/dev/?cid=<cid>"`; give that 
 The bouncing-ball program below imports `lib/screen.pg0`. Through `/run` it executes headless (see 4.5): `max_frames` stops the endless loop, and `variables` shows where the ball ended up.
 
 ```json
-{"code": "#import(\"lib/screen.pg0\")\nstartScreen(320, 240, {\"color\": \"#000000\"})\nx = 20; y = 20; dx = 3; dy = 2\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 320, 240, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 10, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 10 || x > 310) { dx = -dx }\n  if (y < 10 || y > 230) { dy = -dy }\n  sleep(16)\n}",
+{"code": "#import(\"lib/screen.pg0\")\nstartScreen(1920, 1080, {\"color\": \"#000000\"})\nx = 120; y = 120; dx = 18; dy = 12\nwhile (1) {\n  startOffscreen()\n  drawRect(0, 0, 1920, 1080, {\"color\": \"#000000\", \"fill\": 1})\n  drawCircle(x, y, 60, {\"color\": \"#ffcc00\", \"fill\": 1})\n  endOffscreen()\n  x += dx; y += dy\n  if (x < 60 || x > 1860) { dx = -dx }\n  if (y < 60 || y > 1020) { dy = -dy }\n  sleep(16)\n}",
  "max_frames": 100, "screen": {"record": true, "max_calls": 10}}
 ```
 
-Response (abbreviated): `"status": "frame_limit"`, `"variables": {"x": 302, "y": 220, "dx": -3, "dy": 2}`, `"screen": {"frames": 100, "virtual_ms": 1600, "calls": 401, "record": [...], "record_truncated": true}`.
+Response (abbreviated): `"status": "frame_limit"`, `"variables": {"x": 1812, "y": 744, "dx": -18, "dy": -12}`, `"screen": {"frames": 100, "virtual_ms": 1600, "calls": 401, "record": [...], "record_truncated": true}`.
 
 Store it for a person with `"speed": 0`:
 
