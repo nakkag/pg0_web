@@ -692,7 +692,8 @@ ScriptExec.lib['drawcircle'] = async function(ei, param, ret) {
 	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.beginPath();
-	ctx.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle);
+	// A negative radius draws the same circle
+	ctx.ellipse(x, y, Math.abs(radiusX), Math.abs(radiusY), rotation, startAngle, endAngle);
 	if (fill) {
 		ctx.fillStyle = color;
 		ctx.fill();
@@ -973,6 +974,13 @@ ScriptExec.lib['drawimage'] = async function(ei, param, ret) {
 		}
 	}
 
+	// Fully transparent draws nothing; more than opaque is opaque
+	if (alpha <= 0) {
+		return 0;
+	}
+	if (alpha > 1) {
+		alpha = 1;
+	}
 	const screen = _screenGetCanvas();
 	const ctx = screen.getContext('2d', {willReadFrequently: true});
 	ctx.globalAlpha = alpha;
@@ -1399,10 +1407,11 @@ function _screenPlayMusic(array, callback, group) {
 	let baseVolume = 1.0;
 	array.forEach(function(d, i) {
 		if (d.v.type === TYPE_ARRAY) {
-			if (d.v.array[0].name === 'start') {
+			// Keys are case-insensitive like every array key
+			if (d.v.array[0].name.toLowerCase() === 'start') {
 				start = d.v.array[0].v.num;
 				return;
-			} else if (d.v.array[0].name === 'volume') {
+			} else if (d.v.array[0].name.toLowerCase() === 'volume') {
 				baseVolume = d.v.array[0].v.num;
 				return;
 			}
