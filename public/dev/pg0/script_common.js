@@ -11,6 +11,13 @@ Script.initScriptInfo = function(src, options) {
 		strict_val: options.strict_val || false
 	};
 };
+// A variable name with its half-width letters in lower case: names that
+// differ only in that case are the same variable.
+Script.foldName = function(name) {
+	return String(name).replace(/[A-Z]+/g, function(c) {
+		return c.toLowerCase();
+	});
+};
 Script.error = function(sci, msg, line) {
 	let src = '';
 	try {
