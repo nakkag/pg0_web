@@ -82,6 +82,7 @@ Response: `{"ok": true, "mode": "PG0.5", "error": null, "warnings": [...]}` or `
 - `keyed_initializer`: a bare variable inside an array initializer (`{x, y}`) becomes a keyed element, not a list element (see 3.5). Write `{x + 0, y + 0}` for a list.
 - `global_overwrite`: a function assigns a loop counter such as `for (i = 0; ...)` without `var` while a variable of the same name exists at the top level; the function clobbers the global `i` and breaks the caller's loop. Declare function-local variables with `var i` (assignments that deliberately update global state are not reported).
 - `builtin_shadow`: a function is defined with the name of a standard or library function (names are case-insensitive), which makes the original unusable.
+- `case_variant`: variable names that differ only in upper/lower case are mixed (for example `bX` and `bx`). Variable names ignore the case of half-width letters, so they are the same variable. `name` is the other spelling; each spelling that differs from the first is reported once, at the line where it first appears. Rename one if they are meant to be different variables, or spell them the same. The other warnings name a variable by the spelling the program wrote first.
 - `undeclared_variable`: the program has `#option("strict")` and a variable is used without a `var` declaration in its scope or an enclosing one (parameters count as declared). The interpreter reports this only when the line runs; the check reports it before.
 
 #### POST /api/agent/v1/run

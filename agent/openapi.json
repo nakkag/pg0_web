@@ -530,7 +530,8 @@
                     "keyed_initializer",
                     "undeclared_variable",
                     "global_overwrite",
-                    "builtin_shadow"
+                    "builtin_shadow",
+                    "case_variant"
                   ]
                 },
                 "line": {

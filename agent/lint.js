@@ -56,6 +56,9 @@ const MESSAGES = {
 		},
 		builtin_shadow: function(name) {
 			return `Function "${name}" has the same name as a standard or library function, which becomes unusable in this program (function names are case-insensitive). Choose another name.`;
+		},
+		case_variant: function(name, first, firstLine) {
+			return `Variable "${name}" differs from "${first}" (line ${firstLine}) only in upper/lower case. PG0 ignores the case of half-width letters in variable names, so both are the same variable. If they are meant to be different variables, rename one; if not, spell them the same.`;
 		}
 	},
 	ja: {
@@ -79,6 +82,9 @@ const MESSAGES = {
 		},
 		builtin_shadow: function(name) {
 			return `関数 "${name}" は標準関数またはライブラリ関数と同じ名前です（関数名は大文字小文字を区別しません）。このプログラムでは元の関数が使えなくなるので、別の名前にしてください。`;
+		},
+		case_variant: function(name, first, firstLine) {
+			return `変数 "${name}" は "${first}"（${firstLine} 行目）と大文字小文字だけが違います。PG0 は変数名の半角英字の大文字小文字を区別しないため、同じ変数になります。別の変数のつもりならどちらかの名前を変え、同じ変数なら綴りをそろえてください。`;
 		}
 	}
 };
@@ -173,6 +179,13 @@ function isBlockBrace(tokens, i) {
 	return false;
 }
 
+// A variable name with its half-width letters in lower case (the interpreter's Script.foldName).
+function foldName(name) {
+	return String(name).replace(/[A-Z]+/g, function(c) {
+		return c.toLowerCase();
+	});
+}
+
 function isCall(tokens, i) {
 	return tokens[i + 1] && tokens[i + 1].t === 'op' && tokens[i + 1].v === '(';
 }
@@ -191,6 +204,32 @@ function lint(src, lang) {
 		}
 		warned[key] = true;
 		warnings.push({code: code, line: line + 1, name: name, message: text});
+	}
+
+	// Variable names ignore the case of half-width letters, as the interpreter
+	// does: every spelling takes the one written first, and each other
+	// spelling is pointed out once. Function names are left alone.
+	{
+		const spellings = Object.create(null);
+		const reported = Object.create(null);
+		tokens.forEach(function(tk, i) {
+			if (tk.t !== 'id' || isCall(tokens, i)) {
+				return;
+			}
+			const key = foldName(tk.v);
+			const first = spellings[key];
+			if (!first) {
+				spellings[key] = {v: tk.v, line: tk.line};
+				return;
+			}
+			if (tk.v !== first.v) {
+				if (!reported[tk.v]) {
+					reported[tk.v] = true;
+					warn('case_variant', tk.line, tk.v, msg.case_variant(tk.v, first.v, first.line + 1));
+				}
+				tk.v = first.v;
+			}
+		});
 	}
 
 	// Pass 1: token index of the first top-level (outside blocks and functions) reference of each name.
