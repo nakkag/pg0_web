@@ -4,11 +4,8 @@ ScriptExec.lib['abs'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.abs(param[0].v.num);
-	ret.v.type = param[0].v.type;
-	if (ScriptExec.checkInt(ret.v.num)) {
-		ret.v.type = TYPE_INTEGER;
-	}
+	ret.v.num = Math.abs(_mathNumber(param[0]));
+	ret.v.type = ScriptExec.checkInt(ret.v.num) ? TYPE_INTEGER : TYPE_FLOAT;
 	return 0;
 };
 
@@ -16,7 +13,7 @@ ScriptExec.lib['atan'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.atan(param[0].v.num);
+	ret.v.num = Math.atan(_mathNumber(param[0]));
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -28,7 +25,7 @@ ScriptExec.lib['cos'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.cos(param[0].v.num);
+	ret.v.num = Math.cos(_mathNumber(param[0]));
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -40,7 +37,7 @@ ScriptExec.lib['exp'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.exp(param[0].v.num);
+	ret.v.num = Math.exp(_mathNumber(param[0]));
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -52,7 +49,7 @@ ScriptExec.lib['log'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.log(param[0].v.num);
+	ret.v.num = Math.log(_mathNumber(param[0]));
 	if (ret.v.num === -Infinity) {
 		throw new Error('-Infinity');
 	}
@@ -103,7 +100,7 @@ ScriptExec.lib['sign'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.sign(param[0].v.num);
+	ret.v.num = Math.sign(_mathNumber(param[0]));
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
@@ -112,7 +109,7 @@ ScriptExec.lib['sin'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.sin(param[0].v.num);
+	ret.v.num = Math.sin(_mathNumber(param[0]));
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -124,7 +121,7 @@ ScriptExec.lib['sqrt'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.sqrt(param[0].v.num);
+	ret.v.num = Math.sqrt(_mathNumber(param[0]));
 	if (isNaN(ret.v.num)) {
 		throw new Error('Not a Number');
 	}
@@ -139,7 +136,7 @@ ScriptExec.lib['tan'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	ret.v.num = Math.tan(param[0].v.num);
+	ret.v.num = Math.tan(_mathNumber(param[0]));
 	ret.v.type = TYPE_FLOAT;
 	if (ScriptExec.checkInt(ret.v.num)) {
 		ret.v.type = TYPE_INTEGER;
@@ -151,7 +148,7 @@ ScriptExec.lib['pow'] = function(ei, param, ret) {
 	if (param.length < 2) {
 		return -2;
 	}
-	ret.v.num = Math.pow(param[0].v.num, param[1].v.num);
+	ret.v.num = Math.pow(_mathNumber(param[0]), _mathNumber(param[1]));
 	if (isNaN(ret.v.num)) {
 		throw new Error('Not a Number');
 	}
