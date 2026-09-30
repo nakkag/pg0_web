@@ -180,8 +180,9 @@ const onlineOpenView = (function () {
 			me.setFilter(chip.dataset.filter);
 			return;
 		}
+		// A badge of the genre already chosen selects the item like the rest of it.
 		const badge = e.target.closest('.file-tag');
-		if (badge) {
+		if (badge && badge.dataset.tag !== me.filter()) {
 			me.setFilter(badge.dataset.tag);
 			return;
 		}
@@ -337,7 +338,7 @@ const onlineOpenView = (function () {
 						time = '(' + date_format.formatDate(date, navigator.language) + ' ' + date_format.formatTimeSec(date, navigator.language) + ')';
 					}
 					const tags = (Array.isArray(script.tags) ? script.tags : []).map((tag) => {
-						return '<span class="file-tag" data-tag="' + pg0_string.escapeHTML(tag) + '">' + pg0_string.escapeHTML(tagLabel(tag)) + '</span>';
+						return '<span class="file-tag' + (tag === me.filter() ? ' current' : '') + '" data-tag="' + pg0_string.escapeHTML(tag) + '">' + pg0_string.escapeHTML(tagLabel(tag)) + '</span>';
 					}).join('');
 					nameNode.innerHTML = '<div><span class="file-name ' + ((script.private) ? 'file-private' : '') + '">' + pg0_string.escapeHTML(script.name || '') + '</span></div>' +
 						'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span>' + tags + '</div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
