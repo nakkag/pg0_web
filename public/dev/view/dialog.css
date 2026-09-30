@@ -405,6 +405,13 @@
 .file-tag:hover {
 	background-color: #ccc;
 }
+/* The genre already chosen is part of the item, not a button of its own. */
+.file-tag.current {
+	cursor: inherit;
+}
+.file-tag.current:hover {
+	background-color: #e5e5e5;
+}
 /* Trimming the text to cap height and baseline centers it whatever the fallback font's ascent and descent. */
 @supports (text-box: trim-both cap alphabetic) {
 	.file-tag {
