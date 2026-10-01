@@ -1,0 +1,543 @@
+// スイカゲーム (Suika Game) - PG0.5 / lib/screen.pg0
+// 操作: 画面をドラッグして離す（タップでも可）= その位置に落とす
+//       キーボード: ← → で移動、スペース / ↓ / Enter で落とす
+// 同じ果物同士がぶつかると一段大きい果物に進化する。
+// 果物が上の点線より上に居続けるとゲームオーバー。
+#import("lib/screen.pg0")
+#import("lib/math.pg0")
+#import("lib/io.pg0")
+
+// ---------- 定数 ----------
+SCR_W = 1080; SCR_H = 1920
+BOX_L = 90; BOX_R = 990; BOX_T = 500; BOX_B = 1700
+WALL_W = 18
+LINE_Y = 580
+DROP_Y = 420
+NT = 11
+RADS[] = {30, 38, 48, 66, 76, 86, 100, 114, 150, 188, 225}
+SCORES[] = {1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66}
+COLS[] = {"#e8303a", "#f04a6e", "#9b5fd6", "#f7a826", "#f27d2b", "#e3322f", "#cfd84c", "#f9aab8", "#f5c531", "#a4d16a", "#2f8f3a"}
+DARKS[] = {"#b31e28", "#c22f52", "#6f3fa8", "#d1821a", "#c65c17", "#b11f1d", "#9fa832", "#d9808f", "#d19d1d", "#6f9f3f", "#1f6428"}
+NAMES[] = {"さくらんぼ", "いちご", "ぶどう", "デコポン", "かき", "りんご", "なし", "もも", "パイナップル", "メロン", "スイカ"}
+GRAV = 1.6; DAMP = 0.995; VMAX = 28; BOUNCE = 0.18; FRICTION = 0.08
+SLEEP_FRAMES = 12; WAKE_PEN = 8; WAKE_VN = 2.5; WAKE_SPD2 = 6.25; SLEEP_SPD2 = 0.8
+FRIC = 0.5; STATIC_VT = 2.5; SLOP = 1
+DROP_WAIT = 650; OVER_WAIT = 1500
+MAX_FRUIT = 80
+
+// ---------- 果物データ（並列配列） ----------
+fx[] = {}; fy[] = {}; fvx[] = {}; fvy[] = {}; fr[] = {}; ft[] = {}
+fa[] = {}; fw[] = {}; fsl[] = {}; fc[] = {}; fm[] = {}
+n = 0
+mergeA[] = {}; mergeB[] = {}; mc = 0
+spT[] = {}; spX[] = {}; spY[] = {}; spVX[] = {}; spVY[] = {}; spN = 0
+SPR[] = {}; HALF[] = {}
+bgImg = -1
+
+// エフェクト・ポップアップ
+ex[] = {}; ey[] = {}; er[] = {}; el[] = {}; en = 0
+ppx[] = {}; ppy[] = {}; pps[] = {}; ppl[] = {}; pn = 0
+
+// ---------- 状態 ----------
+state = 0            // 0 タイトル, 1 プレイ中, 2 ゲームオーバー
+score = 0
+best = loadValue("suika_best")
+if (isType(best) != 0) { best = 0 }
+cur = 0; nxt = 0
+cursorX = (BOX_L + BOX_R) / 2
+lastDrop = -100000
+overMs = 0
+topType = 0
+prevHeld = 0; prevDrop = 0; prevPtrX = -1
+spi2 = 0
+
+// ループ内で使う作業変数（最上位で作っておく）
+i = 0; j = 0; k = 0; t = 0
+xi = 0; yi = 0; ri = 0; lim = 0; xlo = 0; xhi = 0; ylo = 0; yhi = 0
+vx = 0; vy = 0; rtop = 0
+above = 0; hs = 0; sc = 0; rad = 0
+now = 0; prevNow = 0; dtMs = 0; t0 = 0; wt = 0
+tch = 0; held = 0; ptrX = 0; released = 0; kDrop = 0; dropEdge = 0; ready = 0
+a = 0; b = 0; mx = 0; my = 0; mvx = 0; mvy = 0; alpha = 0
+dx = 0; dy = 0; rr = 0; d2 = 0; dd = 0; ov = 0; nx = 0; ny = 0; mi = 0; mj = 0; si = 0; sj = 0
+vix = 0; viy = 0; vjx = 0; vjy = 0; rvx = 0; rvy = 0; vn = 0; vt = 0; wv = 0; pi = 0
+
+// ---------- 関数 ----------
+function spawn(tp, x, y, vx0, vy0) {
+  if (n >= MAX_FRUIT) { return 0 }
+  fx[n] = x; fy[n] = y; fvx[n] = vx0; fvy[n] = vy0
+  fr[n] = RADS[tp]; ft[n] = tp; fa[n] = 0; fw[n] = 1; fsl[n] = 0; fc[n] = 0; fm[n] = 0
+  n = n + 1
+  if (tp > topType) { topType = tp }
+  return 1
+}
+
+function removeAt(idx) {
+  n = n - 1
+  fx[idx] = fx[n]; fy[idx] = fy[n]; fvx[idx] = fvx[n]; fvy[idx] = fvy[n]
+  fr[idx] = fr[n]; ft[idx] = ft[n]; fa[idx] = fa[n]; fw[idx] = fw[n]
+  fsl[idx] = fsl[n]; fc[idx] = fc[n]; fm[idx] = fm[n]
+}
+
+function wakeAround(x, y, rad0) {
+  var q, dx, dy, d
+  for (q = 0; q < n; q++) {
+    dx = fx[q] - x; dy = fy[q] - y; d = rad0 + fr[q] + 8
+    if (dx * dx + dy * dy < d * d) { fw[q] = 1; fsl[q] = 0 }
+  }
+}
+
+// 果物 i（起きている）と j が重なっているときの衝突応答・合体登録。
+// dx, dy, rr, d2 は呼び出し側で計算済み（最上位の作業変数）。
+// 接近速度を消すインパルス＋摩擦の後、位置を押し戻す（速度は変えない）。
+function resolve(i, j) {
+  if (ft[i] == ft[j] && !fm[i] && !fm[j]) {
+    fm[i] = 1; fm[j] = 1
+    mergeA[mc] = i; mergeB[mc] = j; mc = mc + 1
+    return 1
+  }
+  if (d2 < 0.0001) { dx = 0.01; dy = -0.01; d2 = 0.0002 }
+  dd = sqrt(d2); ov = rr - dd; nx = dx / dd; ny = dy / dd
+  fc[i] = 1; fc[j] = 1
+  vix = fvx[i]; viy = fvy[i]
+  if (fw[j]) {
+    vjx = fvx[j]; vjy = fvy[j]
+    // 配分: 横の接触は質量比、縦の接触は上に乗っている側を主に動かす（支えている側はほぼ動かさない）
+    mi = fr[i] * fr[i]; mj = fr[j] * fr[j]; si = mj / (mi + mj)
+    wv = ny; if (wv < 0) { wv = -wv }
+    if (dy > 0) { pi = 0.95 } else { pi = 0.05 }
+    si = si * (1 - wv) + pi * wv; sj = 1 - si
+  } else {
+    vjx = 0; vjy = 0; si = 1; sj = 0
+  }
+  rvx = vjx - vix; rvy = vjy - viy
+  vn = rvx * nx + rvy * ny
+  if (vn < 0) {
+    if (!fw[j] && (vn < -WAKE_VN || ov > WAKE_PEN)) { fw[j] = 1; fsl[j] = 0 }
+    // 接線方向: 小さい相対速度は静止摩擦で止め、大きければ一部を残す
+    vt = rvy * nx - rvx * ny
+    if (vt > STATIC_VT || vt < -STATIC_VT) { vt = vt * FRIC }
+    fvx[i] = vix + (nx * vn - ny * vt) * si; fvy[i] = viy + (ny * vn + nx * vt) * si
+    if (sj > 0) { fvx[j] = vjx - (nx * vn - ny * vt) * sj; fvy[j] = vjy - (ny * vn + nx * vt) * sj }
+  }
+  ov = ov - SLOP
+  if (ov > 0) {
+    vt = ov * si; fx[i] = fx[i] - nx * vt; fy[i] = fy[i] - ny * vt
+    if (sj > 0) { vt = ov * sj; fx[j] = fx[j] + nx * vt; fy[j] = fy[j] + ny * vt }
+  }
+  return 1
+}
+
+function addEffect(x, y, rad0) {
+  ex[en] = x; ey[en] = y; er[en] = rad0; el[en] = 14; en = en + 1
+}
+
+function addPop(x, y, s) {
+  ppx[pn] = x; ppy[pn] = y; pps[pn] = s; ppl[pn] = 40; pn = pn + 1
+}
+
+function mergeSound(tp) {
+  var f
+  f = 330 * pow(2, tp / 8)
+  playSound(f, 0, 70, 0.25)
+  playSound(f * 1.5, 70, 110, 0.25)
+}
+
+function randomType() {
+  return int(random() * 5)
+}
+
+function resetGame() {
+  n = 0; score = 0; mc = 0; spN = 0; en = 0; pn = 0
+  cur = randomType(); nxt = randomType()
+  cursorX = (BOX_L + BOX_R) / 2
+  lastDrop = time()
+  overMs = 0; topType = 4
+  state = 1
+}
+
+// 顔を描く（スプライト作成用）
+function drawFace(c, rad0) {
+  var ex0, ey0, er0
+  ex0 = rad0 * 0.32; ey0 = rad0 * 0.02; er0 = rad0 * 0.085
+  drawCircle(c - ex0, c - ey0, er0, {"color": "#3a2418", "fill": 1})
+  drawCircle(c + ex0, c - ey0, er0, {"color": "#3a2418", "fill": 1})
+  drawCircle(c - ex0 - er0 * 0.3, c - ey0 - er0 * 0.35, er0 * 0.38, {"color": "#ffffff", "fill": 1})
+  drawCircle(c + ex0 - er0 * 0.3, c - ey0 - er0 * 0.35, er0 * 0.38, {"color": "#ffffff", "fill": 1})
+  drawCircle(c, c + rad0 * 0.14, rad0 * 0.2, {"start": 0.5, "end": 2.64, "color": "#4a2a18", "width": max(2, rad0 * 0.05)})
+  drawCircle(c - rad0 * 0.52, c + rad0 * 0.2, rad0 * 0.1, {"radius_y": rad0 * 0.07, "color": "rgba(255,110,130,0.45)", "fill": 1})
+  drawCircle(c + rad0 * 0.52, c + rad0 * 0.2, rad0 * 0.1, {"radius_y": rad0 * 0.07, "color": "rgba(255,110,130,0.45)", "fill": 1})
+}
+
+function drawLeaf(x, y, rad0, ang) {
+  drawCircle(x, y, rad0, {"radius_y": rad0 * 0.45, "rotation": ang, "color": "#5aa43a", "fill": 1})
+}
+
+function makeSprite(tp) {
+  var rad0, m, s, c, col, dark, q, w, gx, gy, kx, ry, g
+  rad0 = RADS[tp]; m = int(rad0 * 0.42) + 10; s = 2 * (rad0 + m); c = rad0 + m
+  col = COLS[tp]; dark = DARKS[tp]
+  clearRect(0, 0, s, s)
+  // 茎・葉（本体の後ろに描くもの）
+  switch (tp) {
+  case 0:   // さくらんぼ
+    drawLine(c, c - rad0 * 0.8, c + rad0 * 0.35, c - rad0 - m * 0.75, {"width": max(3, rad0 * 0.08), "color": "#6b8e23"})
+    drawLeaf(c + rad0 * 0.55, c - rad0 - m * 0.45, rad0 * 0.3, -0.5)
+    break
+  case 3:   // デコポン
+    drawCircle(c, c - rad0 * 0.88, rad0 * 0.24, {"color": dark, "fill": 1})
+    drawLeaf(c + rad0 * 0.25, c - rad0 * 0.98, rad0 * 0.28, -0.4)
+    break
+  case 5:   // りんご
+    drawLine(c, c - rad0 * 0.8, c + rad0 * 0.08, c - rad0 - m * 0.6, {"width": max(3, rad0 * 0.07), "color": "#6d4c2f"})
+    drawLeaf(c + rad0 * 0.3, c - rad0 - m * 0.3, rad0 * 0.28, -0.6)
+    break
+  case 6:   // なし
+    drawLine(c, c - rad0 * 0.8, c - rad0 * 0.05, c - rad0 - m * 0.6, {"width": max(3, rad0 * 0.07), "color": "#6d4c2f"})
+    break
+  case 7:   // もも
+    drawLeaf(c - rad0 * 0.25, c - rad0 * 0.98, rad0 * 0.3, 0.5)
+    drawLeaf(c + rad0 * 0.3, c - rad0 * 1.02, rad0 * 0.3, -0.5)
+    break
+  case 8:   // パイナップル の葉
+    for (q = -2; q <= 2; q++) {
+      drawCircle(c + q * rad0 * 0.22, c - rad0 * 0.95, rad0 * 0.45, {"radius_y": rad0 * 0.14, "rotation": -1.5708 + q * 0.32, "color": "#4f9a3a", "fill": 1})
+    }
+    break
+  case 9:   // メロン のT字
+    drawLine(c, c - rad0 * 0.8, c, c - rad0 - m * 0.55, {"width": max(3, rad0 * 0.07), "color": "#7b8a52"})
+    drawLine(c - rad0 * 0.25, c - rad0 - m * 0.55, c + rad0 * 0.25, c - rad0 - m * 0.55, {"width": max(3, rad0 * 0.07), "color": "#7b8a52"})
+    break
+  }
+  // 本体
+  drawCircle(c, c, rad0, {"color": dark, "fill": 1})
+  drawCircle(c - rad0 * 0.04, c - rad0 * 0.05, rad0 * 0.93, {"color": col, "fill": 1})
+  // 模様
+  switch (tp) {
+  case 1:   // いちご: 種とヘタ
+    for (q = 0; q < 8; q++) {
+      drawCircle(c + cos(q * 0.785 + 0.4) * rad0 * 0.62, c + sin(q * 0.785 + 0.4) * rad0 * 0.62, rad0 * 0.06, {"color": "#ffe27a", "fill": 1})
+    }
+    for (q = 0; q < 5; q++) {
+      drawLeaf(c + (q - 2) * rad0 * 0.28, c - rad0 * 0.82, rad0 * 0.3, -1.5708 + (q - 2) * 0.35)
+    }
+    break
+  case 2:   // ぶどう: 粒
+    drawCircle(c - rad0 * 0.36, c - rad0 * 0.3, rad0 * 0.3, {"color": "#b08ae6", "fill": 1})
+    drawCircle(c + rad0 * 0.36, c - rad0 * 0.3, rad0 * 0.3, {"color": "#b08ae6", "fill": 1})
+    drawCircle(c, c - rad0 * 0.6, rad0 * 0.3, {"color": "#b08ae6", "fill": 1})
+    drawCircle(c - rad0 * 0.4, c + rad0 * 0.3, rad0 * 0.3, {"color": "#b08ae6", "fill": 1})
+    drawCircle(c + rad0 * 0.4, c + rad0 * 0.3, rad0 * 0.3, {"color": "#b08ae6", "fill": 1})
+    drawCircle(c, c + rad0 * 0.62, rad0 * 0.3, {"color": "#b08ae6", "fill": 1})
+    drawLine(c, c - rad0 * 0.85, c, c - rad0 - m * 0.5, {"width": max(3, rad0 * 0.07), "color": "#6d4c2f"})
+    break
+  case 4:   // かき: ヘタ
+    drawLeaf(c - rad0 * 0.3, c - rad0 * 0.75, rad0 * 0.34, -0.3)
+    drawLeaf(c + rad0 * 0.3, c - rad0 * 0.75, rad0 * 0.34, 0.3)
+    drawLeaf(c, c - rad0 * 0.85, rad0 * 0.3, -1.5708)
+    drawLine(c, c - rad0 * 0.75, c, c - rad0 - m * 0.4, {"width": max(3, rad0 * 0.06), "color": "#6d4c2f"})
+    break
+  case 7:   // もも: 割れ目
+    drawCircle(c + rad0 * 0.55, c, rad0 * 0.72, {"start": 2.4, "end": 3.9, "color": "#e07a92", "width": max(2, rad0 * 0.04)})
+    break
+  case 8:   // パイナップル: 網目
+    g = rad0 * 0.3
+    for (gy = -3; gy <= 3; gy++) {
+      for (gx = -3; gx <= 3; gx++) {
+        kx = (gx + (gy % 2) * 0.5) * g
+        if (kx * kx + gy * g * gy * g < rad0 * rad0 * 0.62) {
+          drawCircle(c + kx, c + gy * g, rad0 * 0.07, {"color": "#c9941a", "fill": 1})
+        }
+      }
+    }
+    break
+  case 9:   // メロン: 網目
+    g = rad0 * 0.26
+    for (gy = -4; gy <= 4; gy++) {
+      for (gx = -4; gx <= 4; gx++) {
+        kx = (gx + (gy % 2) * 0.5) * g
+        if (kx * kx + gy * g * gy * g < rad0 * rad0 * 0.7) {
+          drawCircle(c + kx, c + gy * g, rad0 * 0.05, {"color": "#e8f5c8", "fill": 1})
+        }
+      }
+    }
+    break
+  case 10:  // スイカ: 縞
+    for (q = -2; q <= 2; q++) {
+      kx = q * rad0 * 0.36
+      ry = sqrt(rad0 * rad0 - kx * kx) * 0.92
+      drawCircle(c + kx, c, rad0 * 0.1, {"radius_y": ry, "color": "#1b5e20", "fill": 1})
+    }
+    break
+  }
+  // ハイライトと顔
+  drawCircle(c - rad0 * 0.42, c - rad0 * 0.46, rad0 * 0.2, {"radius_y": rad0 * 0.1, "rotation": -0.7, "color": "rgba(255,255,255,0.5)", "fill": 1})
+  drawFace(c, rad0)
+  SPR[tp] = createImage(0, 0, s, s)
+  HALF[tp] = c
+}
+
+// 背景（箱・進化表・ラベル）を1枚の画像にする
+function makeBg() {
+  var q, rr0, w, x0, h
+  drawRect(0, 0, SCR_W, SCR_H, {"color": "#f6e6c3", "fill": 1})
+  // 箱
+  drawRect(BOX_L, BOX_T, BOX_R - BOX_L, BOX_B - BOX_T, {"color": "#fff8e7", "fill": 1})
+  drawRect(BOX_L - WALL_W, BOX_T, WALL_W, BOX_B - BOX_T + WALL_W, {"color": "#c69a66", "fill": 1})
+  drawRect(BOX_R, BOX_T, WALL_W, BOX_B - BOX_T + WALL_W, {"color": "#c69a66", "fill": 1})
+  drawRect(BOX_L - WALL_W, BOX_B, BOX_R - BOX_L + WALL_W * 2, WALL_W, {"color": "#c69a66", "fill": 1})
+  drawRect(BOX_L, BOX_T, BOX_R - BOX_L, BOX_B - BOX_T, {"color": "#d9b07a", "width": 2})
+  // ラベル
+  drawText("SCORE", 60, 40, {"fontsize": 34, "fontstyle": "bold", "color": "#8a6a45"})
+  drawText("BEST", 60, 170, {"fontsize": 28, "fontstyle": "bold", "color": "#8a6a45"})
+  drawText("NEXT", 850, 40, {"fontsize": 34, "fontstyle": "bold", "color": "#8a6a45"})
+  drawCircle(910, 180, 80, {"color": "#fff8e7", "fill": 1})
+  drawCircle(910, 180, 80, {"color": "#d9b07a", "width": 3})
+  // 進化表
+  drawText("しんか", 60, 1740, {"fontsize": 26, "fontstyle": "bold", "color": "#8a6a45"})
+  x0 = 60
+  for (q = 0; q < NT; q++) {
+    rr0 = 15 + q * 4
+    w = 2 * HALF[q] * rr0 / RADS[q]
+    drawImage(SPR[q], x0 + rr0 - w / 2, 1830 - w / 2, {"width": w, "height": w})
+    if (q < NT - 1) {
+      drawText("›", x0 + rr0 * 2 + 1, 1812, {"fontsize": 30, "color": "#b8956a"})
+    }
+    x0 = x0 + rr0 * 2 + 16
+  }
+  bgImg = createImage(0, 0, SCR_W, SCR_H)
+}
+
+function drawCenterText(s, y, fs, col) {
+  var w
+  w = measureText(s, {"fontsize": fs, "fontstyle": "bold"})["width"]
+  drawText(s, SCR_W / 2 - w / 2, y, {"fontsize": fs, "fontstyle": "bold", "color": col})
+}
+
+// ---------- 初期化 ----------
+startScreen(SCR_W, SCR_H, {"color": "#f6e6c3"})
+startOffscreen()
+for (i = 0; i < NT; i++) { makeSprite(i) }
+makeBg()
+drawImage(bgImg, 0, 0)
+endOffscreen()
+prevNow = time()
+
+// ---------- メインループ ----------
+while (1) {
+  t0 = time()
+  now = t0
+  dtMs = now - prevNow
+  if (dtMs > 100) { dtMs = 100 }
+  prevNow = now
+
+  // 入力
+  tch = inTouch()
+  held = tch["touch"]
+  ptrX = tch["x"]
+  released = 0
+  if (prevHeld && !held) { released = 1 }
+  prevHeld = held
+  kDrop = inKey(" ") || inKey("ArrowDown") || inKey("Enter")
+  dropEdge = 0
+  if (kDrop && !prevDrop) { dropEdge = 1 }
+  prevDrop = kDrop
+
+  if (state == 1) {
+    // カーソル移動
+    if (ptrX != prevPtrX) { cursorX = ptrX; prevPtrX = ptrX }
+    if (inKey("ArrowLeft")) { cursorX = cursorX - 14 }
+    if (inKey("ArrowRight")) { cursorX = cursorX + 14 }
+    rad = RADS[cur]
+    if (cursorX < BOX_L + rad) { cursorX = BOX_L + rad }
+    if (cursorX > BOX_R - rad) { cursorX = BOX_R - rad }
+    ready = 0
+    if (now - lastDrop > DROP_WAIT) { ready = 1 }
+    if (ready && (released || dropEdge)) {
+      spawn(cur, cursorX, DROP_Y, 0, 0)
+      cur = nxt; nxt = randomType()
+      lastDrop = now
+      playSound("A4", 0, 40, 0.15)
+    }
+
+    // ---- 物理 1: 積分と壁（起きている果物だけ） ----
+    for (i = 0; i < n; i++) {
+      if (!fw[i]) { continue }
+      ri = fr[i]
+      vx = fvx[i] * DAMP
+      vy = fvy[i] * DAMP + GRAV
+      if (vy > VMAX) { vy = VMAX }
+      xi = fx[i] + vx; yi = fy[i] + vy
+      fa[i] = fa[i] + vx / ri
+      if (xi < BOX_L + ri) {
+        xi = BOX_L + ri; vx = -vx * BOUNCE
+      } else if (xi > BOX_R - ri) {
+        xi = BOX_R - ri; vx = -vx * BOUNCE
+      }
+      if (yi > BOX_B - ri) {
+        yi = BOX_B - ri; vy = -vy * BOUNCE; vx = vx * (1 - FRICTION)
+        fc[i] = 1
+      }
+      fx[i] = xi; fy[i] = yi; fvx[i] = vx; fvy[i] = vy
+    }
+    // ---- 物理 2: 衝突 → 壁 → 休眠判定 ----
+    mc = 0
+    rtop = RADS[topType] + 6
+    for (i = 0; i < n; i++) {
+      if (!fw[i]) { continue }
+      xi = fx[i]; yi = fy[i]; ri = fr[i]
+      spi2 = fvx[i] * fvx[i] + fvy[i] * fvy[i]
+      lim = ri + rtop
+      xlo = xi - lim; xhi = xi + lim; ylo = yi - lim; yhi = yi + lim
+      for (j = i + 1; j < n; j++) {
+        if (fx[j] < xlo || fx[j] > xhi) { continue }
+        if (fy[j] < ylo || fy[j] > yhi) { continue }
+        dx = fx[j] - xi; dy = fy[j] - yi; rr = ri + fr[j]
+        d2 = dx * dx + dy * dy
+        if (d2 < rr * rr) {
+          resolve(i, j); xi = fx[i]; yi = fy[i]
+        } else if (!fw[j] && spi2 > WAKE_SPD2 && d2 < (rr + 6) * (rr + 6)) {
+          fw[j] = 1; fsl[j] = 0
+        }
+      }
+      for (j = 0; j < i; j++) {
+        if (fw[j]) { continue }
+        if (fx[j] < xlo || fx[j] > xhi) { continue }
+        if (fy[j] < ylo || fy[j] > yhi) { continue }
+        dx = fx[j] - xi; dy = fy[j] - yi; rr = ri + fr[j]
+        d2 = dx * dx + dy * dy
+        if (d2 < rr * rr) {
+          resolve(i, j); xi = fx[i]; yi = fy[i]
+        } else if (spi2 > WAKE_SPD2 && d2 < (rr + 6) * (rr + 6)) {
+          fw[j] = 1; fsl[j] = 0
+        }
+      }
+      // 壁（最終）と休眠判定
+      if (xi < BOX_L + ri) { fx[i] = BOX_L + ri }
+      if (xi > BOX_R - ri) { fx[i] = BOX_R - ri }
+      if (yi > BOX_B - ri) { fy[i] = BOX_B - ri }
+      if (fvx[i] * fvx[i] + fvy[i] * fvy[i] < SLEEP_SPD2) {
+        fsl[i] = fsl[i] + 1
+        if (fsl[i] > SLEEP_FRAMES && fc[i]) { fw[i] = 0; fvx[i] = 0; fvy[i] = 0 }
+      } else {
+        fsl[i] = 0
+      }
+    }
+
+    // ---- 合体 ----
+    if (mc > 0) {
+      spN = 0
+      for (k = 0; k < mc; k++) {
+        a = mergeA[k]; b = mergeB[k]; t = ft[a]
+        score = score + SCORES[t]
+        mx = (fx[a] + fx[b]) / 2; my = (fy[a] + fy[b]) / 2
+        mvx = (fvx[a] + fvx[b]) / 2
+        mvy = (fvy[a] + fvy[b]) / 2
+        wakeAround(mx, my, RADS[t] * 2)
+        addEffect(mx, my, RADS[t])
+        addPop(mx, my - RADS[t], "+" + SCORES[t])
+        mergeSound(t)
+        ft[a] = -1; ft[b] = -1
+        if (t < NT - 1) {
+          spT[spN] = t + 1; spX[spN] = mx; spY[spN] = my; spVX[spN] = mvx; spVY[spN] = mvy; spN = spN + 1
+        }
+      }
+      i = 0
+      while (i < n) {
+        if (ft[i] < 0) { removeAt(i) } else { i = i + 1 }
+      }
+      for (k = 0; k < spN; k++) {
+        if (spawn(spT[k], spX[k], spY[k], spVX[k], spVY[k])) { fc[n - 1] = 1 }
+      }
+      mc = 0
+    }
+  }
+
+  // ---------- 描画 ----------
+  startOffscreen()
+  drawImage(bgImg, 0, 0)
+  if (state == 0) {
+    // タイトル
+    hs = HALF[10]
+    drawImage(SPR[10], SCR_W / 2 - hs, 900 - hs, {"angle": 0.1})
+    drawCenterText("スイカゲーム", 560, 120, "#5b3a1e")
+    drawCenterText("SUIKA GAME", 700, 44, "#8a6a45")
+    drawCenterText("タップ / スペースキーでスタート", 1240, 44, "#5b3a1e")
+    drawCenterText("ドラッグして離すと その位置に落とす", 1330, 34, "#8a6a45")
+    drawCenterText("← → で移動 / スペース・↓・Enter で落とす", 1390, 34, "#8a6a45")
+    drawCenterText("同じ果物をくっつけて スイカを目指そう!", 1480, 34, "#8a6a45")
+    drawText("" + best, 60, 200, {"fontsize": 40, "fontstyle": "bold", "color": "#6b4423"})
+    if (released || dropEdge) { resetGame() }
+  } else {
+    // ゲームオーバーライン
+    above = 0
+    yhi = LINE_Y + RADS[topType]
+    for (i = 0; i < n; i++) {
+      t = ft[i]; hs = HALF[t]
+      drawImage(SPR[t], fx[i] - hs, fy[i] - hs, {"angle": fa[i]})
+      if (fy[i] < yhi) {
+        if (fc[i] && fy[i] - fr[i] < LINE_Y) { above = 1 }
+      }
+    }
+    if (above) {
+      drawLine(BOX_L, LINE_Y, BOX_R, LINE_Y, {"color": "rgba(230,40,40,0.9)", "width": 6})
+    } else {
+      drawLine(BOX_L, LINE_Y, BOX_R, LINE_Y, {"color": "rgba(230,80,80,0.35)", "width": 3})
+    }
+    // 落とす果物とガイド線
+    if (state == 1 && ready) {
+      hs = HALF[cur]
+      drawLine(cursorX, DROP_Y + RADS[cur], cursorX, BOX_B, {"color": "rgba(120,80,40,0.3)", "width": 4})
+      drawImage(SPR[cur], cursorX - hs, DROP_Y - hs)
+    }
+    // エフェクト
+    i = 0
+    while (i < en) {
+      alpha = el[i] / 14
+      drawCircle(ex[i], ey[i], er[i] * (2.2 - alpha * 1.2), {"color": "rgba(255,255,255," + alpha + ")", "width": 10})
+      el[i] = el[i] - 1
+      if (el[i] <= 0) { en = en - 1; ex[i] = ex[en]; ey[i] = ey[en]; er[i] = er[en]; el[i] = el[en] } else { i = i + 1 }
+    }
+    i = 0
+    while (i < pn) {
+      alpha = ppl[i] / 40
+      if (alpha > 1) { alpha = 1 }
+      drawText(pps[i], ppx[i] - 20, ppy[i], {"fontsize": 48, "fontstyle": "bold", "color": "rgba(90,50,20," + alpha + ")"})
+      ppy[i] = ppy[i] - 2
+      ppl[i] = ppl[i] - 1
+      if (ppl[i] <= 0) { pn = pn - 1; ppx[i] = ppx[pn]; ppy[i] = ppy[pn]; pps[i] = pps[pn]; ppl[i] = ppl[pn] } else { i = i + 1 }
+    }
+    // スコア・NEXT
+    drawText("" + score, 60, 80, {"fontsize": 80, "fontstyle": "bold", "color": "#6b4423"})
+    drawText("" + best, 60, 200, {"fontsize": 40, "fontstyle": "bold", "color": "#6b4423"})
+    sc = 56 / RADS[nxt]
+    hs = HALF[nxt] * sc
+    drawImage(SPR[nxt], 910 - hs, 180 - hs, {"width": hs * 2, "height": hs * 2})
+
+    // ゲームオーバー判定
+    if (state == 1) {
+      if (above) { overMs = overMs + dtMs } else { overMs = 0 }
+      if (overMs > OVER_WAIT) {
+        state = 2
+        overMs = 0
+        if (score > best) { best = score; saveValue("suika_best", best) }
+        playSound("E4", 0, 150, 0.3); playSound("C4", 160, 150, 0.3); playSound("G3", 320, 300, 0.3)
+        lastDrop = now
+      }
+    } else {
+      drawRect(0, 0, SCR_W, SCR_H, {"color": "rgba(0,0,0,0.45)", "fill": 1})
+      drawCenterText("GAME OVER", 760, 110, "#ffffff")
+      drawCenterText("SCORE " + score, 920, 70, "#ffe08a")
+      drawCenterText("BEST " + best, 1010, 44, "#ffffff")
+      if (now - lastDrop > 1000) {
+        drawCenterText("タップ / スペースキーでもう一度", 1180, 40, "#ffffff")
+        if (released || dropEdge) { resetGame() }
+      }
+    }
+  }
+  endOffscreen()
+
+  wt = 33 - (time() - t0)
+  if (wt < 1) { wt = 1 }
+  sleep(int(wt))
+}
