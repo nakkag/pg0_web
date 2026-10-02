@@ -308,13 +308,24 @@ app.get('/api/script/history/:cid', async (req, res) => {
 	try {
 		const db = await getDB();
 		const ret = [];
+		// The current version heads the list, so skip and count run over it and the older versions as one list.
+		let historySkip = skip;
+		let historyCount = count;
 		const cdoc = await db.collection('script').findOne({cid: req.params.cid});
 		if (cdoc) {
-			ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, memo: cdoc.memo, tags: Array.isArray(cdoc.tags) ? cdoc.tags : [], updateTime: cdoc.updateTime});
+			if (skip === 0) {
+				ret.push({cid: cdoc.cid, name: cdoc.name, author: cdoc.author, memo: cdoc.memo, tags: Array.isArray(cdoc.tags) ? cdoc.tags : [], updateTime: cdoc.updateTime});
+				historyCount--;
+			} else {
+				historySkip--;
+			}
 		}
-		const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(count).skip(skip);
-		for await (const doc of cursor) {
-			ret.push({cid: doc.cid, name: doc.name, author: doc.author, memo: doc.memo, tags: Array.isArray(doc.tags) ? doc.tags : [], updateTime: doc.updateTime});
+		// A limit of 0 would mean no limit.
+		if (historyCount > 0) {
+			const cursor = db.collection('script_history').find({cid: req.params.cid}).sort({updateTime: -1}).limit(historyCount).skip(historySkip);
+			for await (const doc of cursor) {
+				ret.push({cid: doc.cid, name: doc.name, author: doc.author, memo: doc.memo, tags: Array.isArray(doc.tags) ? doc.tags : [], updateTime: doc.updateTime});
+			}
 		}
 		res.json(ret);
 	} catch (error) {
