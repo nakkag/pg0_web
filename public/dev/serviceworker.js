@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v441';
+const CACHE_VERSION = 'pg0-v442';
 
 const resources = [
 	'./',
@@ -24,6 +24,7 @@ const resources = [
 	'utils/date_format.js',
 	'utils/message.js',
 	'utils/pg0_string.js',
+	'utils/text_diff.js',
 	'utils/reset.css',
 
 	'image/close.svg',

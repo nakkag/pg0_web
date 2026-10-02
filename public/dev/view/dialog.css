@@ -43,11 +43,9 @@
 	overflow: hidden;
 	position: fixed;
 }
-.dialog-menu div {
-	border-bottom: 1px solid #ddd;
-}
-.dialog-menu div:last-child {
-	border-bottom: 0px;
+/* A line between the items shown, whichever of them are hidden. */
+.dialog-menu div:not([hidden]) ~ div:not([hidden]) {
+	border-top: 1px solid #ddd;
 }
 .dialog-menu a:hover, .dialog-menu a:focus {
 	background-color: #eee;
@@ -465,4 +463,164 @@
 }
 .read-item:active {
 	background-color: #ddd;
+}
+
+#diff-overlay {
+	z-index: 203;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 120%;
+	background-color: rgba(0,0,0,0.3);
+}
+#online-diff {
+	display: none;
+	z-index: 204;
+	box-sizing: border-box;
+	width: calc(var(--font-size) * 56);
+	max-width: calc(100% - 20px);
+	padding: 44px calc(var(--font-size) * 1.2) calc(var(--font-size) * 1.2);
+}
+#online-diff-view {
+	position: relative;
+	min-height: 60px;
+	max-height: calc(100vh - 120px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+	overflow: auto;
+	border: 1px solid #d0d7de;
+	border-radius: 6px;
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	font-size: calc(var(--font-size) * 0.85);
+	line-height: 1.5;
+	tab-size: 4;
+	color: #1f2328;
+}
+@supports(height: 100dvh) {
+	#online-diff-view {
+		max-height: calc(100dvh - 120px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+	}
+}
+.diff-loading {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+.diff-body {
+	width: max-content;
+	min-width: 100%;
+}
+.diff-line {
+	display: flex;
+	min-height: 1.5em;
+}
+/* Stays at the left edge while long lines scroll sideways. */
+.diff-gutter {
+	flex: none;
+	display: flex;
+	position: sticky;
+	left: 0;
+	background-color: #fff;
+	color: #6e7781;
+}
+.diff-num {
+	box-sizing: content-box;
+	width: calc(var(--diff-digits, 1) * 1ch);
+	padding: 0 8px;
+	text-align: right;
+}
+.diff-num::before {
+	content: attr(data-num);
+}
+.no-linenum .diff-num {
+	display: none;
+}
+.diff-mark {
+	width: 1ch;
+	padding: 0 6px;
+	text-align: center;
+}
+.diff-delete .diff-mark::before,
+.diff-change-old .diff-mark::before {
+	content: '-';
+}
+.diff-insert .diff-mark::before,
+.diff-change-new .diff-mark::before {
+	content: '+';
+}
+.diff-code {
+	flex: 1 0 auto;
+	white-space: pre;
+	padding-right: 16px;
+}
+.diff-insert {
+	background-color: #e6ffec;
+}
+.diff-insert .diff-gutter {
+	background-color: #ccffd8;
+	color: #1a7f37;
+}
+.diff-delete {
+	background-color: #ffebe9;
+}
+.diff-delete .diff-gutter {
+	background-color: #ffd7d5;
+	color: #cf222e;
+}
+.diff-change-old, .diff-change-new {
+	background-color: #fff8c5;
+}
+.diff-change-old .diff-gutter, .diff-change-new .diff-gutter {
+	background-color: #fdeca6;
+	color: #7d4e00;
+}
+.diff-change-old .diff-word {
+	background-color: rgba(255, 129, 130, 0.45);
+}
+.diff-change-new .diff-word {
+	background-color: rgba(74, 194, 107, 0.45);
+}
+.diff-fold {
+	display: flex;
+	min-height: 1.5em;
+	cursor: pointer;
+	background-color: #ddf4ff;
+	color: #57606a;
+	user-select: none;
+	-webkit-user-select: none;
+}
+@media (hover: hover) {
+	.diff-fold:hover {
+		background-color: #b6e3ff;
+	}
+}
+.diff-fold:focus {
+	outline: none;
+}
+.diff-fold:focus-visible {
+	outline: 2px solid #0969da;
+	outline-offset: -2px;
+}
+.diff-fold-label {
+	position: sticky;
+	left: 0;
+	display: flex;
+	align-items: center;
+	padding: 0 8px;
+	white-space: nowrap;
+}
+.diff-fold-label::before {
+	content: '';
+	width: 0.35em;
+	height: 0.35em;
+	margin: 0 0.8em 0 0.3em;
+	border: solid currentColor;
+	border-width: 0 2px 2px 0;
+	transform: rotate(-45deg);
+}
+.diff-fold.open .diff-fold-label::before {
+	transform: rotate(45deg);
+}
+.diff-fold-label::after {
+	content: attr(data-label);
 }
