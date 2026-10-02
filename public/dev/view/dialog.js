@@ -704,7 +704,8 @@ const onlineHistoryView = (function () {
 	me.getList = async function() {
 		try {
 			const id = me.id = Math.random().toString(36).slice(-8);
-			const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=${listCount}&skip=${me.skip}`);
+			// One more than is shown tells whether older versions remain.
+			const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=${listCount + 1}&skip=${me.skip}`);
 			if (id !== me.id) {
 				return;
 			}
@@ -718,7 +719,9 @@ const onlineHistoryView = (function () {
 					if (document.querySelector('.read-item')) {
 						document.querySelector('.read-item').remove();
 					}
-					scripts.forEach((script) => {
+					const more = (scripts.length > listCount);
+					const shown = scripts.slice(0, listCount);
+					shown.forEach((script, index) => {
 						const nameNode = document.createElement('div');
 						nameNode.id = script.cid;
 						nameNode.classList.add('file-item');
@@ -733,16 +736,23 @@ const onlineHistoryView = (function () {
 						if (script.memo) {
 							memo = '<div class="file-memo">' + pg0_string.escapeHTML(script.memo) + '</div>'
 						}
+						const isCurrent = (document.getElementById('online-history-list').childElementCount === 0);
 						let current = '';
-						if (document.getElementById('online-history-list').childElementCount === 0) {
+						if (isCurrent) {
 							current = '<span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span>';
 						}
+						// The first version has nothing to compare with, so its menu would be empty unless it is also the current one.
+						const isFirst = (!more && index === shown.length - 1);
+						let menu = '';
+						if (isCurrent || !isFirst) {
+							menu = '<img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
+						}
 						nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span>' + current + '</div>' + memo +
-							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
+							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>' + menu;
 						document.getElementById('online-history-list').appendChild(nameNode);
 					});
-					if (scripts.length >= listCount) {
-						me.skip += scripts.length;
+					if (more) {
+						me.skip += shown.length;
 						const readNode = document.createElement('div');
 						readNode.classList.add('read-item');
 						readNode.tabIndex = 0;
@@ -909,7 +919,8 @@ const onlineHistoryView = (function () {
 		document.getElementById('online-open-copy-autorun').parentNode.hidden = !current;
 		document.getElementById('online-open-history').parentNode.hidden = true;
 		document.getElementById('online-open-remove-div').hidden = true;
-		document.getElementById('online-open-diff').parentNode.hidden = false;
+		// Only the first version has no item after it.
+		document.getElementById('online-open-diff').parentNode.hidden = !me.menuItem.nextElementSibling;
 		menu.style.display = 'block';
 		const bound = elm.getBoundingClientRect();
 		let x = bound.left;
