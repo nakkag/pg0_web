@@ -449,6 +449,11 @@ const onlineOpenView = (function () {
 
 		const menu = document.getElementById('online-open-menu');
 		menu.setAttribute('cid', elm.parentNode.id);
+		document.getElementById('online-open-copy').parentNode.hidden = false;
+		document.getElementById('online-open-copy-autorun').parentNode.hidden = false;
+		document.getElementById('online-open-history').parentNode.hidden = false;
+		document.getElementById('online-open-remove-div').hidden = false;
+		document.getElementById('online-open-diff').parentNode.hidden = true;
 		menu.style.display = 'block';
 		const bound = elm.getBoundingClientRect();
 		let x = bound.left;
@@ -461,9 +466,6 @@ const onlineOpenView = (function () {
 		}
 		menu.style.left = x + 'px';
 		menu.style.top = y + 'px';
-
-		document.getElementById('online-open-history').parentNode.style.display = 'block';
-		document.getElementById('online-open-remove-div').style.display = 'block';
 		menu.focus();
 	};
 	me.closeMenu = function() {
@@ -476,6 +478,7 @@ const onlineOpenView = (function () {
 		document.getElementById('online-open-copy-autorun').textContent = resource.ONLINE_OPEN_COPY_AUTORUN;
 		document.getElementById('online-open-history').textContent = resource.ONLINE_OPEN_HISTORY;
 		document.getElementById('online-open-remove').textContent = resource.ONLINE_OPEN_REMOVE;
+		document.getElementById('online-open-diff').textContent = resource.ONLINE_HISTORY_DIFF;
 
 		const chips = [['', resource.ONLINE_OPEN_FILTER_ALL], ['mine', resource.ONLINE_OPEN_FILTER_MINE]];
 		for (let key in resource.ONLINE_TAGS) {
@@ -639,7 +642,7 @@ const onlineHistoryView = (function () {
 	const me = {};
 
 	me.keyEvent = function(e) {
-		if (!document.getElementById('modal-overlay')) {
+		if (!document.getElementById('modal-overlay') || onlineDiffView.isOpen()) {
 			return;
 		}
 		if (e.key === 'Escape') {
@@ -658,6 +661,9 @@ const onlineHistoryView = (function () {
 		}
 	};
 	me.openEvent = async function(e) {
+		if (onlineDiffView.isOpen()) {
+			return;
+		}
 		if (e.target.closest('.file-menu')) {
 			me.showMenu(e.target);
 			return;
@@ -676,6 +682,11 @@ const onlineHistoryView = (function () {
 			if (navigator.clipboard) {
 				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}&run=1`);
 			}
+			return;
+		}
+		if (e.target.id === 'online-open-diff') {
+			me.closeMenu();
+			await me.showDiff(me.menuItem);
 			return;
 		}
 		if (e.target.closest('.read-item')) {
@@ -722,13 +733,12 @@ const onlineHistoryView = (function () {
 						if (script.memo) {
 							memo = '<div class="file-memo">' + pg0_string.escapeHTML(script.memo) + '</div>'
 						}
+						let current = '';
 						if (document.getElementById('online-history-list').childElementCount === 0) {
-							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span><span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span></div>' + memo +
-								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
-						} else {
-							nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span></div>' + memo +
-								'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div>';
+							current = '<span class="file-current">' + resource.ONLINE_HISTORY_CURRENT + '</span>';
 						}
+						nameNode.innerHTML = '<div><span class="file-name">' + pg0_string.escapeHTML(script.name) + '</span>' + current + '</div>' + memo +
+							'<div><span class="file-time">' + time + '</span><span class="file-author">' + pg0_string.escapeHTML(script.author || '') + '</span></div><img src="image/kebob_menu.svg" class="file-menu" tabindex="0"></img>';
 						document.getElementById('online-history-list').appendChild(nameNode);
 					});
 					if (scripts.length >= listCount) {
@@ -802,6 +812,56 @@ const onlineHistoryView = (function () {
 		return ret;
 	};
 
+	// The time of the version saved just before the item's, or null when the item is the first version.
+	me.previousTime = async function(item) {
+		const next = item.nextElementSibling;
+		if (next && next.classList.contains('file-item')) {
+			return next.getAttribute('time');
+		}
+		if (!next || !next.classList.contains('read-item')) {
+			return null;
+		}
+		// The item is the last one read so far.
+		const index = Array.prototype.indexOf.call(document.querySelectorAll('#online-history-list .file-item'), item);
+		const res = await fetch(`${apiServer}/api/script/history/${me.cid}?count=1&skip=${index + 1}`);
+		if (res.status !== 200) {
+			throw res;
+		}
+		const scripts = await res.json();
+		return (scripts.length > 0) ? String(scripts[0].updateTime) : null;
+	};
+	me.getCode = async function(time) {
+		const res = await fetch(`${apiServer}/api/script/item/${me.cid}/${time}`);
+		if (res.status !== 200) {
+			throw res;
+		}
+		const script = await res.json();
+		return script.code || '';
+	};
+	me.showDiff = async function(item) {
+		const id = onlineDiffView.show(item.querySelector('.file-menu'));
+		try {
+			const [prevCode, code] = await Promise.all([
+				me.previousTime(item).then((time) => (time === null) ? null : me.getCode(time)),
+				me.getCode(item.getAttribute('time'))
+			]);
+			onlineDiffView.render(id, prevCode, code);
+		} catch(e) {
+			if (!onlineDiffView.isCurrent(id)) {
+				return;
+			}
+			if (!(e instanceof Response)) {
+				console.error(e);
+				alert(resource.ONLINE_ERROR_CONNECTION);
+			} else if (e.status === 404) {
+				alert(resource.ONLINE_ERROR_NOT_FOUND);
+			} else {
+				alert(e.statusText + '(' + e.status + ')');
+			}
+			onlineDiffView.close();
+		}
+	};
+
 	me.show = async function(cid) {
 		me.cid = cid;
 		if (document.getElementById('modal-overlay')) {
@@ -840,8 +900,16 @@ const onlineHistoryView = (function () {
 		}, false);
 		document.body.append(modal);
 
+		me.menuItem = elm.parentNode;
+		// The URLs open the current version, so only its item offers them.
+		const current = (me.menuItem === document.querySelector('#online-history-list .file-item'));
 		const menu = document.getElementById('online-open-menu');
 		menu.setAttribute('cid', elm.parentNode.id);
+		document.getElementById('online-open-copy').parentNode.hidden = !current;
+		document.getElementById('online-open-copy-autorun').parentNode.hidden = !current;
+		document.getElementById('online-open-history').parentNode.hidden = true;
+		document.getElementById('online-open-remove-div').hidden = true;
+		document.getElementById('online-open-diff').parentNode.hidden = false;
 		menu.style.display = 'block';
 		const bound = elm.getBoundingClientRect();
 		let x = bound.left;
@@ -854,9 +922,6 @@ const onlineHistoryView = (function () {
 		}
 		menu.style.left = x + 'px';
 		menu.style.top = y + 'px';
-
-		document.getElementById('online-open-history').parentNode.style.display = 'none';
-		document.getElementById('online-open-remove-div').style.display = 'none';
 		menu.focus();
 	};
 	me.closeMenu = function() {
@@ -869,6 +934,216 @@ const onlineHistoryView = (function () {
 
 		document.querySelector('#online-history .close').addEventListener('click', function(e) {
 			me.close();
+		}, false);
+	}, false);
+
+	return me;
+})();
+
+const onlineDiffView = (function () {
+	const me = {};
+
+	// Unchanged lines kept in view next to each change; the rest of them fold away.
+	const CONTEXT = 3;
+
+	me.id = null;
+
+	me.isOpen = function() {
+		return !!document.getElementById('diff-overlay');
+	};
+	me.isCurrent = function(id) {
+		return me.isOpen() && id === me.id;
+	};
+
+	me.keyEvent = function(e) {
+		if (e.key === 'Escape') {
+			me.close();
+		} else if ((e.key === 'Enter' || e.key === ' ') && document.activeElement.classList.contains('diff-fold')) {
+			e.preventDefault();
+			me.toggleFold(document.activeElement);
+		} else if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
+			// Select all takes the lines of the diff, not the whole page.
+			e.preventDefault();
+			window.getSelection().selectAllChildren(document.getElementById('online-diff-view'));
+		}
+	};
+	// Copies only the code of the selected lines: line numbers, marks and folded lines are left out.
+	me.copyEvent = function(e) {
+		const view = document.getElementById('online-diff-view');
+		const selection = window.getSelection();
+		const lines = [];
+		let inView = false;
+		for (let i = 0; i < selection.rangeCount; i++) {
+			const range = selection.getRangeAt(i);
+			if (range.collapsed || !range.intersectsNode(view)) {
+				continue;
+			}
+			inView = true;
+			const codes = Array.from(range.cloneContents().querySelectorAll('.diff-code')).filter((code) => !code.closest('.diff-fold-body[hidden]'));
+			if (codes.length > 0) {
+				codes.forEach((code) => lines.push(code.textContent));
+			} else {
+				// The selection lies within one line.
+				lines.push(range.toString());
+			}
+		}
+		if (!inView) {
+			return;
+		}
+		e.clipboardData.setData('text/plain', lines.join('\n'));
+		e.preventDefault();
+	};
+
+	// Opens the dialog while the versions are read; focus goes back to returnFocus when it closes.
+	me.show = function(returnFocus) {
+		const modal = document.createElement('div');
+		modal.setAttribute('id', 'diff-overlay');
+		modal.addEventListener('click', function(e) {
+			me.close();
+		}, false);
+		document.body.append(modal);
+		document.getElementById('online-diff-view').innerHTML = '<img src="image/load.svg" class="diff-loading" />';
+		document.getElementById('online-diff').style.display = 'block';
+		document.getElementById('online-diff').focus();
+		document.addEventListener('keydown', me.keyEvent, false);
+		document.addEventListener('copy', me.copyEvent, false);
+		me.returnFocus = returnFocus;
+		me.id = Math.random().toString(36).slice(-8);
+		return me.id;
+	};
+	me.close = function() {
+		if (!me.isOpen()) {
+			return;
+		}
+		document.getElementById('diff-overlay').remove();
+		document.getElementById('online-diff').style.display = 'none';
+		document.getElementById('online-diff-view').textContent = '';
+		document.removeEventListener('keydown', me.keyEvent, false);
+		document.removeEventListener('copy', me.copyEvent, false);
+		me.id = null;
+		if (me.returnFocus && me.returnFocus.isConnected) {
+			me.returnFocus.focus();
+		}
+	};
+
+	// Shows the changes from oldText to newText; a null oldText shows every line as added.
+	me.render = function(id, oldText, newText) {
+		if (!me.isCurrent(id)) {
+			return;
+		}
+		const rows = text_diff.compare(oldText, newText);
+		const view = document.getElementById('online-diff-view');
+		view.classList.toggle('no-linenum', !options.showLineNum);
+		let last = 1;
+		rows.forEach((row) => {
+			last = Math.max(last, row.oldNum, row.newNum);
+		});
+		view.style.setProperty('--diff-digits', String(last).length);
+
+		const keep = new Array(rows.length).fill(false);
+		rows.forEach((row, i) => {
+			if (row.type !== 'equal') {
+				for (let c = Math.max(0, i - CONTEXT); c <= Math.min(rows.length - 1, i + CONTEXT); c++) {
+					keep[c] = true;
+				}
+			}
+		});
+		const body = document.createElement('div');
+		body.classList.add('diff-body');
+		for (let i = 0; i < rows.length;) {
+			let end = i;
+			while (end < rows.length && !keep[end]) {
+				end++;
+			}
+			if (end - i >= 2) {
+				body.append(me.foldNode(rows.slice(i, end)));
+				const foldBody = document.createElement('div');
+				foldBody.classList.add('diff-fold-body');
+				foldBody.hidden = true;
+				body.append(foldBody);
+				i = end;
+			} else {
+				body.append(me.lineNode(rows[i]));
+				i++;
+			}
+		}
+		view.textContent = '';
+		view.append(body);
+		view.scrollTop = 0;
+		view.scrollLeft = 0;
+	};
+	me.lineNode = function(row) {
+		const line = document.createElement('div');
+		line.classList.add('diff-line', 'diff-' + row.type);
+		// Numbers and marks are drawn by CSS from the attributes, so they are never selected or copied.
+		const gutter = document.createElement('span');
+		gutter.classList.add('diff-gutter');
+		[row.oldNum, row.newNum].forEach((num) => {
+			const numNode = document.createElement('span');
+			numNode.classList.add('diff-num');
+			if (num) {
+				numNode.dataset.num = num;
+			}
+			gutter.append(numNode);
+		});
+		const mark = document.createElement('span');
+		mark.classList.add('diff-mark');
+		gutter.append(mark);
+		const code = document.createElement('span');
+		code.classList.add('diff-code');
+		if (row.parts) {
+			row.parts.forEach((part) => {
+				if (part.changed) {
+					const word = document.createElement('span');
+					word.classList.add('diff-word');
+					word.textContent = part.text;
+					code.append(word);
+				} else {
+					code.append(part.text);
+				}
+			});
+		} else {
+			code.textContent = row.text;
+		}
+		line.append(gutter, code);
+		return line;
+	};
+	// The bar that stands for a run of unchanged lines; they are added to the page when first unfolded.
+	me.foldNode = function(rows) {
+		const fold = document.createElement('div');
+		fold.classList.add('diff-fold');
+		fold.tabIndex = 0;
+		fold.setAttribute('role', 'button');
+		fold.setAttribute('aria-expanded', 'false');
+		const label = resource.ONLINE_DIFF_FOLD.replace('{n}', rows.length);
+		fold.setAttribute('aria-label', label);
+		const labelNode = document.createElement('span');
+		labelNode.classList.add('diff-fold-label');
+		labelNode.dataset.label = label;
+		fold.append(labelNode);
+		fold.rows = rows;
+		return fold;
+	};
+	me.toggleFold = function(fold) {
+		const foldBody = fold.nextElementSibling;
+		if (fold.rows) {
+			fold.rows.forEach((row) => foldBody.append(me.lineNode(row)));
+			fold.rows = null;
+		}
+		foldBody.hidden = !foldBody.hidden;
+		fold.classList.toggle('open', !foldBody.hidden);
+		fold.setAttribute('aria-expanded', String(!foldBody.hidden));
+	};
+
+	document.addEventListener('DOMContentLoaded', function() {
+		document.querySelector('#online-diff .close').addEventListener('click', function(e) {
+			me.close();
+		}, false);
+		document.getElementById('online-diff-view').addEventListener('click', function(e) {
+			const fold = e.target.closest('.diff-fold');
+			if (fold) {
+				me.toggleFold(fold);
+			}
 		}, false);
 	}, false);
 
