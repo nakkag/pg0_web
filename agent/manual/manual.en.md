@@ -382,7 +382,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 
 - `#option("pg0.5")`: run as PG0.5 from this line on.
 - `#option("strict")`: every variable must be declared with `var`.
-- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0` and `lib/screen.pg0` (headless, see 4.5) can be imported, as well as stored scripts by their editor URL, `#import("https://pg0.jp/dev/?cid=<cid>")` (see 3.12); anything else fails with "Read error in script or library".
+- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0` and `lib/screen.pg0` (headless, see 4.5) can be imported, as well as stored scripts by their cid, `#import("cid:<cid>")` (see 3.12); anything else fails with "Read error in script or library".
 
 ### 3.11 Pitfalls checklist
 
@@ -415,12 +415,12 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 
 ### 3.12 Building one system from several sources
 
-**Testing without saving (`sources`).** Add `"sources": {"util.pg0": "...", "parser.pg0": "..."}` to a `/run` or `/check` request and the program, as well as every source, can pull them in with `#import("util.pg0")` (the name is the map key as is; `.pg0` may be omitted). `#import` is resolved in the order `sources` keys, stored scripts (`cid=`), libraries (`lib/*.pg0`). A syntax error inside a source is reported in `error.message` as `in source util.pg0: ...`. The web editor has no `sources`, so once the parts are done, store them as scripts and switch to the `cid` imports below. Imports of URLs such as `http://.../x.pg0` are not available through the API.
+**Testing without saving (`sources`).** Add `"sources": {"util.pg0": "...", "parser.pg0": "..."}` to a `/run` or `/check` request and the program, as well as every source, can pull them in with `#import("util.pg0")` (the name is the map key as is; `.pg0` may be omitted). `#import` is resolved in the order `sources` keys, stored scripts (`cid:`), libraries (`lib/*.pg0`). A syntax error inside a source is reported in `error.message` as `in source util.pg0: ...`. The web editor has no `sources`, so once the parts are done, store them as scripts and switch to the `cid` imports below. Imports of URLs such as `http://.../x.pg0` are not available through the API.
 
-**Importing stored scripts (`cid`).** A program can pull in other stored scripts with `#import`, so a large system is split into parts that stay small enough to read, test and update on their own. The directive takes the editor URL of the part (the string only has to contain `cid=<cid>`):
+**Importing stored scripts (`cid`).** A program can pull in other stored scripts with `#import`, so a large system is split into parts that stay small enough to read, test and update on their own. The directive takes `cid:` followed by the cid of the part (the `cid=` value of its editor URL):
 
 ```
-#import("https://pg0.jp/dev/?cid=2f1c9a3e-....")
+#import("cid:2f1c9a3e-....")
 ```
 
 How it behaves (identical for the API and the web editor):
@@ -452,15 +452,15 @@ function vadd(a, b) { return {a[0] + b[0], a[1] + b[1]} }
 Part (private, cid `BBBB`), which uses the first one:
 
 ```
-#import("https://pg0.jp/dev/?cid=AAAA")
+#import("cid:AAAA")
 function speed(vx, vy) { return vlen(vx, vy) * 2 }
 ```
 
 Main program:
 
 ```
-#import("https://pg0.jp/dev/?cid=BBBB")
-#import("https://pg0.jp/dev/?cid=AAAA")
+#import("cid:BBBB")
+#import("cid:AAAA")
 v = vadd({3, 0}, {0, 4})
 print(speed(v[0], v[1]))    // 10
 exit vlen(6, 8)             // 10

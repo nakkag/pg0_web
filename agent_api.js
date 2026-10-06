@@ -246,7 +246,7 @@ module.exports = function(app, deps) {
 	}
 
 	function importCid(file) {
-		const m = String(file).match(/cid *= *([a-zA-Z0-9\-]+)/);
+		const m = String(file).match(/^cid:\s*([a-zA-Z0-9\-]+)\s*$/i);
 		return m ? m[1] : null;
 	}
 

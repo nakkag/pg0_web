@@ -890,23 +890,25 @@ async function _exec(scis, sci, imp) {
 	try {
 		await sp.parse(sci.src, {
 			import: async function(file) {
-				if (/\.pg0$/i.test(file) || /cid *= */.test(file)) {
+				// #import("cid:<cid>") is a script stored on the server
+				const cid = /^cid:/i.test(file) ? file.slice(4).trim() : null;
+				if (cid !== null || /\.pg0$/i.test(file)) {
 					let res;
 					let buf;
 					try {
-						// Scripts come from this host only: a relative path, or an
-						// absolute URL of this host (a share URL with cid= goes
-						// through the server, which looks the script up).
-						if (/^(https|http):\/\//i.test(file)) {
+						// Scripts come from this host only: a stored script, a
+						// relative path, or an absolute URL of this host.
+						if (cid !== null) {
+							if (!/^[a-zA-Z0-9\-]+$/.test(cid)) {
+								return -1;
+							}
+							res = await fetch(apiServer + '/api/script/import/' + cid);
+						} else if (/^(https|http):\/\//i.test(file)) {
 							const url = new URL(file);
 							if (url.hostname.toLowerCase() !== location.hostname.toLowerCase()) {
 								throw('Security error');
 							}
-							if (/cid *= */.test(file)) {
-								res = await fetch(apiServer + '/import/?url=' + encodeURIComponent(file));
-							} else {
-								res = await fetch(file);
-							}
+							res = await fetch(file);
 						} else {
 							res = await fetch(file);
 						}

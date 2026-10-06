@@ -382,7 +382,7 @@ fill(list, 3)       // list は {0, 1, 2}
 
 - `#option("pg0.5")`: この行以降を PG0.5 として動作させます。
 - `#option("strict")`: すべての変数に `var` による宣言を必須にします。
-- `#import("lib/math.pg0")`: ライブラリを読み込みます（4 章参照）。import すると PG0.5 として動作します。API で読み込めるのは `lib/math.pg0`、`lib/string.pg0`、`lib/io.pg0`、`lib/screen.pg0`（ヘッドレス。4.5 参照）と、エディタの URL で指定する保存済みスクリプト `#import("https://pg0.jp/dev/?cid=<cid>")`（3.12 参照）です。それ以外は「スクリプトまたはライブラリの読み込みに失敗しました」というエラーになります。
+- `#import("lib/math.pg0")`: ライブラリを読み込みます（4 章参照）。import すると PG0.5 として動作します。API で読み込めるのは `lib/math.pg0`、`lib/string.pg0`、`lib/io.pg0`、`lib/screen.pg0`（ヘッドレス。4.5 参照）と、cid で指定する保存済みスクリプト `#import("cid:<cid>")`（3.12 参照）です。それ以外は「スクリプトまたはライブラリの読み込みに失敗しました」というエラーになります。
 
 ### 3.11 注意点チェックリスト
 
@@ -415,12 +415,12 @@ fill(list, 3)       // list は {0, 1, 2}
 
 ### 3.12 複数のソースで一つのシステムを作る
 
-**保存せずに試す（`sources`）。** `/run` と `/check` のリクエストに `"sources": {"util.pg0": "...", "parser.pg0": "..."}` を付けると、プログラムからも各ソースからも `#import("util.pg0")` で取り込めます（名前はマップのキーそのもの。`.pg0` は省略可）。`#import` の解決順は `sources` のキー、保存済みスクリプト（`cid=`）、ライブラリ（`lib/*.pg0`）の順です。ソースの構文エラーは `error.message` に `in source util.pg0: ...` と出ます。Web エディタには `sources` が無いので、完成したら部品を保存済みスクリプトにして下の `cid` 取り込みに切り替えます。`http://.../x.pg0` のような URL の取り込みは API では使えません。
+**保存せずに試す（`sources`）。** `/run` と `/check` のリクエストに `"sources": {"util.pg0": "...", "parser.pg0": "..."}` を付けると、プログラムからも各ソースからも `#import("util.pg0")` で取り込めます（名前はマップのキーそのもの。`.pg0` は省略可）。`#import` の解決順は `sources` のキー、保存済みスクリプト（`cid:`）、ライブラリ（`lib/*.pg0`）の順です。ソースの構文エラーは `error.message` に `in source util.pg0: ...` と出ます。Web エディタには `sources` が無いので、完成したら部品を保存済みスクリプトにして下の `cid` 取り込みに切り替えます。`http://.../x.pg0` のような URL の取り込みは API では使えません。
 
-**保存済みスクリプトを取り込む（`cid`）。** プログラムは `#import` で他の保存済みスクリプトを取り込めるので、大きなシステムは読みやすく・試しやすく・更新しやすい大きさの部品に分けられます。取り込む部品はエディタの URL で指定します（文字列に `cid=<cid>` が含まれていれば十分です）。
+**保存済みスクリプトを取り込む（`cid`）。** プログラムは `#import` で他の保存済みスクリプトを取り込めるので、大きなシステムは読みやすく・試しやすく・更新しやすい大きさの部品に分けられます。取り込む部品は `cid:` に続けて部品の cid（エディタの URL の `cid=` の値）で指定します。
 
 ```
-#import("https://pg0.jp/dev/?cid=2f1c9a3e-....")
+#import("cid:2f1c9a3e-....")
 ```
 
 動作（API と Web エディタで同じ）:
@@ -452,15 +452,15 @@ function vadd(a, b) { return {a[0] + b[0], a[1] + b[1]} }
 部品（非公開、cid `BBBB`）。最初の部品を使う:
 
 ```
-#import("https://pg0.jp/dev/?cid=AAAA")
+#import("cid:AAAA")
 function speed(vx, vy) { return vlen(vx, vy) * 2 }
 ```
 
 主プログラム:
 
 ```
-#import("https://pg0.jp/dev/?cid=BBBB")
-#import("https://pg0.jp/dev/?cid=AAAA")
+#import("cid:BBBB")
+#import("cid:AAAA")
 v = vadd({3, 0}, {0, 4})
 print(speed(v[0], v[1]))    // 10
 exit vlen(6, 8)             // 10

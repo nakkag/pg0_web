@@ -395,6 +395,10 @@ The placement of these directives is not restricted and affects the entire scrip
 #import("filename")
 	Imports another script file or a library file.
 	Functions in the imported script or library can be called, but variables in the imported script are not accessible.
+#import("cid:script ID")
+	Imports a script saved online.
+	The script ID is the string after cid= in the URL of the script.
+		#import("cid:471e2fab-1ec9-4fcd-a87c-55ae118facf7")
 
 # Other
 Comments are denoted by // to the end of the line.

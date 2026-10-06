@@ -718,8 +718,8 @@ async function main(opt) {
 		if (sourceName !== null) {
 			return importPart(file, 'source ' + sourceName, opt.sources[sourceName]);
 		}
-		// Stored scripts: #import("https://pg0.jp/dev/?cid=<cid>") or any string containing cid=<cid>.
-		const cm = String(file).match(/cid *= *([a-zA-Z0-9\-]+)/);
+		// Stored scripts: #import("cid:<cid>").
+		const cm = String(file).match(/^cid:\s*([a-zA-Z0-9\-]+)\s*$/i);
 		if (cm) {
 			const cid = cm[1];
 			const code = (opt.imports && Object.prototype.hasOwnProperty.call(opt.imports, cid)) ? opt.imports[cid] : undefined;
@@ -769,7 +769,7 @@ async function main(opt) {
 			screen.loaded = true;
 			return 0;
 		}
-		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, a stored script as "https://pg0.jp/dev/?cid=<cid>", or a name of the request "sources" map`);
+		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, a stored script as "cid:<cid>", or a name of the request "sources" map`);
 		return -1;
 	}
 

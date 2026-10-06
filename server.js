@@ -205,30 +205,15 @@ app.options('*', function (req, res) {
 	res.sendStatus(200);
 });
 
-// Imports a script stored on this server (a share URL with cid=). Other
-// URLs are not fetched: the server must not act as a proxy to the network.
-app.get('/import', async (req, res) => {
-	const url = String(req.query.url || '').replace(/\r\n/, '');
-	if (!/cid *= */.test(url)) {
-		return res.status(400).send('Only scripts on this server can be imported.');
-	}
-	let cid = '';
-	try {
-		const cUrl = new URL(url);
-		cid = cUrl.searchParams.get('cid');
-	} catch (error) {
-		const result = url.match(/cid *= *([a-zA-Z0-9\-]+)/);
-		if (result && result.length >= 2) {
-			cid = result[1];
-		}
-	}
+// Code of a stored script, for #import("cid:<cid>") of the editor and the Windows version.
+app.get('/api/script/import/:cid', async (req, res) => {
 	try {
 		const db = await getDB();
-		const doc = await db.collection('script').findOne({cid: cid});
+		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
-		res.send(doc.code);
+		res.type('text/plain; charset=utf-8').send(String(doc.code || ''));
 	} catch (error) {
 		logger.error(error);
 		return res.status(500).send('Internal Server Error.');
