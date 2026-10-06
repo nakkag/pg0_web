@@ -682,19 +682,21 @@ async function main(opt) {
 		return f.toLowerCase();
 	}
 
-	const importedCids = Object.create(null);
+	const importedParts = Object.create(null);
 	const importStack = [];
+	const loadedLibs = Object.create(null);
 
-	// Runs the code of a stored script or of a request "sources" entry as an imported part.
+	// Runs the code of a stored script, a request "sources" entry or a library file as an imported part.
+	// A part is run once, and importing a part that is still being imported is a circular import.
 	async function importPart(file, key, code) {
 		if (importStack.indexOf(key) >= 0) {
 			importErrors.push(`#import("${file}"): circular import of ${key}`);
 			return -1;
 		}
-		if (importedCids[key]) {
+		if (importedParts[key]) {
 			return 0;
 		}
-		importedCids[key] = true;
+		importedParts[key] = true;
 		importStack.push(key);
 		const _sci = Script.initScriptInfo(code, {extension: true});
 		scis.push(_sci);
@@ -742,15 +744,16 @@ async function main(opt) {
 				importErrors.push(`#import("${file}"): library not found`);
 				return -1;
 			}
-			const _sci = Script.initScriptInfo(buf, {extension: true});
-			scis.push(_sci);
-			const ok = await execScript(_sci, true);
-			if (_sci.ei) {
-				_sci.ei.imp = true;
-			}
-			return ok ? 0 : -1;
+			return importPart(file, 'library ' + f, buf);
 		}
 		const kind = ALLOWED_JS_LIBS[f];
+		if (kind) {
+			// Loaded once: loading it again would reset its state (such as the seeded random sequence).
+			if (loadedLibs[f]) {
+				return 0;
+			}
+			loadedLibs[f] = true;
+		}
 		if (kind === 'file') {
 			runSource(context, readDevFile(f), f);
 			if (f === 'lib/math.js' && opt.seed !== null) {

@@ -1600,8 +1600,10 @@ function ScriptParse(sci) {
 		switch(cmd) {
 		case 'import':
 			sci.extension = true;
-			if (await that.import(content)) {
-				pi.err = Script.error(sci, errMsg.ERR_SCRIPT, pi.line);
+			// the import callback returns 0, or on an error -1 or the message (errMsg.ERR_IMPORT_CIRCULAR)
+			const ret = await that.import(content);
+			if (ret) {
+				pi.err = Script.error(sci, (typeof ret === 'string') ? ret : errMsg.ERR_SCRIPT, pi.line);
 				return;
 			}
 			break;

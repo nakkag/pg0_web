@@ -44,7 +44,8 @@ let errMsg = {
 	ERR_FILEOPEN: 'File open error',
 	ERR_SCRIPT: 'Read error in script or library',
 	ERR_FUNCTION: 'Function not Found',
-	ERR_FUNCTION_EXEC: 'Function error'
+	ERR_FUNCTION_EXEC: 'Function error',
+	ERR_IMPORT_CIRCULAR: 'Circular import'
 };
 
 let _lang = 'en';
@@ -73,7 +74,8 @@ if (_lang === 'ja') {
 		ERR_FILEOPEN: 'ファイルオープンに失敗しました',
 		ERR_SCRIPT: 'スクリプトまたはライブラリの読み込みに失敗しました',
 		ERR_FUNCTION: '関数が見つかりません',
-		ERR_FUNCTION_EXEC: '関数実行中にエラーが発生しました'
+		ERR_FUNCTION_EXEC: '関数実行中にエラーが発生しました',
+		ERR_IMPORT_CIRCULAR: 'スクリプトの取り込みが循環しています'
 	};
 }
 

@@ -395,6 +395,8 @@ The placement of these directives is not restricted and affects the entire scrip
 #import("filename")
 	Imports another script file or a library file.
 	Functions in the imported script or library can be called, but variables in the imported script are not accessible.
+	A script is loaded only once, however many times it is imported.
+	A circular import (importing a script that is still being imported) is an error.
 #import("cid:script ID")
 	Imports a script saved online.
 	The script ID is the string after cid= in the URL of the script.

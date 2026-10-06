@@ -862,7 +862,7 @@ async function exec(_step) {
 	const extension = options.execMode === 'PG0' ? false : true;
 	const sci = Script.initScriptInfo(buf, {extension: extension});
 	const scis = [sci];
-	await _exec(scis, sci, false);
+	await _exec(scis, sci, false, new Map(), '');
 	document.getElementById('stop-button').setAttribute('disabled', true);
 	document.getElementById('editor').setAttribute('contenteditable', 'true');
 	stopStep = -1;
@@ -885,13 +885,45 @@ async function loadScript(file) {
 	});
 }
 
-async function _exec(scis, sci, imp) {
+// Parses and runs a script; returns false when it stopped with an error.
+// "imports" holds the scripts imported in this run ('loading' while being imported, then 'done'):
+// a script is imported once, and importing one that is still being imported is a circular import.
+// "name" names an imported script in its error messages.
+async function _exec(scis, sci, imp, imports, name) {
+	let ok = true;
+	// An error of an imported script names it, and its lines are not those of the editor.
+	function showError(msg, line) {
+		ok = false;
+		if (imp) {
+			cv.error(`Error: [${pg0_string.escapeHTML(name)}] ${msg}`);
+			return;
+		}
+		if (line >= 0) {
+			ev.setHighlight(line, '#ffb6c1');
+		}
+		cv.error(`Error: ${msg}`);
+		cv.info(resource.CONSOLE_END);
+	}
+
 	const sp = new ScriptParse(sci);
 	try {
 		await sp.parse(sci.src, {
 			import: async function(file) {
 				// #import("cid:<cid>") is a script stored on the server
 				const cid = /^cid:/i.test(file) ? file.slice(4).trim() : null;
+				let key;
+				try {
+					key = (cid !== null) ? 'cid:' + cid : new URL(file, location.href).href;
+				} catch(e) {
+					console.error(e);
+					return -1;
+				}
+				if (imports.get(key) === 'loading') {
+					return errMsg.ERR_IMPORT_CIRCULAR;
+				}
+				if (imports.get(key) === 'done') {
+					return 0;
+				}
 				if (cid !== null || /\.pg0$/i.test(file)) {
 					let res;
 					let buf;
@@ -922,9 +954,14 @@ async function _exec(scis, sci, imp) {
 					}
 					const _sci = Script.initScriptInfo(buf, {extension: true});
 					scis.push(_sci);
-					await _exec(scis, _sci, true);
+					imports.set(key, 'loading');
+					const _ok = await _exec(scis, _sci, true, imports, (cid !== null) ? key : file);
 					if (_sci.ei) {
 						_sci.ei.imp = true;
+					}
+					if (!_ok) {
+						imports.delete(key);
+						return -1;
 					}
 				} else {
 					try {
@@ -940,6 +977,7 @@ async function _exec(scis, sci, imp) {
 						return -1;
 					}
 				}
+				imports.set(key, 'done');
 				return 0;
 			},
 			success: async function(token) {
@@ -1022,31 +1060,23 @@ async function _exec(scis, sci, imp) {
 							ev.unsetHighlight();
 						},
 						error: async function(error) {
-							ev.setHighlight(error.line, '#ffb6c1');
-							cv.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
-							cv.info(resource.CONSOLE_END);
+							showError(`${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`, error.line);
 						}
 					});
 				} catch(e) {
 					console.error(e);
-					if (line > 0) {
-						ev.setHighlight(line, '#ffb6c1');
-					}
-					cv.error(`Error: ${e.message}`);
-					cv.info(resource.CONSOLE_END);
+					showError(e.message, (line > 0) ? line : -1);
 				}
 			},
 			error: async function(error) {
-				ev.setHighlight(error.line, '#ffb6c1');
-				cv.error(`Error: ${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`);
-				cv.info(resource.CONSOLE_END);
+				showError(`${error.msg} (${error.line + 1}): ${pg0_string.escapeHTML(error.src)}`, error.line);
 			}
 		});
 	} catch(e) {
 		console.error(e);
-		cv.error(`Error: ${e.message}`);
-		cv.info(resource.CONSOLE_END);
+		showError(e.message, -1);
 	}
+	return ok;
 }
 
 function stop() {
