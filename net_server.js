@@ -30,8 +30,10 @@ const DEFAULTS = {
 	maxRooms: 5000,
 	// a player that sends nothing for this long is disconnected
 	idleSeconds: 1800,
-	// the client address is taken from X-Forwarded-For (behind a proxy only)
-	trustProxy: false,
+	// where the client address comes from: false: the connection itself,
+	// 'loopback': X-Forwarded-For when the connection is from a proxy on this
+	// machine, true: X-Forwarded-For from any connection (a proxy elsewhere)
+	trustProxy: 'loopback',
 	// a line for each connection, room entry and exit and refusal
 	log: true,
 	// a summary line this often (0: none)
@@ -55,6 +57,7 @@ module.exports = function(servers, deps) {
 	const cids = new Map();
 	let connections = 0;
 	let connectionCount = 0;
+	let warnedLoopback = false;
 	// what happened since the last summary line
 	let counts = newCounts();
 
@@ -82,9 +85,28 @@ module.exports = function(servers, deps) {
 		return Math.round((Date.now() - t) / 1000);
 	}
 
+	// IPv4 clients of a dual-stack socket read as ::ffff:1.2.3.4.
+	function plainAddress(a) {
+		a = String(a || '').trim().substring(0, 64);
+		return /^::ffff:\d+\.\d+\.\d+\.\d+$/i.test(a) ? a.substring(7) : a;
+	}
+	function isLoopback(a) {
+		return a === '::1' || /^127\./.test(a);
+	}
+	// The address the proxy saw the client connect from: the last entry of
+	// X-Forwarded-For that is not a proxy on this machine (the entries before
+	// it are as the client sent them), or X-Real-IP.
+	function forwardedAddress(req) {
+		const list = String(req.headers['x-forwarded-for'] || '').split(',').map(plainAddress).filter(Boolean);
+		while (list.length > 1 && isLoopback(list[list.length - 1])) {
+			list.pop();
+		}
+		return list.pop() || plainAddress(req.headers['x-real-ip']);
+	}
 	function addressOf(req) {
-		const forwarded = conf.trustProxy && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-		return forwarded || (req.socket && req.socket.remoteAddress) || '';
+		const peer = plainAddress(req.socket && req.socket.remoteAddress);
+		const trusted = conf.trustProxy === true || (conf.trustProxy === 'loopback' && isLoopback(peer));
+		return (trusted && forwardedAddress(req)) || peer;
 	}
 	// Pages of this site (and the origins allowed in the settings) only.
 	function originAllowed(req) {
@@ -125,7 +147,15 @@ module.exports = function(servers, deps) {
 			if (connections >= conf.maxConnections) {
 				return refuse(socket, 429, 'Too Many Requests', req, 'connections');
 			}
-			if ((perIp.get(ip) || 0) >= conf.connectionsPerIp) {
+			// A proxy on this machine that does not say who the client is
+			// brings every player under its own address, so that address has
+			// no limit of its own.
+			if (isLoopback(ip)) {
+				if (!warnedLoopback) {
+					warnedLoopback = true;
+					event('warn', 'no_client_address', {ip: ip});
+				}
+			} else if ((perIp.get(ip) || 0) >= conf.connectionsPerIp) {
 				return refuse(socket, 429, 'Too Many Requests', req, 'connections_per_ip');
 			}
 			wss.handleUpgrade(req, socket, head, function(ws) {
