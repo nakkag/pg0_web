@@ -516,4 +516,7 @@ async function diffHistory(cid) {
 }
 
 server.listen(settings.httpsPort, () => logger.info(`https Listening on port ${settings.httpsPort}...`));
-app.listen(settings.httpPort, () => logger.info(`http Listening on port ${settings.httpPort}...`));
+const httpServer = app.listen(settings.httpPort, () => logger.info(`http Listening on port ${settings.httpPort}...`));
+
+// lib/net.pg0: rooms where copies of one stored script pass values (WebSocket /api/net), see net_server.js
+require('./net_server.js')([server, httpServer], {getDB: getDB, logger: logger, settings: settings.net, allowOrigins: allowOrigins});

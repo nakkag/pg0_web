@@ -27,6 +27,7 @@ This is a reference for the following libraries.
 * Mathematical API (math.pg0)
 * String API (string.pg0)
 * Input/Output API (io.pg0)
+* Network API (net.pg0)
 
 # Restrictions
 This library has the following restrictions. 
@@ -677,6 +678,129 @@ set_clipboard(text)
 		text - Text to be set on the clipboard.
 	* Return Value
 		Returns 1 on success, 0 on failure.
+
+# Network API (net.pg0)
+Can be used with the following import statement. 
+	#import("lib/net.pg0")
+
+People who have the same program open (the same program saved online, with the same cid) can send values to each other. Use it for games played online against each other.
+* It works only in a program saved online (saving gives the program a cid).
+* Only copies of the program with the same cid are connected; never other programs.
+* The server stores nothing: a value sent only reaches the other people in the room.
+* When the program ends (including the stop button), it leaves the room.
+* Available in PG0 (web version) only.
+* The size and number of values sent are limited (by default up to 16 KB each and 60 a second). What goes over is not sent, and a notice is shown in the console.
+
+Example: two people send each other a position
+	#import("lib/net.pg0")
+	#import("lib/io.pg0")
+	me = netJoin()
+	if (me == 0) {
+		println("Could not connect")
+		exit
+	}
+	while (netCount() < 2) {
+		wait(100)
+	}
+	x = 100 * me
+	netSend({"x": x})
+	while (netAvailable() == 0) {
+		wait(100)
+	}
+	m = netReceive()
+	println("x of player " + m["from"] + " is " + m["data"]["x"])
+
+netJoin(room, players)
+	* Description
+		Enters a room, and waits until it is in the room or has failed (10 seconds at most).
+		It is connected with the people of the same cid in the room of the same name.
+		Without a room name (or with ""), it enters a room that is not full yet by itself.
+		Once such an automatic room has been full, nobody else enters it.
+		With a room name agreed beforehand, friends can enter the same room.
+		A full room cannot be entered.
+		When it is already in a room, it leaves that room first.
+	* Parameters
+		room - Room name (optional, up to 32 characters)
+		players - Number of players of the room (2 when omitted, 2 to 8). The value of the person who made the room is used.
+	* Return Value
+		Your player number (1, 2, ...), or 0 when it could not enter.
+		Numbers are given in the order of entering: the smallest number that is free.
+		When it could not enter, the reason is shown in the console.
+
+netLeave()
+	* Description
+		Leaves the room.
+	* Parameters
+		None
+	* Return Value
+		0
+
+netId()
+	* Description
+		Gets your player number.
+	* Parameters
+		None
+	* Return Value
+		Your player number. 0 when not in a room (also after the connection was lost).
+
+netRoom()
+	* Description
+		Gets the name of the room. A room entered automatically has a name starting with "auto-".
+	* Parameters
+		None
+	* Return Value
+		The room name. "" when not in a room.
+
+netCount()
+	* Description
+		Gets the number of people in the room, you included.
+	* Parameters
+		None
+	* Return Value
+		The number of people. 0 when not in a room (also after the connection was lost).
+
+netPlayers()
+	* Description
+		Gets the player numbers of the people in the room.
+	* Parameters
+		None
+	* Return Value
+		Array of player numbers, smallest first. Example: {1, 2}
+
+netSend(value, to)
+	* Description
+		Sends a value: a number, a string or an array. It does not come back to you.
+	* Parameters
+		value - The value to send
+		to - Player number to send it to (everybody else in the room when omitted)
+	* Return Value
+		1 when it was sent, 0 when it could not be (for example when not in a room).
+
+netAvailable()
+	* Description
+		Gets the number of values received and not taken with netReceive() yet.
+	* Parameters
+		None
+	* Return Value
+		The number of values (1000 at most; past that the oldest are dropped).
+
+netReceive()
+	* Description
+		Takes the oldest received value.
+	* Parameters
+		None
+	* Return Value
+		Array {"from": player number of the sender, "data": the value sent}.
+		0 when nothing has been received.
+
+netLast(player)
+	* Description
+		Gets the last value received from the given player, whether or not it was taken with netReceive().
+		In a game where everybody keeps sending their position, this alone tells what the others are doing.
+	* Parameters
+		player - Player number
+	* Return Value
+		The last value received. 0 when nothing has come from that player yet, or when they left the room.
 
 --
 Copyright (C) 1996-2026 by Ohno Tomoaki. All rights reserved.

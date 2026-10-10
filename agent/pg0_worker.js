@@ -22,10 +22,12 @@ const ALLOWED_JS_LIBS = {
 	'lib/math.js': 'file',
 	'lib/string.js': 'file',
 	'lib/io.js': 'server-io',
-	'lib/screen.js': 'headless-screen'
+	'lib/screen.js': 'headless-screen',
+	'lib/net.js': 'headless-net'
 };
 
 const HEADLESS_SCREEN_FILE = path.join(__dirname, 'lib', 'screen_headless.js');
+const HEADLESS_NET_FILE = path.join(__dirname, 'lib', 'net_headless.js');
 
 // print / error / input are always available (defined by the editor in the browser).
 const BASE_LIB_SOURCE = `
@@ -772,7 +774,11 @@ async function main(opt) {
 			screen.loaded = true;
 			return 0;
 		}
-		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, a stored script as "cid:<cid>", or a name of the request "sources" map`);
+		if (kind === 'headless-net') {
+			runSource(context, fs.readFileSync(HEADLESS_NET_FILE, 'utf8'), 'net_headless.js');
+			return 0;
+		}
+		importErrors.push(`#import("${file}"): unknown library; available: lib/math.pg0, lib/string.pg0, lib/io.pg0, lib/screen.pg0, lib/net.pg0, a stored script as "cid:<cid>", or a name of the request "sources" map`);
 		return -1;
 	}
 

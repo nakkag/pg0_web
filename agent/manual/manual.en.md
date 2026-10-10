@@ -382,7 +382,7 @@ Lines starting with `#` are processed before execution and may appear anywhere.
 
 - `#option("pg0.5")`: run as PG0.5 from this line on.
 - `#option("strict")`: every variable must be declared with `var`.
-- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0` and `lib/screen.pg0` (headless, see 4.5) can be imported, as well as stored scripts by their cid, `#import("cid:<cid>")` (see 3.12); anything else fails with "Read error in script or library".
+- `#import("lib/math.pg0")`: load a library (see 4). Importing switches the program to PG0.5. In the API `lib/math.pg0`, `lib/string.pg0`, `lib/io.pg0`, `lib/screen.pg0` (headless, see 4.5), `lib/net.pg0` (no network, see 4.6) can be imported, as well as stored scripts by their cid, `#import("cid:<cid>")` (see 3.12); anything else fails with "Read error in script or library".
 
 ### 3.11 Pitfalls checklist
 
@@ -680,6 +680,19 @@ Run it with a scenario:
 ```
 
 Expected: `status` `"frame_limit"`, `screen.frames` 300, `variables.score` 6 (the pointer is down for virtual ms 500 to 599; the frames starting at 512, 528, ..., 592 see it), `variables.x` 300 + 24 × 31 = 1044 (ArrowRight is held from 1000 to 1499 ms, which covers the 31 frames starting at 1008 to 1488), and `screen.record` showing the first 50 calls with their coordinates.
+
+### 4.6 Network library: `#import("lib/net.pg0")` (no network in the API)
+
+In the web editor, people who have the same program saved online (the same cid) open can enter a room and send each other values (for online games). Runs through the API have no network: `netJoin` returns `0` as when the server cannot be reached, and says so in `error_output`; the other functions return what they return outside a room (`0`, `""`, `{}`). Write what the program does when `netJoin` returns `0` (play alone, or show a message and stop) and the API can test that path.
+
+| Function | Description |
+|---|---|
+| `netJoin(room: str = "", players: int = 2) -> int` | Enters a room and returns your player number (1, 2, ...), or `0` when it could not. Without a room name it enters a room that is not full yet by itself. `players` is 2 to 8; the value of the person who made the room is used. |
+| `netLeave() -> int` | Leaves the room. |
+| `netId() -> int`, `netRoom() -> str`, `netCount() -> int`, `netPlayers() -> arr` | Your number, the room name, the number of people (you included), the array of numbers. Outside a room: `0` / `""` / `0` / `{}`. |
+| `netSend(value: any, to: int = all) -> int` | Sends a value to everybody else in the room (only to player `to` when given). `1` when sent. It does not come back to you. By default up to 16 KB each and 60 a second. |
+| `netAvailable() -> int`, `netReceive() -> arr \| int` | The number of received values waiting, and the oldest of them as `{"from": number, "data": value}` (`0` when none). |
+| `netLast(player: int) -> any` | The last value received from that player (`0` when none). For games where everybody sends their position every frame. |
 
 ## 5. Examples
 
