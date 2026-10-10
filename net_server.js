@@ -43,7 +43,8 @@ module.exports = function(servers, deps) {
 	if (!conf.enabled) {
 		return null;
 	}
-	const allowOrigins = Array.isArray(deps.allowOrigins) ? deps.allowOrigins : [];
+	// The site's own allowOrigins, and origins that may use the relay only.
+	const allowOrigins = [].concat(Array.isArray(deps.allowOrigins) ? deps.allowOrigins : [], Array.isArray(conf.allowOrigins) ? conf.allowOrigins : []);
 	const wss = new WebSocketServer({noServer: true, maxPayload: conf.maxMessageBytes + 1024});
 	const rooms = new Map();
 	const perIp = new Map();

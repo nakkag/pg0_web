@@ -14,8 +14,11 @@ if (ScriptExec.lib['$net']) {
 var _NET_QUEUE = 1000;
 var _NET_DEPTH = 32;
 
+// The relay is the API server's, unless pg0_settings.js names another one
+// (netServer, such as the admin pages joining the rooms of the public site).
 function _netUrl() {
-	const base = new URL((typeof apiServer === 'string' && apiServer) ? apiServer : location.href, location.href);
+	const server = (typeof netServer === 'string' && netServer) ? netServer : ((typeof apiServer === 'string' && apiServer) ? apiServer : location.href);
+	const base = new URL(server, location.href);
 	return (base.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + base.host + '/api/net';
 }
 
