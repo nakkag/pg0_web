@@ -157,6 +157,16 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 	if (ScriptExec.lib['$net']) {
 		ScriptExec.lib['$net'].close();
 	}
+	// A run that must not meet anybody (such as the AI agent's trial run, which
+	// sets this to the notice to show) gets 0, as when the server cannot be
+	// reached. It is a notice, not an error.
+	const offline = ScriptExec.lib['$netOffline'];
+	if (offline) {
+		if (typeof cv !== 'undefined' && cv) {
+			cv.info(pg0_string.escapeHTML(String(offline)));
+		}
+		return 0;
+	}
 	let room = '';
 	if (param.length > 0 && param[0].v.type !== TYPE_ARRAY) {
 		room = ScriptExec.getValueString(param[0].v).trim();
