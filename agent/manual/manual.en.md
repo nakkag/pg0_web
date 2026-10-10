@@ -689,6 +689,7 @@ In the web editor, people who have the same program saved online (the same cid) 
 |---|---|
 | `netJoin(room: str = "", players: int = 2) -> int` | Enters a room and returns your player number (1, 2, ...), or `0` when it could not. Without a room name it enters a room that is not full yet by itself. `players` is 2 to 8; the value of the person who made the room is used. |
 | `netLeave() -> int` | Leaves the room. |
+| `netClose() -> int` | Closes the room: nobody else can enter, free seats included; it cannot be undone. Call it when the game starts. `1` when in a room. |
 | `netId() -> int`, `netRoom() -> str`, `netCount() -> int`, `netPlayers() -> arr` | Your number, the room name, the number of people (you included), the array of numbers. Outside a room: `0` / `""` / `0` / `{}`. |
 | `netSend(value: any, to: int = all) -> int` | Sends a value to everybody else in the room (only to player `to` when given). `1` when sent. It does not come back to you. By default up to 16 KB each and 60 a second. |
 | `netAvailable() -> int`, `netReceive() -> arr \| int` | The number of received values waiting, and the oldest of them as `{"from": number, "data": value}` (`0` when none). |

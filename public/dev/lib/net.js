@@ -206,6 +206,7 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 			const reasons = {
 				cid: ['NET_ERROR_CID', 'netJoin: works only in a program saved online (saving gives it a cid).'],
 				full: ['NET_ERROR_FULL', 'netJoin: room "{room}" is full.'],
+				closed: ['NET_ERROR_CLOSED', 'netJoin: room "{room}" is closed: the game has started.'],
 				busy: ['NET_ERROR_BUSY', 'netJoin: the server is busy. Try again later.'],
 			};
 			const r = reasons[c.result] || ['NET_ERROR_CONNECT', 'netJoin: could not connect to the server.'];
@@ -221,6 +222,19 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 		}
 	}, 200);
 	ret.v.num = c.id;
+	return 0;
+};
+
+// netClose(): nobody else may enter the room, even when a seat is free or
+// becomes free. Returns 1 when it was done.
+ScriptExec.lib['netclose'] = function(ei, param, ret) {
+	_netSetInt(ret, 0);
+	const c = _netCurrent();
+	if (!c || c.ws.readyState !== WebSocket.OPEN) {
+		return 0;
+	}
+	c.ws.send(JSON.stringify({t: 'close'}));
+	ret.v.num = 1;
 	return 0;
 };
 
