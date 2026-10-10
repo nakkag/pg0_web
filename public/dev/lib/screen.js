@@ -23,6 +23,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	// Touch events
 	ScriptExec.lib['$touch'] = {x: 0, y: 0, touch: 0, button: 0, pos: []};
 	const _mouseDown = function(e) {
+		_screenResumeAudio();
 		_mouseMove(e);
 		ScriptExec.lib['$touch'].touch = 1;
 		ScriptExec.lib['$touch'].button = e.button ? e.button : 0;
@@ -1374,11 +1375,21 @@ ScriptExec.lib['bgm'] = async function(ei, param, ret) {
 	return 0;
 };
 
+// The browser keeps an AudioContext that was created before the first user
+// gesture suspended (a program started by run=1 opens the screen before any
+// tap). Once the page has been interacted with, resume() is allowed anywhere.
+function _screenResumeAudio() {
+	const ctx = ScriptExec.lib['$audio_ctx'];
+	if (ctx && ctx.state === 'suspended') {
+		ctx.resume().catch(function() {});
+	}
+}
 function _screenPlaySound(frequency, start, end, volume, callback, group) {
 	if (!ScriptExec.lib['$audio_ctx']) {
 		ScriptExec.lib['$audio_ctx'] = new (window.AudioContext || window.webkitAudioContext)();
 	}
 	const ctx = ScriptExec.lib['$audio_ctx'];
+	_screenResumeAudio();
 	const gainNode = ctx.createGain();
 	gainNode.gain.value = volume * 0.5;
 	const oscillator = ctx.createOscillator();
@@ -1458,6 +1469,7 @@ function _screenStopSound(group) {
 // held key must not be dropped for want of repeats.
 function _screenKeyDown(e) {
 	e.preventDefault();
+	_screenResumeAudio();
 	const prev = e.code ? ScriptExec.lib['$keyCodes'][e.code] : undefined;
 	if (prev !== undefined && prev !== e.key) {
 		_screenKeyRemove(prev);
