@@ -17,6 +17,7 @@
 //   {"t": "rooms", "rooms": [{"room": "name", "count": n, "max": m, "closed": 0 | 1}, ...]}
 //   {"t": "rooms", "error": "cid" | "rate"}
 //   {"t": "error", "code": "cid" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
+//   (joins count against the same rate as messages: "rate" refuses a join too)
 const {WebSocketServer} = require('ws');
 const crypto = require('crypto');
 
@@ -33,6 +34,9 @@ const DEFAULTS = {
 	maxRooms: 5000,
 	// a player that sends nothing for this long is disconnected
 	idleSeconds: 1800,
+	// what a player may leave unread (bytes): over it nothing more is sent to
+	// the player, and the player is disconnected when it stays so
+	maxBufferedBytes: 1048576,
 	// where the client address comes from: false: the connection itself,
 	// 'loopback': X-Forwarded-For when the connection is from a proxy on this
 	// machine, true: X-Forwarded-For from any connection (a proxy elsewhere)
@@ -47,6 +51,11 @@ const CID = /^[a-zA-Z0-9\-]{1,64}$/;
 const ROOM_LENGTH = 32;
 // rooms listed in one answer to "rooms"
 const LIST_ROOMS = 500;
+// nesting of a value that is passed on (the players' own limit is 32 levels of
+// arrays, about 100 levels here; JSON.stringify runs out of stack far above)
+const VALUE_DEPTH = 128;
+// a connection that names this many scripts that do not exist is closed
+const CID_REFUSALS = 20;
 
 module.exports = function(servers, deps) {
 	const conf = Object.assign({}, DEFAULTS, deps.settings || {});
@@ -58,6 +67,8 @@ module.exports = function(servers, deps) {
 	const allowOrigins = [].concat(Array.isArray(deps.allowOrigins) ? deps.allowOrigins : [], Array.isArray(conf.allowOrigins) ? conf.allowOrigins : []);
 	const wss = new WebSocketServer({noServer: true, maxPayload: conf.maxMessageBytes + 1024});
 	const rooms = new Map();
+	// the rooms of each cid, oldest first (what joining and listing look through)
+	const roomsByCid = new Map();
 	const perIp = new Map();
 	const cids = new Map();
 	let connections = 0;
@@ -131,43 +142,55 @@ module.exports = function(servers, deps) {
 	function refuse(socket, status, text, req, reason) {
 		counts.refused++;
 		event('warn', 'refused', {status: status, reason: reason, ip: addressOf(req), origin: String(req.headers.origin || '').substring(0, 200)});
+		// (the http server has let go of the socket: an error of the write
+		// would have nobody to go to)
+		socket.on('error', function() {});
 		socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\n\r\n`);
 		socket.destroy();
 	}
 
 	servers.forEach(function(server) {
 		server.on('upgrade', function(req, socket, head) {
-			let path = '';
+			// nothing in a request may throw out of here
 			try {
-				path = new URL(req.url, 'http://localhost').pathname;
+				upgrade(req, socket, head);
 			} catch (e) {
+				logger.error(e);
+				socket.destroy();
 			}
-			if (path !== PATH) {
-				return refuse(socket, 404, 'Not Found', req, 'path');
-			}
-			if (!originAllowed(req)) {
-				return refuse(socket, 403, 'Forbidden', req, 'origin');
-			}
-			const ip = addressOf(req);
-			if (connections >= conf.maxConnections) {
-				return refuse(socket, 429, 'Too Many Requests', req, 'connections');
-			}
-			// A proxy on this machine that does not say who the client is
-			// brings every player under its own address, so that address has
-			// no limit of its own.
-			if (isLoopback(ip)) {
-				if (!warnedLoopback) {
-					warnedLoopback = true;
-					event('warn', 'no_client_address', {ip: ip});
-				}
-			} else if ((perIp.get(ip) || 0) >= conf.connectionsPerIp) {
-				return refuse(socket, 429, 'Too Many Requests', req, 'connections_per_ip');
-			}
-			wss.handleUpgrade(req, socket, head, function(ws) {
-				wss.emit('connection', ws, ip, String(req.headers.origin || '').substring(0, 200));
-			});
 		});
 	});
+	function upgrade(req, socket, head) {
+		let path = '';
+		try {
+			path = new URL(req.url, 'http://localhost').pathname;
+		} catch (e) {
+		}
+		if (path !== PATH) {
+			return refuse(socket, 404, 'Not Found', req, 'path');
+		}
+		if (!originAllowed(req)) {
+			return refuse(socket, 403, 'Forbidden', req, 'origin');
+		}
+		const ip = addressOf(req);
+		if (connections >= conf.maxConnections) {
+			return refuse(socket, 429, 'Too Many Requests', req, 'connections');
+		}
+		// A proxy on this machine that does not say who the client is
+		// brings every player under its own address, so that address has
+		// no limit of its own.
+		if (isLoopback(ip)) {
+			if (!warnedLoopback) {
+				warnedLoopback = true;
+				event('warn', 'no_client_address', {ip: ip});
+			}
+		} else if ((perIp.get(ip) || 0) >= conf.connectionsPerIp) {
+			return refuse(socket, 429, 'Too Many Requests', req, 'connections_per_ip');
+		}
+		wss.handleUpgrade(req, socket, head, function(ws) {
+			wss.emit('connection', ws, ip, String(req.headers.origin || '').substring(0, 200));
+		});
+	}
 
 	// Whether a stored script has this cid. Answers are kept for a while so
 	// that joining does not ask the database every time.
@@ -192,8 +215,9 @@ module.exports = function(servers, deps) {
 		return ok;
 	}
 
+	// (to a player that does not read, nothing more is queued: see deliver)
 	function send(ws, value) {
-		if (ws.readyState === ws.OPEN) {
+		if (ws.readyState === ws.OPEN && ws.bufferedAmount <= conf.maxBufferedBytes) {
 			ws.send(JSON.stringify(value));
 		}
 	}
@@ -214,6 +238,11 @@ module.exports = function(servers, deps) {
 		event('info', 'leave', {conn: p.conn, cid: room.cid, room: room.name, id: id, players: room.players.size + '/' + room.max, reason: reason, secs: secondsSince(p.joined)});
 		if (room.players.size === 0) {
 			rooms.delete(room.key);
+			const ofCid = roomsByCid.get(room.cid);
+			ofCid.delete(room.key);
+			if (ofCid.size === 0) {
+				roomsByCid.delete(room.cid);
+			}
 			event('info', 'room_end', {cid: room.cid, room: room.name, peak: room.peak + '/' + room.max, closed: room.closed ? 1 : 0, messages: room.messages, secs: secondsSince(room.created)});
 			return;
 		}
@@ -226,8 +255,8 @@ module.exports = function(servers, deps) {
 	// nobody is dropped into a game that already started.
 	function findAutoRoom(cid, max) {
 		let best = null;
-		rooms.forEach(function(room) {
-			if (room.auto && room.cid === cid && room.max === max && !room.started && !room.closed && room.players.size < max) {
+		(roomsByCid.get(cid) || new Map()).forEach(function(room) {
+			if (room.auto && room.max === max && !room.started && !room.closed && room.players.size < max) {
 				if (!best || room.players.size > best.players.size) {
 					best = room;
 				}
@@ -244,14 +273,28 @@ module.exports = function(servers, deps) {
 			max = 2;
 		}
 		max = Math.min(max, conf.maxPlayers);
-		leave(ws, 'rejoin');
 		const refused = function(code) {
 			counts.refused++;
 			event('warn', 'join_refused', {conn: p.conn, ip: p.ip, cid: cid.substring(0, 64), room: name, reason: code});
 			send(ws, {t: 'error', code: code});
 		};
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+		// a join is a lookup of the cid and a search of the rooms: it counts
+		// against the same rate as sending (told once a second)
+		if (!allowed(p)) {
+			counts.refused++;
+			if (Date.now() - p.warned > 1000) {
+				p.warned = Date.now();
+				refused('rate');
+			}
+			return;
+		}
+		leave(ws, 'rejoin');
 		if (!CID.test(cid) || !await cidExists(cid)) {
-			return refused('cid');
+			refused('cid');
+			return unknownCid(ws);
 		}
 		if (ws.readyState !== ws.OPEN) {
 			return;
@@ -275,6 +318,10 @@ module.exports = function(servers, deps) {
 			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, players: new Map(), started: false, closed: false,
 				created: Date.now(), peak: 0, messages: 0};
 			rooms.set(room.key, room);
+			if (!roomsByCid.has(cid)) {
+				roomsByCid.set(cid, new Map());
+			}
+			roomsByCid.get(cid).set(room.key, room);
 			created = true;
 		}
 		let id = 1;
@@ -302,20 +349,32 @@ module.exports = function(servers, deps) {
 	async function listRooms(ws, msg) {
 		const p = ws.pg0;
 		const cid = String(msg.cid || '');
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
 		if (!allowed(p)) {
 			return send(ws, {t: 'rooms', error: 'rate'});
 		}
 		if (!CID.test(cid) || !await cidExists(cid)) {
-			return send(ws, {t: 'rooms', error: 'cid'});
+			send(ws, {t: 'rooms', error: 'cid'});
+			return unknownCid(ws);
 		}
 		counts.lists++;
 		const list = [];
-		rooms.forEach(function(room) {
-			if (room.cid === cid && list.length < LIST_ROOMS) {
+		(roomsByCid.get(cid) || new Map()).forEach(function(room) {
+			if (list.length < LIST_ROOMS) {
 				list.push({room: room.name, count: room.players.size, max: room.max, closed: room.closed ? 1 : 0});
 			}
 		});
 		send(ws, {t: 'rooms', rooms: list});
+	}
+	// Scripts that do not exist cost a database lookup each (unknown cids are
+	// remembered for a minute): a connection that keeps naming them is closed.
+	function unknownCid(ws) {
+		if (++ws.pg0.badCids >= CID_REFUSALS) {
+			ws.pg0.end = 'cid';
+			ws.close(1008, 'cid');
+		}
 	}
 	// Up to messagesPerSecond, refilled continuously.
 	function allowed(p) {
@@ -337,12 +396,48 @@ module.exports = function(servers, deps) {
 			event('warn', 'drop', {conn: p.conn, ip: p.ip, cid: p.room.cid, room: p.room.name, id: p.id, reason: reason});
 		}
 	}
-	function relay(ws, raw, msg) {
+	// Whether a value is nested deeper than VALUE_DEPTH, counted without
+	// recursion.
+	function tooDeep(value) {
+		const stack = [[value, 1]];
+		while (stack.length) {
+			const item = stack.pop();
+			const v = item[0];
+			if (!v || typeof v !== 'object') {
+				continue;
+			}
+			if (item[1] > VALUE_DEPTH) {
+				return true;
+			}
+			const children = Array.isArray(v) ? v : Object.values(v);
+			for (let i = 0; i < children.length; i++) {
+				if (children[i] && typeof children[i] === 'object') {
+					stack.push([children[i], item[1] + 1]);
+				}
+			}
+		}
+		return false;
+	}
+	// To a player that does not read what is sent (what waits for it is over
+	// the limit) nothing more is sent until it does; the timer closes it when
+	// it stays so.
+	function deliver(other, out) {
+		if (other.readyState !== other.OPEN) {
+			return;
+		}
+		if (other.bufferedAmount > conf.maxBufferedBytes) {
+			dropped(other.pg0, 'slow');
+			return;
+		}
+		other.send(out);
+	}
+	// bytes: the message as it came, in UTF-8 (what the limit counts).
+	function relay(ws, bytes, msg) {
 		const p = ws.pg0;
 		if (!p.room) {
 			return;
 		}
-		if (raw.length > conf.maxMessageBytes) {
+		if (bytes > conf.maxMessageBytes) {
 			dropped(p, 'size');
 			return send(ws, {t: 'error', code: 'size'});
 		}
@@ -355,91 +450,109 @@ module.exports = function(servers, deps) {
 			}
 			return;
 		}
+		if (tooDeep(msg.d)) {
+			dropped(p, 'size');
+			return send(ws, {t: 'error', code: 'size'});
+		}
+		let out;
+		try {
+			out = JSON.stringify({t: 'msg', from: p.id, d: msg.d === undefined ? 0 : msg.d});
+		} catch (e) {
+			dropped(p, 'size');
+			return send(ws, {t: 'error', code: 'size'});
+		}
 		p.sent++;
 		p.room.messages++;
 		counts.messages++;
-		counts.bytes += raw.length;
-		const out = JSON.stringify({t: 'msg', from: p.id, d: msg.d === undefined ? 0 : msg.d});
+		counts.bytes += bytes;
 		const to = Math.floor(Number(msg.to));
 		if (msg.to !== undefined && msg.to !== null && Number.isFinite(to) && to > 0) {
 			const other = p.room.players.get(to);
-			if (other && other !== ws && other.readyState === other.OPEN) {
-				other.send(out);
+			if (other && other !== ws) {
+				deliver(other, out);
 			}
 			return;
 		}
 		p.room.players.forEach(function(other) {
-			if (other !== ws && other.readyState === other.OPEN) {
-				other.send(out);
+			if (other !== ws) {
+				deliver(other, out);
 			}
 		});
+	}
+	// One message from a player. Nothing a player sends may throw out of here:
+	// the relay shares its process with the whole site.
+	function received(ws, data, isBinary) {
+		const p = ws.pg0;
+		p.active = Date.now();
+		if (isBinary) {
+			return;
+		}
+		let msg;
+		try {
+			msg = JSON.parse(data.toString('utf8'));
+		} catch (e) {
+			return;
+		}
+		if (!msg || typeof msg !== 'object') {
+			return;
+		}
+		switch (msg.t) {
+		case 'join':
+			p.pending = p.pending.then(function() {
+				return join(ws, msg);
+			}).catch(function(e) {
+				logger.error(e);
+				send(ws, {t: 'error', code: 'join'});
+			});
+			break;
+		case 'send':
+			relay(ws, data.length, msg);
+			break;
+		case 'rooms':
+			p.pending = p.pending.then(function() {
+				return listRooms(ws, msg);
+			}).catch(function(e) {
+				logger.error(e);
+				send(ws, {t: 'rooms', error: 'cid'});
+			});
+			break;
+		case 'close':
+			// Any player of the room may close it, for good: a seat that is
+			// left is not offered again.
+			if (p.room && !p.room.closed) {
+				p.room.closed = true;
+				event('info', 'close', {conn: p.conn, cid: p.room.cid, room: p.room.name, id: p.id, players: p.room.players.size + '/' + p.room.max});
+			}
+			break;
+		case 'leave':
+			leave(ws, 'leave');
+			break;
+		}
 	}
 
 	wss.on('connection', function(ws, ip, origin) {
 		connections++;
 		perIp.set(ip, (perIp.get(ip) || 0) + 1);
+		// pending: joins and listings of one connection are handled one at a time
 		ws.pg0 = {conn: ++connectionCount, ip: ip, room: null, id: 0, tokens: conf.messagesPerSecond, refilled: Date.now(), warned: 0, active: Date.now(), alive: true,
-			opened: Date.now(), joined: 0, sent: 0, dropped: {}, end: ''};
+			opened: Date.now(), joined: 0, sent: 0, dropped: {}, badCids: 0, end: '', pending: Promise.resolve()};
 		counts.connects++;
 		event('info', 'connect', {conn: ws.pg0.conn, ip: ip, origin: origin});
-		// joins of one connection are handled one at a time
-		let pending = Promise.resolve();
 		ws.on('pong', function() {
 			ws.pg0.alive = true;
 		});
 		ws.on('message', function(data, isBinary) {
-			ws.pg0.active = Date.now();
-			if (isBinary) {
-				return;
-			}
-			const raw = data.toString('utf8');
-			let msg;
 			try {
-				msg = JSON.parse(raw);
+				received(ws, data, isBinary);
 			} catch (e) {
-				return;
-			}
-			if (!msg || typeof msg !== 'object') {
-				return;
-			}
-			switch (msg.t) {
-			case 'join':
-				pending = pending.then(function() {
-					return join(ws, msg);
-				}).catch(function(e) {
-					logger.error(e);
-					send(ws, {t: 'error', code: 'join'});
-				});
-				break;
-			case 'send':
-				relay(ws, raw, msg);
-				break;
-			case 'rooms':
-				pending = pending.then(function() {
-					return listRooms(ws, msg);
-				}).catch(function(e) {
-					logger.error(e);
-					send(ws, {t: 'rooms', error: 'cid'});
-				});
-				break;
-			case 'close':
-				// Any player of the room may close it, for good: a seat that is
-				// left is not offered again.
-				if (ws.pg0.room && !ws.pg0.room.closed) {
-					ws.pg0.room.closed = true;
-					event('info', 'close', {conn: ws.pg0.conn, cid: ws.pg0.room.cid, room: ws.pg0.room.name, id: ws.pg0.id, players: ws.pg0.room.players.size + '/' + ws.pg0.room.max});
-				}
-				break;
-			case 'leave':
-				leave(ws, 'leave');
-				break;
+				logger.error(e);
 			}
 		});
 		ws.on('close', function(code) {
 			leave(ws, 'disconnect');
 			const p = ws.pg0;
 			event('info', 'disconnect', {conn: p.conn, ip: ip, secs: secondsSince(p.opened), sent: p.sent,
-				dropped_rate: p.dropped.rate, dropped_size: p.dropped.size, reason: p.end || 'close', code: code});
+				dropped_rate: p.dropped.rate, dropped_size: p.dropped.size, dropped_slow: p.dropped.slow, reason: p.end || 'close', code: code});
 			connections--;
 			const n = (perIp.get(ip) || 1) - 1;
 			if (n > 0) {
@@ -453,13 +566,14 @@ module.exports = function(servers, deps) {
 		});
 	});
 
-	// Connections that stopped answering or went quiet are closed.
+	// Connections that stopped answering, went quiet or do not read what is
+	// sent to them are closed.
 	const timer = setInterval(function() {
 		const now = Date.now();
 		wss.clients.forEach(function(ws) {
 			const p = ws.pg0;
-			if (!p.alive || now - p.active > conf.idleSeconds * 1000) {
-				p.end = p.alive ? 'idle' : 'no_response';
+			if (!p.alive || now - p.active > conf.idleSeconds * 1000 || ws.bufferedAmount > conf.maxBufferedBytes) {
+				p.end = !p.alive ? 'no_response' : (now - p.active > conf.idleSeconds * 1000 ? 'idle' : 'slow');
 				ws.terminate();
 				return;
 			}

@@ -61,6 +61,11 @@ function _netInt(n) {
 	return {type: TYPE_INTEGER, num: n | 0};
 }
 
+// The size of a message as it is sent (UTF-8), which the server's limit counts.
+function _netBytes(text) {
+	return (typeof TextEncoder !== 'undefined') ? new TextEncoder().encode(text).length : text.length;
+}
+
 function _netSetInt(ret, n) {
 	ret.v = _netInt(n);
 }
@@ -226,6 +231,7 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 				full: ['NET_ERROR_FULL', 'netJoin: room "{room}" is full.'],
 				closed: ['NET_ERROR_CLOSED', 'netJoin: room "{room}" is closed: the game has started.'],
 				busy: ['NET_ERROR_BUSY', 'netJoin: the server is busy. Try again later.'],
+				rate: ['NET_ERROR_BUSY', 'netJoin: the server is busy. Try again later.'],
 			};
 			const r = reasons[c.result] || ['NET_ERROR_CONNECT', 'netJoin: could not connect to the server.'];
 			_netNotice(_netText(r[0], r[1], {room: room}));
@@ -395,7 +401,7 @@ ScriptExec.lib['netsend'] = function(ei, param, ret) {
 		msg.to = parseInt(param[1].v.type === TYPE_STRING ? ScriptExec.stringToNumber(param[1].v.str) : param[1].v.num) || 0;
 	}
 	const text = JSON.stringify(msg);
-	if (c.limits.bytes && text.length > c.limits.bytes) {
+	if (c.limits.bytes && _netBytes(text) > c.limits.bytes) {
 		c.warn('size', _netText('NET_ERROR_SIZE', 'netSend: the value is too large to send (up to {bytes} bytes).', {bytes: c.limits.bytes}));
 		return 0;
 	}

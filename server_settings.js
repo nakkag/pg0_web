@@ -28,6 +28,7 @@ exports.net = {
 	maxConnections: 2000,
 	maxRooms: 5000,
 	idleSeconds: 1800,       // a player that sends nothing for this long is disconnected
+	maxBufferedBytes: 1048576, // what a player may leave unread; over it nothing more is sent to the player, and it is disconnected when it stays so
 	trustProxy: 'loopback',  // client address from X-Forwarded-For of a proxy on this machine ('loopback'), of any proxy (true) or never (false)
 	allowOrigins: [],        // other origins whose pages may join, for the relay only (e.g. 'https://pg0.jp:9443' for the admin pages)
 	log: true,               // a line for each connection, room entry and exit, and refusal
