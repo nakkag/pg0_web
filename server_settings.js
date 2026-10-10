@@ -29,6 +29,7 @@ exports.net = {
 	maxRooms: 5000,
 	idleSeconds: 1800,       // a player that sends nothing for this long is disconnected
 	trustProxy: false,       // true behind a proxy that sets X-Forwarded-For
+	allowOrigins: [],        // other origins whose pages may join, for the relay only (e.g. 'https://pg0.jp:9443' for the admin pages)
 };
 
 // Genre tags a script may carry (at most 3); ids are stored in the DB, labels live in the client.
