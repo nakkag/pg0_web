@@ -7,12 +7,13 @@
 // Client -> server (JSON text frames):
 //   {"t": "join", "cid": "...", "room": "name" | "", "max": 2}
 //   {"t": "send", "d": <value>, "to": <player number, optional>}
+//   {"t": "close"}   nobody else may enter the room
 //   {"t": "leave"}
 // Server -> client:
 //   {"t": "joined", "id": n, "room": "name", "max": m, "players": [ids], "limits": {"bytes": n, "rate": n}}
 //   {"t": "enter", "id": n} / {"t": "exit", "id": n}
 //   {"t": "msg", "from": n, "d": <value>}
-//   {"t": "error", "code": "cid" | "full" | "busy" | "size" | "rate" | "join"}
+//   {"t": "error", "code": "cid" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
 const {WebSocketServer} = require('ws');
 const crypto = require('crypto');
 
@@ -151,7 +152,7 @@ module.exports = function(servers, deps) {
 	function findAutoRoom(cid, max) {
 		let best = null;
 		rooms.forEach(function(room) {
-			if (room.auto && room.cid === cid && room.max === max && !room.started && room.players.size < max) {
+			if (room.auto && room.cid === cid && room.max === max && !room.started && !room.closed && room.players.size < max) {
 				if (!best || room.players.size > best.players.size) {
 					best = room;
 				}
@@ -176,6 +177,9 @@ module.exports = function(servers, deps) {
 			return;
 		}
 		let room = name ? rooms.get(cid + '\n' + name) : findAutoRoom(cid, max);
+		if (room && room.closed) {
+			return send(ws, {t: 'error', code: 'closed'});
+		}
 		if (room && room.players.size >= room.max) {
 			return send(ws, {t: 'error', code: 'full'});
 		}
@@ -187,7 +191,7 @@ module.exports = function(servers, deps) {
 			while (!roomName || (!name && rooms.has(cid + '\n' + roomName))) {
 				roomName = 'auto-' + crypto.randomBytes(4).toString('hex');
 			}
-			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, players: new Map(), started: false};
+			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, players: new Map(), started: false, closed: false};
 			rooms.set(room.key, room);
 		}
 		let id = 1;
@@ -284,6 +288,13 @@ module.exports = function(servers, deps) {
 				break;
 			case 'send':
 				relay(ws, raw, msg);
+				break;
+			case 'close':
+				// Any player of the room may close it, for good: a seat that is
+				// left is not offered again.
+				if (ws.pg0.room) {
+					ws.pg0.room.closed = true;
+				}
 				break;
 			case 'leave':
 				leave(ws);

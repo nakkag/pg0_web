@@ -717,7 +717,7 @@ netJoin(room, players)
 		Without a room name (or with ""), it enters a room that is not full yet by itself.
 		Once such an automatic room has been full, nobody else enters it.
 		With a room name agreed beforehand, friends can enter the same room.
-		A full room cannot be entered.
+		A full room, or a room closed with netClose(), cannot be entered.
 		When it is already in a room, it leaves that room first.
 	* Parameters
 		room - Room name (optional, up to 32 characters)
@@ -734,6 +734,27 @@ netLeave()
 		None
 	* Return Value
 		0
+
+netClose()
+	* Description
+		Closes the room: nobody else can enter it any more.
+		Call it when the game starts, and nobody comes in part-way through.
+		Free seats, and seats left later, are not offered again.
+		Anybody in the room may call it, and it cannot be undone.
+	* Parameters
+		None
+	* Return Value
+		1 when the room was closed, 0 when not in a room.
+
+	Example: a game for 2 to 4 people that player 1 starts once 2 or more have come
+		me = netJoin("", 4)
+		if (me == 1) {
+			while (netCount() < 2) {
+				wait(100)
+			}
+			netClose()
+			netSend("start")
+		}
 
 netId()
 	* Description

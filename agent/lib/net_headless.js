@@ -17,6 +17,7 @@ ScriptExec.lib['netleave'] = function(ei, param, ret) {
 	return 0;
 };
 ScriptExec.lib['netid'] = ScriptExec.lib['netleave'];
+ScriptExec.lib['netclose'] = ScriptExec.lib['netleave'];
 ScriptExec.lib['netcount'] = ScriptExec.lib['netleave'];
 ScriptExec.lib['netavailable'] = ScriptExec.lib['netleave'];
 ScriptExec.lib['netreceive'] = ScriptExec.lib['netleave'];
