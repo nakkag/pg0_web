@@ -51,9 +51,11 @@ const CID = /^[a-zA-Z0-9\-]{1,64}$/;
 const ROOM_LENGTH = 32;
 // rooms listed in one answer to "rooms"
 const LIST_ROOMS = 500;
-// nesting of a value that is passed on (the players' own limit is 32 levels of
-// arrays, about 100 levels here; JSON.stringify runs out of stack far above)
-const VALUE_DEPTH = 128;
+// nesting of a value that is passed on: the players' own limit is 32 levels of
+// arrays, about 100 levels here; the Windows version reads 128 levels, with the
+// message itself and a plain value at the bottom; JSON.stringify runs out of
+// stack far above
+const VALUE_DEPTH = 120;
 // a connection that names this many scripts that do not exist is closed
 const CID_REFUSALS = 20;
 
