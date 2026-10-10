@@ -132,7 +132,7 @@ module.exports = {
 			available: true,
 			mode: 'offline',
 			notes: [
-				'In the web editor, copies of one program saved online (the same cid) meet in rooms and send each other values, for games played online. Nothing is stored on the server.',
+				'In the web editor and the Windows version, copies of one program saved online (the same cid) meet in rooms and send each other values, for games played online. Nothing is stored on the server.',
 				'Through the API there is no network: netJoin returns 0 as when the server cannot be reached (and says so in error_output); the other functions return what they return outside a room. Handle netJoin() == 0 (play alone, or show a message) and the API can test that path.'
 			],
 			functions: [

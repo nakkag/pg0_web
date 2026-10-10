@@ -683,7 +683,7 @@ Expected: `status` `"frame_limit"`, `screen.frames` 300, `variables.score` 6 (th
 
 ### 4.6 Network library: `#import("lib/net.pg0")` (no network in the API)
 
-In the web editor, people who have the same program saved online (the same cid) open can enter a room and send each other values (for online games). Runs through the API have no network: `netJoin` returns `0` as when the server cannot be reached, and says so in `error_output`; the other functions return what they return outside a room (`0`, `""`, `{}`). Write what the program does when `netJoin` returns `0` (play alone, or show a message and stop) and the API can test that path.
+In the web editor and the Windows version, people who have the same program saved online (the same cid) open can enter a room and send each other values (for online games). Runs through the API have no network: `netJoin` returns `0` as when the server cannot be reached, and says so in `error_output`; the other functions return what they return outside a room (`0`, `""`, `{}`). Write what the program does when `netJoin` returns `0` (play alone, or show a message and stop) and the API can test that path.
 
 | Function | Description |
 |---|---|

@@ -29,7 +29,7 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 
 ## Online play (lib/net.pg0)
 
-Programs that import `lib/net.pg0` can send each other values when they are copies of the same program saved online (the same cid), for games played online. The server relays them over a WebSocket at `/api/net` (`net_server.js`, on both the https and the http port) and stores nothing. It needs the `ws` package: run `npm install` after updating.
+Programs that import `lib/net.pg0` (in the web editor and the Windows version) can send each other values when they are copies of the same program saved online (the same cid), for games played online. The server relays them over a WebSocket at `/api/net` (`net_server.js`, on both the https and the http port) and stores nothing. It needs the `ws` package: run `npm install` after updating.
 
 - Players meet in rooms of a cid: by a room name, or in a room that is not full yet when the name is left out. Joining checks that a stored script has the cid.
 - Only pages of this site (and the origins in `allowOrigins`) can connect.
@@ -51,7 +51,7 @@ Programs that import `lib/net.pg0` can send each other values when they are copi
 
 ## オンライン対戦（lib/net.pg0）
 
-`lib/net.pg0` を読み込んだプログラムは、オンラインに保存した同じプログラム（同じ cid）同士で値を送り合えます（オンライン対戦用）。サーバーは WebSocket（`/api/net`、`net_server.js`。https と http の両方のポート）で中継するだけで、何も保存しません。`ws` パッケージが必要なので、更新後に `npm install` を実行してください。
+`lib/net.pg0` を読み込んだプログラム（Web 版と Windows 版）は、オンラインに保存した同じプログラム（同じ cid）同士で値を送り合えます（オンライン対戦用）。サーバーは WebSocket（`/api/net`、`net_server.js`。https と http の両方のポート）で中継するだけで、何も保存しません。`ws` パッケージが必要なので、更新後に `npm install` を実行してください。
 
 - cid ごとの部屋で出会います。部屋名を指定するか、省略すると人数のそろっていない部屋に自動で入ります。入るときに、その cid の保存済みスクリプトがあるかを確かめます。
 - 接続できるのはこのサイトのページ（と `allowOrigins` のオリジン）だけです。
