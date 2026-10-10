@@ -683,7 +683,7 @@ Expected: `status` `"frame_limit"`, `screen.frames` 300, `variables.score` 6 (th
 
 ### 4.6 Network library: `#import("lib/net.pg0")` (no network in the API)
 
-In the web editor and the Windows version, people who have the same program saved online (the same cid) open can enter a room and send each other values (for online games). Runs through the API have no network: `netJoin` returns `0` as when the server cannot be reached, and says so in `error_output`; the other functions return what they return outside a room (`0`, `""`, `{}`). Write what the program does when `netJoin` returns `0` (play alone, or show a message and stop) and the API can test that path.
+In the web editor and the Windows version, people who have the same program saved online (the same cid) open can enter a room and send each other values (for online games). Runs through the API have no network: `netJoin` and `netRooms` return `0` as when the server cannot be reached, and say so in `error_output`; the other functions return what they return outside a room (`0`, `""`, `{}`). Write what the program does when `netJoin` returns `0` (play alone, or show a message and stop) and the API can test that path.
 
 | Function | Description |
 |---|---|
@@ -691,6 +691,7 @@ In the web editor and the Windows version, people who have the same program save
 | `netLeave() -> int` | Leaves the room. |
 | `netClose() -> int` | Closes the room: nobody else can enter, free seats included; it cannot be undone. Call it when the game starts. `1` when in a room. |
 | `netId() -> int`, `netRoom() -> str`, `netCount() -> int`, `netPlayers() -> arr` | Your number, the room name, the number of people (you included), the array of numbers. Outside a room: `0` / `""` / `0` / `{}`. |
+| `netRooms() -> arr \| int` | The rooms of this program, oldest first (up to 500): `{"room": name, "count": people, "max": seats, "closed": 0/1}` for each. `{}` when there is none, `0` when the server cannot be reached. It works in a room or out of one and waits for the answer. For a lobby where the player picks a room and enters it with `netJoin(r["room"])`. Each call asks the server, so call it every few seconds. |
 | `netSend(value: any, to: int = all) -> int` | Sends a value to everybody else in the room (only to player `to` when given). `1` when sent. It does not come back to you. By default up to 16 KB each and 60 a second. |
 | `netAvailable() -> int`, `netReceive() -> arr \| int` | The number of received values waiting, and the oldest of them as `{"from": number, "data": value}` (`0` when none). |
 | `netLast(player: int) -> any` | The last value received from that player (`0` when none). For games where everybody sends their position every frame. |
