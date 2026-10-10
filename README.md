@@ -27,6 +27,15 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 - OpenAPI: `GET /api/agent/v1/openapi.json`
 - Settings: `agent_settings.local.js`, or `agent_settings.js` when it does not exist (API key, limits)
 
+## Online play (lib/net.pg0)
+
+Programs that import `lib/net.pg0` can send each other values when they are copies of the same program saved online (the same cid), for games played online. The server relays them over a WebSocket at `/api/net` (`net_server.js`, on both the https and the http port) and stores nothing. It needs the `ws` package: run `npm install` after updating.
+
+- Players meet in rooms of a cid: by a room name, or in a room that is not full yet when the name is left out. Joining checks that a stored script has the cid.
+- Only pages of this site (and the origins in `allowOrigins`) can connect.
+- Limits are in `exports.net` of the settings (largest room, size and number of messages a second, connections per address, idle time). Without `exports.net` the defaults of `net_server.js` apply; `enabled: false` turns the relay off.
+- Runs through the AI agent API have no network: `netJoin` returns 0 there.
+
 ## 設定
 
 `server_settings.js`（サーバ）と `agent_settings.js`（AIエージェント用API）はサンプルです。それぞれ `server_settings.local.js` / `agent_settings.local.js` にコピーして編集してください。`.local.js` があればそちらを、無ければサンプルを読み込みます。`.local.js` だけを読むので、項目はすべて残したまま値を変更してください。`.local.js` は git の管理対象外なので、ソースを置き換えても設定は残ります。
@@ -39,3 +48,12 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 - マニュアル（API の使い方、言語仕様、ライブラリリファレンス）: `GET /api/agent/v1/manual?lang=ja` / `?lang=en`
 - OpenAPI: `GET /api/agent/v1/openapi.json`
 - 設定: `agent_settings.local.js`、無い場合は `agent_settings.js`（API キー、制限値）
+
+## オンライン対戦（lib/net.pg0）
+
+`lib/net.pg0` を読み込んだプログラムは、オンラインに保存した同じプログラム（同じ cid）同士で値を送り合えます（オンライン対戦用）。サーバーは WebSocket（`/api/net`、`net_server.js`。https と http の両方のポート）で中継するだけで、何も保存しません。`ws` パッケージが必要なので、更新後に `npm install` を実行してください。
+
+- cid ごとの部屋で出会います。部屋名を指定するか、省略すると人数のそろっていない部屋に自動で入ります。入るときに、その cid の保存済みスクリプトがあるかを確かめます。
+- 接続できるのはこのサイトのページ（と `allowOrigins` のオリジン）だけです。
+- 制限は設定の `exports.net` にあります（部屋の最大人数、メッセージの大きさと 1 秒あたりの回数、アドレスごとの接続数、無通信で切るまでの時間）。`exports.net` が無ければ `net_server.js` の既定値を使います。`enabled: false` で中継を止めます。
+- AIエージェント用 API の実行には通信がなく、`netJoin` は 0 を返します。

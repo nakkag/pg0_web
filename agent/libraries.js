@@ -125,6 +125,28 @@ module.exports = {
 				{name: 'bgm', signature: 'bgm(notes: arr = none, option: arr = {"repeat": 1}) -> int', summary: 'Background music track: stops the previous bgm only, then loops notes ({"repeat": 0} plays once). bgm() stops the music. Sound effects keep playing. Browsers block audio until the first tap/key on the page. Headless: recorded only.'},
 				{name: 'stopSound', signature: 'stopSound() -> int', summary: 'Stops all sounds, bgm included.'}
 			]
+		},
+		{
+			id: 'net',
+			import: '#import("lib/net.pg0")',
+			available: true,
+			mode: 'offline',
+			notes: [
+				'In the web editor, copies of one program saved online (the same cid) meet in rooms and send each other values, for games played online. Nothing is stored on the server.',
+				'Through the API there is no network: netJoin returns 0 as when the server cannot be reached (and says so in error_output); the other functions return what they return outside a room. Handle netJoin() == 0 (play alone, or show a message) and the API can test that path.'
+			],
+			functions: [
+				{name: 'netJoin', signature: 'netJoin(room: str = "", players: int = 2) -> int', summary: 'Enters a room and returns your player number (1, 2, ...), or 0 when it could not (waits up to 10 s). Without a room name it enters a room of this program that is not full yet; once full, an automatic room takes nobody else. players is 2 to 8; the value of the person who made the room is used.'},
+				{name: 'netLeave', signature: 'netLeave() -> int', summary: 'Leaves the room. Ending the program leaves it too.'},
+				{name: 'netId', signature: 'netId() -> int', summary: 'Your player number; 0 when not in a room (also after the connection was lost).'},
+				{name: 'netRoom', signature: 'netRoom() -> str', summary: 'Name of the room ("auto-..." for an automatic one); "" when not in a room.'},
+				{name: 'netCount', signature: 'netCount() -> int', summary: 'Number of people in the room, you included; 0 when not in a room.'},
+				{name: 'netPlayers', signature: 'netPlayers() -> arr', summary: 'Player numbers in the room, smallest first, e.g. {1, 2}.'},
+				{name: 'netSend', signature: 'netSend(value: any, to: int = all) -> int', summary: 'Sends a number, string or array to everybody else in the room (or to player to only). 1 when sent. It does not come back to the sender. By default up to 16 KB each and 60 a second; what goes over is dropped with a notice.'},
+				{name: 'netAvailable', signature: 'netAvailable() -> int', summary: 'Number of received values not taken with netReceive() yet (at most 1000; the oldest are dropped).'},
+				{name: 'netReceive', signature: 'netReceive() -> arr | int', summary: 'Takes the oldest received value as {"from": player, "data": value}; 0 when none.'},
+				{name: 'netLast', signature: 'netLast(player: int) -> any', summary: 'Last value received from that player, taken or not; 0 when none or after they left. For games where everybody sends their position every frame.'}
+			]
 		}
 	]
 };
