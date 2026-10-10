@@ -32,6 +32,10 @@ const DEFAULTS = {
 	idleSeconds: 1800,
 	// the client address is taken from X-Forwarded-For (behind a proxy only)
 	trustProxy: false,
+	// a line for each connection, room entry and exit and refusal
+	log: true,
+	// a summary line this often (0: none)
+	statsSeconds: 300,
 };
 const PATH = '/api/net';
 const CID = /^[a-zA-Z0-9\-]{1,64}$/;
@@ -50,6 +54,33 @@ module.exports = function(servers, deps) {
 	const perIp = new Map();
 	const cids = new Map();
 	let connections = 0;
+	let connectionCount = 0;
+	// what happened since the last summary line
+	let counts = newCounts();
+
+	function newCounts() {
+		return {connects: 0, joins: 0, refused: 0, messages: 0, bytes: 0, dropped: 0};
+	}
+	// One line per event, "net <event> key=value ...". What a client chose (a
+	// room name, an origin) is quoted, so that it cannot start a line of its own.
+	function field(v) {
+		const s = String(v);
+		return (s === '' || /[\s"=\\]/.test(s) || /[^\x21-\x7e]/.test(s)) ? JSON.stringify(s) : s;
+	}
+	function event(level, name, fields) {
+		if (!conf.log) {
+			return;
+		}
+		const text = Object.keys(fields).filter(function(k) {
+			return fields[k] !== undefined && fields[k] !== null;
+		}).map(function(k) {
+			return k + '=' + field(fields[k]);
+		}).join(' ');
+		logger[level]('net ' + name + (text ? ' ' + text : ''));
+	}
+	function secondsSince(t) {
+		return Math.round((Date.now() - t) / 1000);
+	}
 
 	function addressOf(req) {
 		const forwarded = conf.trustProxy && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
@@ -70,7 +101,9 @@ module.exports = function(servers, deps) {
 			return false;
 		}
 	}
-	function refuse(socket, status, text) {
+	function refuse(socket, status, text, req, reason) {
+		counts.refused++;
+		event('warn', 'refused', {status: status, reason: reason, ip: addressOf(req), origin: String(req.headers.origin || '').substring(0, 200)});
 		socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\n\r\n`);
 		socket.destroy();
 	}
@@ -83,17 +116,20 @@ module.exports = function(servers, deps) {
 			} catch (e) {
 			}
 			if (path !== PATH) {
-				return refuse(socket, 404, 'Not Found');
+				return refuse(socket, 404, 'Not Found', req, 'path');
 			}
 			if (!originAllowed(req)) {
-				return refuse(socket, 403, 'Forbidden');
+				return refuse(socket, 403, 'Forbidden', req, 'origin');
 			}
 			const ip = addressOf(req);
-			if (connections >= conf.maxConnections || (perIp.get(ip) || 0) >= conf.connectionsPerIp) {
-				return refuse(socket, 429, 'Too Many Requests');
+			if (connections >= conf.maxConnections) {
+				return refuse(socket, 429, 'Too Many Requests', req, 'connections');
+			}
+			if ((perIp.get(ip) || 0) >= conf.connectionsPerIp) {
+				return refuse(socket, 429, 'Too Many Requests', req, 'connections_per_ip');
 			}
 			wss.handleUpgrade(req, socket, head, function(ws) {
-				wss.emit('connection', ws, ip);
+				wss.emit('connection', ws, ip, String(req.headers.origin || '').substring(0, 200));
 			});
 		});
 	});
@@ -129,7 +165,8 @@ module.exports = function(servers, deps) {
 	function playersOf(room) {
 		return Array.from(room.players.keys()).sort(function(a, b) { return a - b; });
 	}
-	function leave(ws) {
+	// reason: leave (netLeave), rejoin (netJoin again) or disconnect.
+	function leave(ws, reason) {
 		const p = ws.pg0;
 		const room = p.room;
 		const id = p.id;
@@ -139,8 +176,10 @@ module.exports = function(servers, deps) {
 		room.players.delete(id);
 		p.room = null;
 		p.id = 0;
+		event('info', 'leave', {conn: p.conn, cid: room.cid, room: room.name, id: id, players: room.players.size + '/' + room.max, reason: reason, secs: secondsSince(p.joined)});
 		if (room.players.size === 0) {
 			rooms.delete(room.key);
+			event('info', 'room_end', {cid: room.cid, room: room.name, peak: room.peak + '/' + room.max, closed: room.closed ? 1 : 0, messages: room.messages, secs: secondsSince(room.created)});
 			return;
 		}
 		room.players.forEach(function(other) {
@@ -170,30 +209,38 @@ module.exports = function(servers, deps) {
 			max = 2;
 		}
 		max = Math.min(max, conf.maxPlayers);
-		leave(ws);
+		leave(ws, 'rejoin');
+		const refused = function(code) {
+			counts.refused++;
+			event('warn', 'join_refused', {conn: p.conn, ip: p.ip, cid: cid.substring(0, 64), room: name, reason: code});
+			send(ws, {t: 'error', code: code});
+		};
 		if (!CID.test(cid) || !await cidExists(cid)) {
-			return send(ws, {t: 'error', code: 'cid'});
+			return refused('cid');
 		}
 		if (ws.readyState !== ws.OPEN) {
 			return;
 		}
 		let room = name ? rooms.get(cid + '\n' + name) : findAutoRoom(cid, max);
 		if (room && room.closed) {
-			return send(ws, {t: 'error', code: 'closed'});
+			return refused('closed');
 		}
 		if (room && room.players.size >= room.max) {
-			return send(ws, {t: 'error', code: 'full'});
+			return refused('full');
 		}
+		let created = false;
 		if (!room) {
 			if (rooms.size >= conf.maxRooms) {
-				return send(ws, {t: 'error', code: 'busy'});
+				return refused('busy');
 			}
 			let roomName = name;
 			while (!roomName || (!name && rooms.has(cid + '\n' + roomName))) {
 				roomName = 'auto-' + crypto.randomBytes(4).toString('hex');
 			}
-			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, players: new Map(), started: false, closed: false};
+			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, players: new Map(), started: false, closed: false,
+				created: Date.now(), peak: 0, messages: 0};
 			rooms.set(room.key, room);
+			created = true;
 		}
 		let id = 1;
 		while (room.players.has(id)) {
@@ -203,11 +250,15 @@ module.exports = function(servers, deps) {
 			send(other, {t: 'enter', id: id});
 		});
 		room.players.set(id, ws);
+		room.peak = Math.max(room.peak, room.players.size);
 		if (room.players.size >= room.max) {
 			room.started = true;
 		}
 		p.room = room;
 		p.id = id;
+		p.joined = Date.now();
+		counts.joins++;
+		event('info', 'join', {conn: p.conn, ip: p.ip, cid: cid, room: room.name, id: id, players: room.players.size + '/' + room.max, auto: room.auto ? 1 : 0, created: created ? 1 : 0});
 		send(ws, {t: 'joined', id: id, room: room.name, max: room.max, players: playersOf(room),
 			limits: {bytes: conf.maxMessageBytes, rate: conf.messagesPerSecond}});
 	}
@@ -222,15 +273,26 @@ module.exports = function(servers, deps) {
 		p.tokens--;
 		return true;
 	}
+	// A message that was not passed on. The first of each kind is a line of
+	// its own; the totals come with the disconnect line.
+	function dropped(p, reason) {
+		counts.dropped++;
+		p.dropped[reason] = (p.dropped[reason] || 0) + 1;
+		if (p.dropped[reason] === 1) {
+			event('warn', 'drop', {conn: p.conn, ip: p.ip, cid: p.room.cid, room: p.room.name, id: p.id, reason: reason});
+		}
+	}
 	function relay(ws, raw, msg) {
 		const p = ws.pg0;
 		if (!p.room) {
 			return;
 		}
 		if (raw.length > conf.maxMessageBytes) {
+			dropped(p, 'size');
 			return send(ws, {t: 'error', code: 'size'});
 		}
 		if (!allowed(p)) {
+			dropped(p, 'rate');
 			// one warning a second is enough
 			if (Date.now() - p.warned > 1000) {
 				p.warned = Date.now();
@@ -238,6 +300,10 @@ module.exports = function(servers, deps) {
 			}
 			return;
 		}
+		p.sent++;
+		p.room.messages++;
+		counts.messages++;
+		counts.bytes += raw.length;
 		const out = JSON.stringify({t: 'msg', from: p.id, d: msg.d === undefined ? 0 : msg.d});
 		const to = Math.floor(Number(msg.to));
 		if (msg.to !== undefined && msg.to !== null && Number.isFinite(to) && to > 0) {
@@ -254,10 +320,13 @@ module.exports = function(servers, deps) {
 		});
 	}
 
-	wss.on('connection', function(ws, ip) {
+	wss.on('connection', function(ws, ip, origin) {
 		connections++;
 		perIp.set(ip, (perIp.get(ip) || 0) + 1);
-		ws.pg0 = {ip: ip, room: null, id: 0, tokens: conf.messagesPerSecond, refilled: Date.now(), warned: 0, active: Date.now(), alive: true};
+		ws.pg0 = {conn: ++connectionCount, ip: ip, room: null, id: 0, tokens: conf.messagesPerSecond, refilled: Date.now(), warned: 0, active: Date.now(), alive: true,
+			opened: Date.now(), joined: 0, sent: 0, dropped: {}, end: ''};
+		counts.connects++;
+		event('info', 'connect', {conn: ws.pg0.conn, ip: ip, origin: origin});
 		// joins of one connection are handled one at a time
 		let pending = Promise.resolve();
 		ws.on('pong', function() {
@@ -293,17 +362,21 @@ module.exports = function(servers, deps) {
 			case 'close':
 				// Any player of the room may close it, for good: a seat that is
 				// left is not offered again.
-				if (ws.pg0.room) {
+				if (ws.pg0.room && !ws.pg0.room.closed) {
 					ws.pg0.room.closed = true;
+					event('info', 'close', {conn: ws.pg0.conn, cid: ws.pg0.room.cid, room: ws.pg0.room.name, id: ws.pg0.id, players: ws.pg0.room.players.size + '/' + ws.pg0.room.max});
 				}
 				break;
 			case 'leave':
-				leave(ws);
+				leave(ws, 'leave');
 				break;
 			}
 		});
-		ws.on('close', function() {
-			leave(ws);
+		ws.on('close', function(code) {
+			leave(ws, 'disconnect');
+			const p = ws.pg0;
+			event('info', 'disconnect', {conn: p.conn, ip: ip, secs: secondsSince(p.opened), sent: p.sent,
+				dropped_rate: p.dropped.rate, dropped_size: p.dropped.size, reason: p.end || 'close', code: code});
 			connections--;
 			const n = (perIp.get(ip) || 1) - 1;
 			if (n > 0) {
@@ -323,6 +396,7 @@ module.exports = function(servers, deps) {
 		wss.clients.forEach(function(ws) {
 			const p = ws.pg0;
 			if (!p.alive || now - p.active > conf.idleSeconds * 1000) {
+				p.end = p.alive ? 'idle' : 'no_response';
 				ws.terminate();
 				return;
 			}
@@ -332,5 +406,25 @@ module.exports = function(servers, deps) {
 	}, 30000);
 	timer.unref();
 
-	return {wss: wss, rooms: rooms, close: function() { clearInterval(timer); wss.close(); }};
+	// The summary line: the connections and rooms now, and what happened
+	// since the last line. Nothing is written while nothing goes on.
+	function stats() {
+		const c = counts;
+		counts = newCounts();
+		if (!connections && !rooms.size && !c.connects && !c.refused) {
+			return;
+		}
+		let players = 0;
+		rooms.forEach(function(room) {
+			players += room.players.size;
+		});
+		event('info', 'stats', {connections: connections, rooms: rooms.size, players: players, connects: c.connects, joins: c.joins,
+			messages: c.messages, bytes: c.bytes, dropped: c.dropped, refused: c.refused, secs: conf.statsSeconds});
+	}
+	const statsTimer = conf.statsSeconds > 0 ? setInterval(stats, conf.statsSeconds * 1000) : null;
+	if (statsTimer) {
+		statsTimer.unref();
+	}
+
+	return {wss: wss, rooms: rooms, stats: stats, close: function() { clearInterval(timer); clearInterval(statsTimer); wss.close(); }};
 };
