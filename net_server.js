@@ -9,10 +9,13 @@
 //   {"t": "send", "d": <value>, "to": <player number, optional>}
 //   {"t": "close"}   nobody else may enter the room
 //   {"t": "leave"}
+//   {"t": "rooms", "cid": "..."}   the rooms of a script, in or out of a room
 // Server -> client:
 //   {"t": "joined", "id": n, "room": "name", "max": m, "players": [ids], "limits": {"bytes": n, "rate": n}}
 //   {"t": "enter", "id": n} / {"t": "exit", "id": n}
 //   {"t": "msg", "from": n, "d": <value>}
+//   {"t": "rooms", "rooms": [{"room": "name", "count": n, "max": m, "closed": 0 | 1}, ...]}
+//   {"t": "rooms", "error": "cid" | "rate"}
 //   {"t": "error", "code": "cid" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
 const {WebSocketServer} = require('ws');
 const crypto = require('crypto');
@@ -42,6 +45,8 @@ const DEFAULTS = {
 const PATH = '/api/net';
 const CID = /^[a-zA-Z0-9\-]{1,64}$/;
 const ROOM_LENGTH = 32;
+// rooms listed in one answer to "rooms"
+const LIST_ROOMS = 500;
 
 module.exports = function(servers, deps) {
 	const conf = Object.assign({}, DEFAULTS, deps.settings || {});
@@ -62,7 +67,7 @@ module.exports = function(servers, deps) {
 	let counts = newCounts();
 
 	function newCounts() {
-		return {connects: 0, joins: 0, refused: 0, messages: 0, bytes: 0, dropped: 0};
+		return {connects: 0, joins: 0, refused: 0, messages: 0, bytes: 0, dropped: 0, lists: 0};
 	}
 	// One line per event, "net <event> key=value ...". What a client chose (a
 	// room name, an origin) is quoted, so that it cannot start a line of its own.
@@ -292,6 +297,26 @@ module.exports = function(servers, deps) {
 		send(ws, {t: 'joined', id: id, room: room.name, max: room.max, players: playersOf(room),
 			limits: {bytes: conf.maxMessageBytes, rate: conf.messagesPerSecond}});
 	}
+	// The rooms of a script, oldest first: what a lobby shows so that a player
+	// can pick one. Asking counts against the same rate as sending.
+	async function listRooms(ws, msg) {
+		const p = ws.pg0;
+		const cid = String(msg.cid || '');
+		if (!allowed(p)) {
+			return send(ws, {t: 'rooms', error: 'rate'});
+		}
+		if (!CID.test(cid) || !await cidExists(cid)) {
+			return send(ws, {t: 'rooms', error: 'cid'});
+		}
+		counts.lists++;
+		const list = [];
+		rooms.forEach(function(room) {
+			if (room.cid === cid && list.length < LIST_ROOMS) {
+				list.push({room: room.name, count: room.players.size, max: room.max, closed: room.closed ? 1 : 0});
+			}
+		});
+		send(ws, {t: 'rooms', rooms: list});
+	}
 	// Up to messagesPerSecond, refilled continuously.
 	function allowed(p) {
 		const now = Date.now();
@@ -389,6 +414,14 @@ module.exports = function(servers, deps) {
 			case 'send':
 				relay(ws, raw, msg);
 				break;
+			case 'rooms':
+				pending = pending.then(function() {
+					return listRooms(ws, msg);
+				}).catch(function(e) {
+					logger.error(e);
+					send(ws, {t: 'rooms', error: 'cid'});
+				});
+				break;
 			case 'close':
 				// Any player of the room may close it, for good: a seat that is
 				// left is not offered again.
@@ -449,7 +482,7 @@ module.exports = function(servers, deps) {
 			players += room.players.size;
 		});
 		event('info', 'stats', {connections: connections, rooms: rooms.size, players: players, connects: c.connects, joins: c.joins,
-			messages: c.messages, bytes: c.bytes, dropped: c.dropped, refused: c.refused, secs: conf.statsSeconds});
+			lists: c.lists, messages: c.messages, bytes: c.bytes, dropped: c.dropped, refused: c.refused, secs: conf.statsSeconds});
 	}
 	const statsTimer = conf.statsSeconds > 0 ? setInterval(stats, conf.statsSeconds * 1000) : null;
 	if (statsTimer) {

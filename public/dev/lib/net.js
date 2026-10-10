@@ -67,7 +67,8 @@ function _netSetInt(ret, n) {
 
 // One connection to the relay and what it has received.
 function _netConnection() {
-	const me = {ws: null, result: '', id: 0, room: '', max: 0, players: [], queue: [], last: {}, limits: {bytes: 16384, rate: 60}, warned: {}, timer: null};
+	const me = {ws: null, result: '', id: 0, room: '', max: 0, players: [], queue: [], last: {}, limits: {bytes: 16384, rate: 60}, warned: {}, timer: null,
+		rooms: null, roomsDone: false};
 	me.close = function() {
 		if (me.timer) {
 			clearInterval(me.timer);
@@ -134,6 +135,10 @@ function _netConnection() {
 			}
 			break;
 		}
+		case 'rooms':
+			me.rooms = Array.isArray(msg.rooms) ? msg.rooms : null;
+			me.roomsDone = true;
+			break;
 		case 'error':
 			if (!me.result) {
 				me.result = String(msg.code || 'join');
@@ -235,6 +240,90 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 		}
 	}, 200);
 	ret.v.num = c.id;
+	return 0;
+};
+
+// The rooms of the script as the program sees them: {"room", "count", "max",
+// "closed"} for each, rebuilt from what arrived.
+function _netRoomList(list) {
+	return {type: TYPE_ARRAY, array: list.filter(function(r) {
+		return r && typeof r === 'object';
+	}).map(function(r) {
+		return {name: '', v: {type: TYPE_ARRAY, array: [
+			{name: 'room', v: {type: TYPE_STRING, str: String(r.room == null ? '' : r.room).substring(0, 32)}},
+			{name: 'count', v: _netInt(r.count)},
+			{name: 'max', v: _netInt(r.max)},
+			{name: 'closed', v: _netInt(r.closed ? 1 : 0)},
+		]}};
+	})};
+}
+
+// netRooms(): the rooms of this script, oldest first, as
+// {{"room": name, "count": players, "max": seats, "closed": 0 | 1}, ...},
+// or 0 when the server cannot be reached. It can be called in a room or out
+// of one; out of a room it keeps a connection that only asks for the list.
+ScriptExec.lib['netrooms'] = async function(ei, param, ret) {
+	_netSetInt(ret, 0);
+	if (ScriptExec.lib['$netOffline']) {
+		return 0;
+	}
+	const cid = (typeof ev !== 'undefined' && ev.currentContent) ? (ev.currentContent.cid || '') : '';
+	if (!cid) {
+		const c = ScriptExec.lib['$net'];
+		if (c) {
+			c.warn('cid', _netText('NET_ERROR_CID', 'netJoin: works only in a program saved online (saving gives it a cid).'));
+		} else {
+			_netNotice(_netText('NET_ERROR_CID', 'netJoin: works only in a program saved online (saving gives it a cid).'));
+		}
+		return 0;
+	}
+	let c = ScriptExec.lib['$net'];
+	if (!c || !c.ws || c.ws.readyState > WebSocket.OPEN) {
+		if (c) {
+			c.close();
+		}
+		c = _netConnection();
+		ScriptExec.lib['$net'] = c;
+		try {
+			c.ws = new WebSocket(_netUrl());
+		} catch (e) {
+			console.error(e);
+			c.ws = null;
+		}
+		if (!c.ws) {
+			return 0;
+		}
+		c.ws.onmessage = function(e) {
+			c.receive(e.data);
+		};
+		c.ws.onclose = function() {
+			c.ws = null;
+			c.id = 0;
+			c.players = [];
+		};
+		c.timer = setInterval(function() {
+			if (!run) {
+				c.close();
+			}
+		}, 200);
+	}
+	const start = Date.now();
+	while (c.ws && c.ws.readyState === WebSocket.CONNECTING && run && Date.now() - start < 10000) {
+		await new Promise(resolve => setTimeout(resolve, 10));
+	}
+	if (!c.ws || c.ws.readyState !== WebSocket.OPEN) {
+		return 0;
+	}
+	c.rooms = null;
+	c.roomsDone = false;
+	c.ws.send(JSON.stringify({t: 'rooms', cid: cid}));
+	while (!c.roomsDone && c.ws && run && Date.now() - start < 10000) {
+		await new Promise(resolve => setTimeout(resolve, 10));
+	}
+	if (!c.roomsDone || !c.rooms) {
+		return 0;
+	}
+	ret.v = _netRoomList(c.rooms);
 	return 0;
 };
 
