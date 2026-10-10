@@ -35,6 +35,7 @@ Programs that import `lib/net.pg0` (in the web editor and the Windows version) c
 - Only pages of this site (and the origins in `allowOrigins`, or in `net.allowOrigins` for the relay only) can connect. The admin pages (pg0_web_admin) join the rooms of this site: add their origin, such as `https://pg0.jp:9443`, to `net.allowOrigins`.
 - Limits are in `exports.net` of the settings (largest room, size and number of messages a second, connections per address, idle time). Without `exports.net` the defaults of `net_server.js` apply; `enabled: false` turns the relay off.
 - Runs through the AI agent API have no network: `netJoin` returns 0 there.
+- Log (the server log, one line each, starting with `net`; the values sent are never written): `connect` / `disconnect` (address, origin, seconds, messages sent, drops, reason: close / idle / no_response), `join` / `leave` / `close` / `room_end` (cid, room, player number, players / size), `refused` (403 origin, 429 connection limits, 404 path) and `join_refused` (cid, full, closed, busy), `drop` (the first message of a connection dropped for size or rate), and a `stats` summary every `statsSeconds` (connections, rooms, players, and connects, joins, messages, bytes, drops and refusals since the last summary; none while nothing goes on). `net.log: false` turns the event lines off, `statsSeconds: 0` the summary.
 
 ## 設定
 
@@ -57,3 +58,10 @@ Programs that import `lib/net.pg0` (in the web editor and the Windows version) c
 - 接続できるのはこのサイトのページ（と `allowOrigins`、または中継だけに使う `net.allowOrigins` のオリジン）だけです。管理画面（pg0_web_admin）はこのサイトの部屋に入るので、そのオリジン（例: `https://pg0.jp:9443`）を `net.allowOrigins` に加えてください。
 - 制限は設定の `exports.net` にあります（部屋の最大人数、メッセージの大きさと 1 秒あたりの回数、アドレスごとの接続数、無通信で切るまでの時間）。`exports.net` が無ければ `net_server.js` の既定値を使います。`enabled: false` で中継を止めます。
 - AIエージェント用 API の実行には通信がなく、`netJoin` は 0 を返します。
+- ログ（サーバーのログに `net` で始まる 1 行ずつ。送られた値の中身は書きません）:
+  - `connect` / `disconnect`: アドレス、オリジン、つながっていた秒数、送ったメッセージ数、捨てた数、切れた理由（close / idle / no_response）
+  - `join` / `leave` / `close` / `room_end`: cid、部屋名、プレイヤー番号、人数／定員
+  - `refused`: 接続を断ったとき（403 オリジン、429 接続数の上限、404 パス）。`join_refused`: 部屋に入れなかったとき（cid、full、closed、busy）
+  - `drop`: 大きさや回数の上限で捨てたとき（接続ごとに種類ごとの最初の 1 件。合計は `disconnect` に出ます）
+  - `stats`: `statsSeconds` ごとの集計（接続数、部屋数、部屋にいる人数と、前回からの接続・入室・メッセージ数・バイト数・捨てた数・断った数）。何も起きていなければ出しません
+  - `net.log: false` で 1 件ずつのログを、`statsSeconds: 0` で集計を止めます
