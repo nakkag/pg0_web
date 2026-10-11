@@ -37,6 +37,11 @@ const DEFAULTS = {
 	// what a player may leave unread (bytes): over it nothing more is sent to
 	// the player, and the player is disconnected when it stays so
 	maxBufferedBytes: 1048576,
+	// messages passed on in a second, all rooms together (0: no limit): the
+	// relay shares its process with the site, and passing a message on to
+	// the others in a full room costs about as much as the site serving a
+	// page
+	relayPerSecond: 20000,
 	// where the client address comes from: false: the connection itself,
 	// 'loopback': X-Forwarded-For when the connection is from a proxy on this
 	// machine, true: X-Forwarded-For from any connection (a proxy elsewhere)
@@ -51,13 +56,11 @@ const CID = /^[a-zA-Z0-9\-]{1,64}$/;
 const ROOM_LENGTH = 32;
 // rooms listed in one answer to "rooms"
 const LIST_ROOMS = 500;
-// nesting of a value that is passed on: the players' own limit is 32 levels of
-// arrays, about 100 levels here; the Windows version reads 128 levels, with the
-// message itself and a plain value at the bottom; JSON.stringify runs out of
-// stack far above
-const VALUE_DEPTH = 120;
 // a connection that names this many scripts that do not exist is closed
 const CID_REFUSALS = 20;
+// lines a second about refused connections and joins (the rest is counted
+// and comes with the summary line)
+const REFUSED_LINES = 10;
 
 module.exports = function(servers, deps) {
 	const conf = Object.assign({}, DEFAULTS, deps.settings || {});
@@ -67,7 +70,9 @@ module.exports = function(servers, deps) {
 	}
 	// The site's own allowOrigins, and origins that may use the relay only.
 	const allowOrigins = [].concat(Array.isArray(deps.allowOrigins) ? deps.allowOrigins : [], Array.isArray(conf.allowOrigins) ? conf.allowOrigins : []);
-	const wss = new WebSocketServer({noServer: true, maxPayload: conf.maxMessageBytes + 1024});
+	// (a message over the limit is answered with an error, not a closed
+	// connection, so the frame limit is well above it)
+	const wss = new WebSocketServer({noServer: true, maxPayload: conf.maxMessageBytes * 4 + 1024});
 	const rooms = new Map();
 	// the rooms of each cid, oldest first (what joining and listing look through)
 	const roomsByCid = new Map();
@@ -78,9 +83,31 @@ module.exports = function(servers, deps) {
 	let warnedLoopback = false;
 	// what happened since the last summary line
 	let counts = newCounts();
+	// the buckets of the limits that are not a player's own
+	const relayBucket = {tokens: conf.relayPerSecond, refilled: Date.now()};
+	const refusedBucket = {tokens: REFUSED_LINES, refilled: Date.now()};
 
 	function newCounts() {
-		return {connects: 0, joins: 0, refused: 0, messages: 0, bytes: 0, dropped: 0, lists: 0};
+		return {connects: 0, joins: 0, refused: 0, messages: 0, bytes: 0, dropped: 0, lists: 0, unlogged: 0};
+	}
+	// Up to rate a second, refilled continuously.
+	function take(bucket, rate) {
+		const now = Date.now();
+		bucket.tokens = Math.min(rate, bucket.tokens + (now - bucket.refilled) * rate / 1000);
+		bucket.refilled = now;
+		if (bucket.tokens < 1) {
+			return false;
+		}
+		bucket.tokens--;
+		return true;
+	}
+	// A line about a refusal, unless there were too many already.
+	function refusedEvent(name, fields) {
+		if (take(refusedBucket, REFUSED_LINES)) {
+			event('warn', name, fields);
+		} else {
+			counts.unlogged++;
+		}
 	}
 	// One line per event, "net <event> key=value ...". What a client chose (a
 	// room name, an origin) is quoted, so that it cannot start a line of its own.
@@ -143,7 +170,7 @@ module.exports = function(servers, deps) {
 	}
 	function refuse(socket, status, text, req, reason) {
 		counts.refused++;
-		event('warn', 'refused', {status: status, reason: reason, ip: addressOf(req), origin: String(req.headers.origin || '').substring(0, 200)});
+		refusedEvent('refused', {status: status, reason: reason, ip: addressOf(req), origin: String(req.headers.origin || '').substring(0, 200)});
 		// (the http server has let go of the socket: an error of the write
 		// would have nobody to go to)
 		socket.on('error', function() {});
@@ -211,7 +238,15 @@ module.exports = function(servers, deps) {
 			return false;
 		}
 		if (cids.size > 10000) {
-			cids.clear();
+			// the stale answers go first, all of them only when that is not enough
+			cids.forEach(function(known, key) {
+				if (now - known.at >= (known.ok ? 600000 : 60000)) {
+					cids.delete(key);
+				}
+			});
+			if (cids.size > 10000) {
+				cids.clear();
+			}
 		}
 		cids.set(cid, {ok: ok, at: now});
 		return ok;
@@ -277,7 +312,7 @@ module.exports = function(servers, deps) {
 		max = Math.min(max, conf.maxPlayers);
 		const refused = function(code) {
 			counts.refused++;
-			event('warn', 'join_refused', {conn: p.conn, ip: p.ip, cid: cid.substring(0, 64), room: name, reason: code});
+			refusedEvent('join_refused', {conn: p.conn, ip: p.ip, cid: cid.substring(0, 64), room: name, reason: code});
 			send(ws, {t: 'error', code: code});
 		};
 		if (ws.readyState !== ws.OPEN) {
@@ -378,16 +413,9 @@ module.exports = function(servers, deps) {
 			ws.close(1008, 'cid');
 		}
 	}
-	// Up to messagesPerSecond, refilled continuously.
+	// A player's own messages a second.
 	function allowed(p) {
-		const now = Date.now();
-		p.tokens = Math.min(conf.messagesPerSecond, p.tokens + (now - p.refilled) * conf.messagesPerSecond / 1000);
-		p.refilled = now;
-		if (p.tokens < 1) {
-			return false;
-		}
-		p.tokens--;
-		return true;
+		return take(p, conf.messagesPerSecond);
 	}
 	// A message that was not passed on. The first of each kind is a line of
 	// its own; the totals come with the disconnect line.
@@ -397,28 +425,6 @@ module.exports = function(servers, deps) {
 		if (p.dropped[reason] === 1) {
 			event('warn', 'drop', {conn: p.conn, ip: p.ip, cid: p.room.cid, room: p.room.name, id: p.id, reason: reason});
 		}
-	}
-	// Whether a value is nested deeper than VALUE_DEPTH, counted without
-	// recursion.
-	function tooDeep(value) {
-		const stack = [[value, 1]];
-		while (stack.length) {
-			const item = stack.pop();
-			const v = item[0];
-			if (!v || typeof v !== 'object') {
-				continue;
-			}
-			if (item[1] > VALUE_DEPTH) {
-				return true;
-			}
-			const children = Array.isArray(v) ? v : Object.values(v);
-			for (let i = 0; i < children.length; i++) {
-				if (children[i] && typeof children[i] === 'object') {
-					stack.push([children[i], item[1] + 1]);
-				}
-			}
-		}
-		return false;
 	}
 	// To a player that does not read what is sent (what waits for it is over
 	// the limit) nothing more is sent until it does; the timer closes it when
@@ -433,31 +439,49 @@ module.exports = function(servers, deps) {
 		}
 		other.send(out);
 	}
+	// A message over the size is told so, parsed or not.
+	function tooLarge(ws, bytes) {
+		if (bytes <= conf.maxMessageBytes) {
+			return false;
+		}
+		if (ws.pg0.room) {
+			dropped(ws.pg0, 'size');
+			send(ws, {t: 'error', code: 'size'});
+		}
+		return true;
+	}
+	// One warning a second about the rate is enough.
+	function overRate(ws, reason) {
+		const p = ws.pg0;
+		dropped(p, reason);
+		if (Date.now() - p.warned > 1000) {
+			p.warned = Date.now();
+			send(ws, {t: 'error', code: 'rate'});
+		}
+	}
 	// bytes: the message as it came, in UTF-8 (what the limit counts).
 	function relay(ws, bytes, msg) {
 		const p = ws.pg0;
 		if (!p.room) {
 			return;
 		}
-		if (bytes > conf.maxMessageBytes) {
-			dropped(p, 'size');
-			return send(ws, {t: 'error', code: 'size'});
-		}
 		if (!allowed(p)) {
-			dropped(p, 'rate');
-			// one warning a second is enough
-			if (Date.now() - p.warned > 1000) {
-				p.warned = Date.now();
-				send(ws, {t: 'error', code: 'rate'});
-			}
-			return;
+			return overRate(ws, 'rate');
 		}
-		if (tooDeep(msg.d)) {
-			dropped(p, 'size');
-			return send(ws, {t: 'error', code: 'size'});
+		const to = Math.floor(Number(msg.to));
+		const one = msg.to !== undefined && msg.to !== null && Number.isFinite(to) && to > 0;
+		// what passing the message on costs, before anything is done
+		const receivers = one ? 1 : Math.max(p.room.players.size - 1, 1);
+		if (conf.relayPerSecond > 0) {
+			if (!take(relayBucket, conf.relayPerSecond)) {
+				return overRate(ws, 'load');
+			}
+			relayBucket.tokens -= receivers - 1;
 		}
 		let out;
 		try {
+			// (JSON.stringify runs out of stack on a value nested thousands deep,
+			// which fits in the size; the players' own values are 32 deep at most)
 			out = JSON.stringify({t: 'msg', from: p.id, d: msg.d === undefined ? 0 : msg.d});
 		} catch (e) {
 			dropped(p, 'size');
@@ -467,8 +491,7 @@ module.exports = function(servers, deps) {
 		p.room.messages++;
 		counts.messages++;
 		counts.bytes += bytes;
-		const to = Math.floor(Number(msg.to));
-		if (msg.to !== undefined && msg.to !== null && Number.isFinite(to) && to > 0) {
+		if (one) {
 			const other = p.room.players.get(to);
 			if (other && other !== ws) {
 				deliver(other, out);
@@ -486,7 +509,7 @@ module.exports = function(servers, deps) {
 	function received(ws, data, isBinary) {
 		const p = ws.pg0;
 		p.active = Date.now();
-		if (isBinary) {
+		if (isBinary || tooLarge(ws, data.length)) {
 			return;
 		}
 		let msg;
@@ -554,7 +577,7 @@ module.exports = function(servers, deps) {
 			leave(ws, 'disconnect');
 			const p = ws.pg0;
 			event('info', 'disconnect', {conn: p.conn, ip: ip, secs: secondsSince(p.opened), sent: p.sent,
-				dropped_rate: p.dropped.rate, dropped_size: p.dropped.size, dropped_slow: p.dropped.slow, reason: p.end || 'close', code: code});
+				dropped_rate: p.dropped.rate, dropped_size: p.dropped.size, dropped_slow: p.dropped.slow, dropped_load: p.dropped.load, reason: p.end || 'close', code: code});
 			connections--;
 			const n = (perIp.get(ip) || 1) - 1;
 			if (n > 0) {
@@ -592,6 +615,9 @@ module.exports = function(servers, deps) {
 		counts = newCounts();
 		if (!connections && !rooms.size && !c.connects && !c.refused) {
 			return;
+		}
+		if (c.unlogged) {
+			event('warn', 'unlogged', {refused: c.unlogged, secs: conf.statsSeconds});
 		}
 		let players = 0;
 		rooms.forEach(function(room) {
