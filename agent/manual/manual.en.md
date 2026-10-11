@@ -687,7 +687,7 @@ In the web editor and the Windows version, people who have the same program save
 
 | Function | Description |
 |---|---|
-| `netJoin(room: str = "", players: int = 2) -> int` | Enters a room and returns your player number (1, 2, ...), or `0` when it could not. Without a room name it enters a room that is not full yet by itself. `players` is 2 to 8; the value of the person who made the room is used. |
+| `netJoin(room: str = "", players: int = 2) -> int` | Enters a room and returns your player number (1, 2, ...), or `0` when it could not. Without a room name it enters a room that is not full yet by itself. `players` is 2 to 8; the value of the person who made the room is used. Only the program as saved online can enter (after a change, save it again). |
 | `netLeave() -> int` | Leaves the room. |
 | `netClose() -> int` | Closes the room: nobody else can enter, free seats included; it cannot be undone. Call it when the game starts. `1` when in a room. |
 | `netId() -> int`, `netRoom() -> str`, `netCount() -> int`, `netPlayers() -> arr` | Your number, the room name, the number of people (you included), the array of numbers. Outside a room: `0` / `""` / `0` / `{}`. |

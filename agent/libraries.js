@@ -136,7 +136,7 @@ module.exports = {
 				'Through the API there is no network: netJoin and netRooms return 0 as when the server cannot be reached (and say so in error_output); the other functions return what they return outside a room. Handle netJoin() == 0 (play alone, or show a message) and the API can test that path.'
 			],
 			functions: [
-				{name: 'netJoin', signature: 'netJoin(room: str = "", players: int = 2) -> int', summary: 'Enters a room and returns your player number (1, 2, ...), or 0 when it could not (waits up to 10 s). Without a room name it enters a room of this program that is not full yet; once full (or closed with netClose), a room takes nobody else. players is 2 to 8; the value of the person who made the room is used.'},
+				{name: 'netJoin', signature: 'netJoin(room: str = "", players: int = 2) -> int', summary: 'Enters a room and returns your player number (1, 2, ...), or 0 when it could not (waits up to 10 s). Without a room name it enters a room of this program that is not full yet; once full (or closed with netClose), a room takes nobody else. players is 2 to 8; the value of the person who made the room is used. Only the program as saved online can enter: after a change, it has to be saved again.'},
 				{name: 'netLeave', signature: 'netLeave() -> int', summary: 'Leaves the room. Ending the program leaves it too.'},
 				{name: 'netClose', signature: 'netClose() -> int', summary: 'Closes the room so nobody else can enter it, free seats included (cannot be undone); call it when the game starts. Any player may call it. 1 when in a room.'},
 				{name: 'netId', signature: 'netId() -> int', summary: 'Your player number; 0 when not in a room (also after the connection was lost).'},
