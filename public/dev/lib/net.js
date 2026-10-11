@@ -307,9 +307,14 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 	}
 	if (c.result !== 'joined') {
 		if (run) {
+			// (a program that differs from the saved one: this editor has changes
+			// that were not saved, or somebody saved a newer version)
+			const edited = typeof ev !== 'undefined' && ev && ev.currentContent && ev.currentContent.modify;
 			const reasons = {
 				cid: ['NET_ERROR_CID', 'netJoin: works only in a program saved online (saving gives it a cid).'],
-				modified: ['NET_ERROR_MODIFIED', 'netJoin: the program differs from the one saved online. Save it, then run it.'],
+				modified: edited ? ['NET_ERROR_MODIFIED', 'netJoin: the program has changes that are not saved. Save it, then run it.'] :
+					['NET_ERROR_OUTDATED', 'netJoin: a newer version of this program has been saved online. Open it again.'],
+				version: ['NET_ERROR_VERSION', 'netJoin: the people in room "{room}" run another version of this program. Everybody, open the latest version again.'],
 				full: ['NET_ERROR_FULL', 'netJoin: room "{room}" is full.'],
 				closed: ['NET_ERROR_CLOSED', 'netJoin: room "{room}" is closed: the game has started.'],
 				busy: ['NET_ERROR_BUSY', 'netJoin: the server is busy. Try again later.'],
