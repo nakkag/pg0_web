@@ -481,12 +481,12 @@ Function names are case-insensitive. Types: int, float, num (int or float), str,
 | `length(v: arr\|str)` | int | Element count or character count (numbers are converted to strings). |
 | `array(s: str)` | arr | Characters of `s` as elements. |
 | `string(a: arr)` | str | Elements joined into one string (no separator). |
-| `number(s: str)` | num | Parses a decimal integer or float from the start of `s` (`"12abc"` gives 12, `"abc"` gives 0; no exponent notation, `"3e9"` gives 3). An integer string outside the 32-bit range is clamped (`"3000000000"` gives 2147483647); write a decimal point to get a float (`"3000000000.0"` gives the float 3000000000). |
-| `int(v: str\|num)` | int | Converts to a 32-bit integer, truncating toward zero; values outside the range are clamped to ±2147483647/-2147483648. |
-| `code(s: str, i: int = 0)` | int | Character code at `i`; 0 if out of range. |
-| `char(c: int)` | str | One-character string for code `c`. |
-| `getKey(a: arr, i: int)` | str | Key of element `i` (`""` if none). Reading `a["key"]` creates the element, so to test whether a key exists without creating it, scan `getKey` (case-insensitive compare) or keep the keys in a separate list. There is no delete: rebuild the array without the element. |
-| `setKey(a: arr, i: int, key: str)` | 0 | Sets the key of element `i`. |
+| `number(s: str)` | num | Parses a decimal number from the start of `s`: a float when `s` contains a decimal point (`"1.5e3"` gives 1500, `"abc.5"` gives the float 0), an integer otherwise (`"12abc"` gives 12, `"3e9"` gives 3); leading white space and a sign are read. An integer string outside the 32-bit range is clamped (`"3000000000"` gives 2147483647; write `"3000000000.0"` for a float). |
+| `int(v: str\|num)` | int | Converts to a 32-bit integer, truncating toward zero. A string (leading white space and a sign are read) outside the range is clamped to 2147483647 / -2147483648; a float outside the range gives -2147483648 (`int(time())` for example). |
+| `code(s: str, i: int = 0)` | int | Character code (one UTF-16 unit) at `i`; the first character when `i` is negative, 0 past the end. |
+| `char(c: int)` | str | One-character string for the low 16 bits of code `c` (`""` for 0). |
+| `getKey(a: arr, i: int)` | str | Key of element `i` in lower case (`""` if none; the first element when `i` is negative). Reading `a["key"]` creates the element, so to test whether a key exists without creating it, scan `getKey` (case-insensitive compare) or keep the keys in a separate list. There is no delete: rebuild the array without the element. |
+| `setKey(a: arr, i: int, key: str)` | 0 | Sets the key of element `i`; a key that is not a string, or `""`, removes it. |
 
 ### 4.2 Math library: `#import("lib/math.pg0")`
 
