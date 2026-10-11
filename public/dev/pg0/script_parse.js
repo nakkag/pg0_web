@@ -614,7 +614,7 @@ function ScriptParse(sci) {
 			token = createToken(SYM_ARGSTART, -1);
 			pi.token.push(token);
 			token = createToken(pi.type, pi.line);
-			token.buf = pi.str.toLowerCase();
+			token.buf = Script.lowerCase(pi.str);
 			getToken(pi);
 			if (pi.err) {
 				return;
@@ -1495,7 +1495,7 @@ function ScriptParse(sci) {
 			pi.err = Script.error(sci, errMsg.ERR_SENTENCE, pi.line);
 			return;
 		}
-		token.buf = pi.str.toLowerCase();
+		token.buf = Script.lowerCase(pi.str);
 		token = createToken(pi.type, pi.line);
 		getToken(pi);
 		if (pi.err) {

@@ -2,6 +2,13 @@
 
 const Script = {};
 Script.noop = function() {};
+// Names and keys ignore the case of half-width letters only, as the Windows
+// version (str_lower) does.
+Script.lowerCase = function(s) {
+	return s.replace(/[A-Z]+/g, function(m) {
+		return m.toLowerCase();
+	});
+};
 Script.initScriptInfo = function(src, options) {
 	return {
 		name: '',

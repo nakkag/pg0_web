@@ -46,6 +46,49 @@ ScriptExec.lib['array'] = function(ei, param, ret) {
 	return 0;
 };
 
+// The conversions as the Windows version (C) does them.
+// A string to an integer like atoi: white space, a sign, digits; saturated.
+ScriptExec.atoi = function(str) {
+	const m = String(str).match(/^[ \t\n\v\f\r]*([+-]?)([0-9]+)/);
+	if (!m) {
+		return 0;
+	}
+	let n = parseInt(m[2], 10);
+	if (m[1] === '-') {
+		n = -n;
+	}
+	if (n > 0x7FFFFFFF) {
+		n = 0x7FFFFFFF;
+	} else if (n < (0x80000000 | 0)) {
+		n = 0x80000000;
+	}
+	return n | 0;
+};
+// A string to a real like atof: white space, a sign, digits, a point, an exponent.
+ScriptExec.atof = function(str) {
+	const m = String(str).match(/^[ \t\n\v\f\r]*[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?/);
+	return m ? parseFloat(m[0]) : 0;
+};
+// A real to an integer like (int): truncated; out of range or not a number is -2147483648.
+ScriptExec.castInt = function(n) {
+	if (!(n > -2147483649 && n < 2147483648)) {
+		return 0x80000000 | 0;
+	}
+	return Math.trunc(n) | 0;
+};
+// An argument as an integer: a string with atoi, a real with (int).
+ScriptExec.paramInt = function(v) {
+	switch (v.type) {
+	case TYPE_ARRAY:
+		return ScriptExec.atoi(ScriptExec.arrayToString(v.array));
+	case TYPE_STRING:
+		return ScriptExec.atoi(v.str);
+	case TYPE_FLOAT:
+		return ScriptExec.castInt(v.num);
+	}
+	return v.num | 0;
+};
+
 ScriptExec.lib['string'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
@@ -60,29 +103,33 @@ ScriptExec.lib['string'] = function(ei, param, ret) {
 	return 0;
 };
 
+// A string with a point is a real (atof), any other an integer (atoi).
 ScriptExec.lib['number'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
+	let s = null;
 	switch (param[0].v.type) {
 	case TYPE_ARRAY:
-		const s = ScriptExec.arrayToString(param[0].v.array);
-		ret.v.num = ScriptExec.stringToNumber(s);
+		s = ScriptExec.arrayToString(param[0].v.array);
 		break;
 	case TYPE_STRING:
-		ret.v.num = ScriptExec.stringToNumber(param[0].v.str);
+		s = param[0].v.str;
 		break;
-	default:
+	case TYPE_FLOAT:
 		ret.v.num = param[0].v.num;
-		break;
+		ret.v.type = TYPE_FLOAT;
+		return 0;
+	default:
+		ret.v.num = param[0].v.num | 0;
+		ret.v.type = TYPE_INTEGER;
+		return 0;
 	}
-	if (!ret.v.num) {
-		ret.v.num = 0;
-	}
-	if (!ScriptExec.checkInt(ret.v.num)) {
+	if (s.indexOf('.') >= 0) {
+		ret.v.num = ScriptExec.atof(s);
 		ret.v.type = TYPE_FLOAT;
 	} else {
-		ret.v.num = parseInt(ret.v.num) | 0;
+		ret.v.num = ScriptExec.atoi(s);
 		ret.v.type = TYPE_INTEGER;
 	}
 	return 0;
@@ -92,113 +139,54 @@ ScriptExec.lib['int'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	switch (param[0].v.type) {
-	case TYPE_ARRAY:
-		const s = ScriptExec.arrayToString(param[0].v.array);
-		ret.v.num = ScriptExec.stringToNumber(s);
-		break;
-	case TYPE_STRING:
-		ret.v.num = ScriptExec.stringToNumber(param[0].v.str);
-		break;
-	default:
-		ret.v.num = param[0].v.num;
-		break;
-	}
-	if (!ret.v.num) {
-		ret.v.num = 0;
-	}
-	ret.v.num = parseInt(ret.v.num);
-	if (ret.v.num > 0x7FFFFFFF) {
-		ret.v.num = 0x7FFFFFFF;
-	} else if (ret.v.num < (0x80000000 | 0)) {
-		ret.v.num = 0x80000000;
-	}
-	ret.v.num = ret.v.num | 0;
+	ret.v.num = ScriptExec.paramInt(param[0].v);
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
 
+// The code of the character at index, a UTF-16 unit as in the Windows
+// version; a negative index is the first character, past the end is 0.
 ScriptExec.lib['code'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	let index = 0;
-	if (param.length >= 2) {
-		switch (param[1].v.type) {
-		case TYPE_ARRAY:
-			const s = ScriptExec.arrayToString(param[1].v.array);
-			index = parseInt(ScriptExec.stringToNumber(s));
-			break;
-		case TYPE_STRING:
-			index = parseInt(ScriptExec.stringToNumber(param[1].v.str));
-			break;
-		default:
-			index = parseInt(param[1].v.num);
-			break;
-		}
+	let index = (param.length >= 2) ? ScriptExec.paramInt(param[1].v) : 0;
+	if (index < 0) {
+		index = 0;
 	}
-	switch (param[0].v.type) {
-	case TYPE_ARRAY:
-		ret.v.num = ScriptExec.arrayToString(param[0].v.array).codePointAt(index);
-		break;
-	default:
-		ret.v.num = ScriptExec.getValueString(param[0].v).codePointAt(index);
-		break;
-	}
-	if (!ret.v.num) {
-		ret.v.num = 0;
-	}
+	const s = (param[0].v.type === TYPE_ARRAY) ? ScriptExec.arrayToString(param[0].v.array) : ScriptExec.getValueString(param[0].v);
+	ret.v.num = (index < s.length) ? s.charCodeAt(index) : 0;
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
 
+// The character of the low 16 bits of the code, as in the Windows version
+// ("" for 0).
 ScriptExec.lib['char'] = function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
 	}
-	let code = 0;
-	switch (param[0].v.type) {
-	case TYPE_ARRAY:
-		const s = ScriptExec.arrayToString(param[0].v.array);
-		code = parseInt(ScriptExec.stringToNumber(s));
-		break;
-	case TYPE_STRING:
-		code = parseInt(ScriptExec.stringToNumber(param[0].v.str));
-		break;
-	default:
-		code = parseInt(param[0].v.num);
-		break;
-	}
-	ret.v.str = String.fromCodePoint(code);
+	const code = ScriptExec.paramInt(param[0].v) & 0xFFFF;
+	ret.v.str = code ? String.fromCharCode(code) : '';
 	ret.v.type = TYPE_STRING;
 	delete ret.v.num;
 	return 0;
 };
 
+// The key of element i, in lower case as the Windows version keeps it; a
+// negative i is the first element.
 ScriptExec.lib['getkey'] = function(ei, param, ret) {
 	if (param.length < 2) {
 		return -2;
 	}
-	if (param[0].v.type !== TYPE_ARRAY) {
-		ret.v.str = '';
-	} else {
-		let i = 0;
-		switch (param[1].v.type) {
-		case TYPE_ARRAY:
-			const s = ScriptExec.arrayToString(param[1].v.array);
-			i = parseInt(ScriptExec.stringToNumber(s));
-			break;
-		case TYPE_STRING:
-			i = parseInt(ScriptExec.stringToNumber(param[1].v.str));
-			break;
-		default:
-			i = parseInt(param[1].v.num);
-			break;
+	ret.v.str = '';
+	if (param[0].v.type === TYPE_ARRAY) {
+		let i = ScriptExec.paramInt(param[1].v);
+		if (i < 0) {
+			i = 0;
 		}
 		if (param[0].v.array.length > i) {
-			ret.v.str = param[0].v.array[i].name;
-		} else {
-			ret.v.str = '';
+			ret.v.str = Script.lowerCase(param[0].v.array[i].name);
 		}
 	}
 	ret.v.type = TYPE_STRING;
@@ -206,6 +194,7 @@ ScriptExec.lib['getkey'] = function(ei, param, ret) {
 	return 0;
 };
 
+// A key that is not a string, or is empty, takes the key away.
 ScriptExec.lib['setkey'] = function(ei, param, ret) {
 	if (param.length < 3) {
 		return -2;
@@ -213,24 +202,12 @@ ScriptExec.lib['setkey'] = function(ei, param, ret) {
 	if (param[0].v.type !== TYPE_ARRAY) {
 		return 0;
 	}
-	if (param[2].v.type !== TYPE_STRING || !param[2].v.str) {
-		return 0;
-	}
-	let index = 0;
-	switch (param[1].v.type) {
-	case TYPE_ARRAY:
-		const s = ScriptExec.arrayToString(param[1].v.array);
-		index = parseInt(ScriptExec.stringToNumber(s));
-		break;
-	case TYPE_STRING:
-		index = parseInt(ScriptExec.stringToNumber(param[1].v.str));
-		break;
-	default:
-		index = parseInt(param[1].v.num);
-		break;
+	let index = ScriptExec.paramInt(param[1].v);
+	if (index < 0) {
+		index = 0;
 	}
 	if (param[0].v.array.length > index) {
-		param[0].v.array[index].name = param[2].v.str;
+		param[0].v.array[index].name = (param[2].v.type === TYPE_STRING && param[2].v.str) ? param[2].v.str : '';
 	}
 	return 0;
 };
@@ -266,11 +243,13 @@ ScriptExec.stringToArray = function(str) {
 	return ret;
 };
 
+// The elements one after another: strings as they are, numbers as they are
+// shown, arrays as nothing.
 ScriptExec.arrayToString = function(from) {
 	let ret = '';
 	from.forEach(function(a) {
 		if (a.v.type === TYPE_STRING) {
-			ret += ScriptExec.reConvCtrl(a.v.str);
+			ret += a.v.str;
 		} else {
 			ret += ScriptExec.getValueString(a.v);
 		}
@@ -278,22 +257,9 @@ ScriptExec.arrayToString = function(from) {
 	return ret;
 };
 
+// A string with a point as a real (atof), any other as an integer (atoi).
 ScriptExec.stringToNumber = function(str) {
-	const f = str.match(/(^(\-|)([0-9]+\.[0-9]*))|(^(\-|)([0-9]*\.[0-9]+))/);
-	if (f) {
-		return parseFloat(f[0]);
-	}
-	const i = str.match(/^(\-|)[0-9]+/);
-	if (i) {
-		let n = parseInt(i[0], 10);
-		if (n > 0x7FFFFFFF) {
-			n = 0x7FFFFFFF;
-		} else if (n < (0x80000000 | 0)) {
-			n = 0x80000000;
-		}
-		return n | 0;
-	}
-	return 0;
+	return (str.indexOf('.') >= 0) ? ScriptExec.atof(str) : ScriptExec.atoi(str);
 };
 
 ScriptExec.getValueInt = function(v) {
@@ -301,7 +267,7 @@ ScriptExec.getValueInt = function(v) {
 		return 0;
 	}
 	if (v.type === TYPE_FLOAT) {
-		return parseInt(v.num) | 0;
+		return ScriptExec.castInt(v.num);
 	}
 	if (v.type !== TYPE_INTEGER) {
 		return 0;
@@ -529,9 +495,9 @@ function ScriptExec(scis, sci) {
 			pvi.v.array.push(vi);
 			return vi;
 		}
-		const tmp_key = key.toLowerCase();
+		const tmp_key = Script.lowerCase(key);
 		let vi = pvi.v.array.find(function(v) {
-			return v.name !== '' && tmp_key === v.name.toLowerCase();
+			return v.name !== '' && tmp_key === Script.lowerCase(v.name);
 		});
 		if (!vi) {
 			vi = ScriptExec.initValueInfo();
