@@ -7,7 +7,8 @@
 // Client -> server (JSON text frames):
 //   {"t": "join", "cid": "...", "room": "name" | "", "max": 2, "hash": "<sha256 of the program>"}
 //     (hash: of the program as saved, see programHash; a program that differs
-//     from the one stored under the cid is refused with "modified")
+//     from the one stored under the cid is refused with "modified", one that
+//     differs from the program of the people in the room with "version")
 //   {"t": "send", "d": <value>, "to": <player number, optional>}
 //   {"t": "close"}   nobody else may enter the room
 //   {"t": "leave"}
@@ -18,7 +19,7 @@
 //   {"t": "msg", "from": n, "d": <value>}
 //   {"t": "rooms", "rooms": [{"room": "name", "count": n, "max": m, "closed": 0 | 1}, ...]}
 //   {"t": "rooms", "error": "cid" | "rate"}
-//   {"t": "error", "code": "cid" | "modified" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
+//   {"t": "error", "code": "cid" | "modified" | "version" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
 //   (joins count against the same rate as messages: "rate" refuses a join too)
 const {WebSocketServer} = require('ws');
 const crypto = require('crypto');
@@ -229,12 +230,13 @@ module.exports = function(servers, deps) {
 		return crypto.createHash('sha256').update(String(code == null ? '' : code).replace(/\r/g, '').replace(/\n+$/, ''), 'utf8').digest('hex');
 	}
 	// Whether a stored script has this cid, and the hash of its code. Answers
-	// are kept for a while so that joining does not ask the database every
-	// time; fresh asks again (the owner may have saved the script again).
+	// are kept for a while so that a burst of joins does not ask the database
+	// every time (a script that exists only briefly: the owner may save it
+	// again, and the next join must see that); fresh asks again.
 	async function scriptOf(cid, fresh) {
 		const now = Date.now();
 		const known = cids.get(cid);
-		if (known && !fresh && now - known.at < (known.ok ? 600000 : 60000)) {
+		if (known && !fresh && now - known.at < (known.ok ? 5000 : 60000)) {
 			return {ok: known.ok, hash: known.hash, cached: true};
 		}
 		let ok = false;
@@ -251,7 +253,7 @@ module.exports = function(servers, deps) {
 		if (cids.size > 10000) {
 			// the stale answers go first, all of them only when that is not enough
 			cids.forEach(function(known, key) {
-				if (now - known.at >= (known.ok ? 600000 : 60000)) {
+				if (now - known.at >= (known.ok ? 5000 : 60000)) {
 					cids.delete(key);
 				}
 			});
@@ -301,13 +303,14 @@ module.exports = function(servers, deps) {
 			send(other, {t: 'exit', id: id});
 		});
 	}
-	// A room left without a name is one of the automatic ones of the script:
-	// the fullest one that still has a seat and has never been full, so that
-	// nobody is dropped into a game that already started.
-	function findAutoRoom(cid, max) {
+	// A room left without a name is one of the automatic ones of the script
+	// with the same program: the fullest one that still has a seat and has
+	// never been full, so that nobody is dropped into a game that already
+	// started.
+	function findAutoRoom(cid, max, hash) {
 		let best = null;
 		(roomsByCid.get(cid) || new Map()).forEach(function(room) {
-			if (room.auto && room.max === max && !room.started && !room.closed && room.players.size < max) {
+			if (room.auto && room.hash === hash && room.max === max && !room.started && !room.closed && room.players.size < max) {
 				if (!best || room.players.size > best.players.size) {
 					best = room;
 				}
@@ -364,7 +367,11 @@ module.exports = function(servers, deps) {
 		if (ws.readyState !== ws.OPEN) {
 			return;
 		}
-		let room = name ? rooms.get(cid + '\n' + name) : findAutoRoom(cid, max);
+		let room = name ? rooms.get(cid + '\n' + name) : findAutoRoom(cid, max, hash);
+		// everybody in a room runs the same program
+		if (room && room.hash !== hash) {
+			return refused('version');
+		}
 		if (room && room.closed) {
 			return refused('closed');
 		}
@@ -380,7 +387,7 @@ module.exports = function(servers, deps) {
 			while (!roomName || (!name && rooms.has(cid + '\n' + roomName))) {
 				roomName = 'auto-' + crypto.randomBytes(4).toString('hex');
 			}
-			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, players: new Map(), started: false, closed: false,
+			room = {key: cid + '\n' + roomName, cid: cid, name: roomName, auto: !name, max: max, hash: hash, players: new Map(), started: false, closed: false,
 				created: Date.now(), peak: 0, messages: 0};
 			rooms.set(room.key, room);
 			if (!roomsByCid.has(cid)) {
