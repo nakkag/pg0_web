@@ -5,7 +5,9 @@
 // the room as it is.
 //
 // Client -> server (JSON text frames):
-//   {"t": "join", "cid": "...", "room": "name" | "", "max": 2}
+//   {"t": "join", "cid": "...", "room": "name" | "", "max": 2, "hash": "<sha256 of the program>"}
+//     (hash: of the program as saved, see programHash; a program that differs
+//     from the one stored under the cid is refused with "modified")
 //   {"t": "send", "d": <value>, "to": <player number, optional>}
 //   {"t": "close"}   nobody else may enter the room
 //   {"t": "leave"}
@@ -16,7 +18,7 @@
 //   {"t": "msg", "from": n, "d": <value>}
 //   {"t": "rooms", "rooms": [{"room": "name", "count": n, "max": m, "closed": 0 | 1}, ...]}
 //   {"t": "rooms", "error": "cid" | "rate"}
-//   {"t": "error", "code": "cid" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
+//   {"t": "error", "code": "cid" | "modified" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
 //   (joins count against the same rate as messages: "rate" refuses a join too)
 const {WebSocketServer} = require('ws');
 const crypto = require('crypto');
@@ -221,21 +223,30 @@ module.exports = function(servers, deps) {
 		});
 	}
 
-	// Whether a stored script has this cid. Answers are kept for a while so
-	// that joining does not ask the database every time.
-	async function cidExists(cid) {
+	// What a program is when it is saved: SHA-256 of the code in UTF-8, without
+	// CR and without the line breaks at the end (the editors hash the same way).
+	function programHash(code) {
+		return crypto.createHash('sha256').update(String(code == null ? '' : code).replace(/\r/g, '').replace(/\n+$/, ''), 'utf8').digest('hex');
+	}
+	// Whether a stored script has this cid, and the hash of its code. Answers
+	// are kept for a while so that joining does not ask the database every
+	// time; fresh asks again (the owner may have saved the script again).
+	async function scriptOf(cid, fresh) {
 		const now = Date.now();
 		const known = cids.get(cid);
-		if (known && now - known.at < (known.ok ? 600000 : 60000)) {
-			return known.ok;
+		if (known && !fresh && now - known.at < (known.ok ? 600000 : 60000)) {
+			return {ok: known.ok, hash: known.hash, cached: true};
 		}
 		let ok = false;
+		let hash = '';
 		try {
 			const db = await deps.getDB();
-			ok = !!(await db.collection('script').findOne({cid: cid}, {projection: {cid: 1}}));
+			const doc = await db.collection('script').findOne({cid: cid}, {projection: {cid: 1, code: 1}});
+			ok = !!doc;
+			hash = ok ? programHash(doc.code) : '';
 		} catch (e) {
 			logger.error(e);
-			return false;
+			return {ok: false, hash: '', cached: false};
 		}
 		if (cids.size > 10000) {
 			// the stale answers go first, all of them only when that is not enough
@@ -248,8 +259,11 @@ module.exports = function(servers, deps) {
 				cids.clear();
 			}
 		}
-		cids.set(cid, {ok: ok, at: now});
-		return ok;
+		cids.set(cid, {ok: ok, hash: hash, at: now});
+		return {ok: ok, hash: hash, cached: false};
+	}
+	async function cidExists(cid) {
+		return (await scriptOf(cid, false)).ok;
 	}
 
 	// (to a player that does not read, nothing more is queued: see deliver)
@@ -329,8 +343,22 @@ module.exports = function(servers, deps) {
 			return;
 		}
 		leave(ws, 'rejoin');
-		if (!CID.test(cid) || !await cidExists(cid)) {
+		if (!CID.test(cid)) {
 			refused('cid');
+			return unknownCid(ws);
+		}
+		// the program must be the one saved under the cid
+		const hash = String(msg.hash || '').toLowerCase();
+		let script = await scriptOf(cid, false);
+		if (script.ok && script.hash !== hash && script.cached) {
+			script = await scriptOf(cid, true);
+		}
+		if (!script.ok) {
+			refused('cid');
+			return unknownCid(ws);
+		}
+		if (script.hash !== hash) {
+			refused('modified');
 			return unknownCid(ws);
 		}
 		if (ws.readyState !== ws.OPEN) {
@@ -406,7 +434,8 @@ module.exports = function(servers, deps) {
 		send(ws, {t: 'rooms', rooms: list});
 	}
 	// Scripts that do not exist cost a database lookup each (unknown cids are
-	// remembered for a minute): a connection that keeps naming them is closed.
+	// remembered for a minute), and so does a program that differs from the
+	// saved one: a connection that keeps sending them is closed.
 	function unknownCid(ws) {
 		if (++ws.pg0.badCids >= CID_REFUSALS) {
 			ws.pg0.end = 'cid';
