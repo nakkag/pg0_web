@@ -720,6 +720,9 @@ netJoin(room, players)
 		Only the program as saved online can enter (save the changes that are not saved, or open the program
 		again when a newer version has been saved, then run it again).
 		When it is already in a room, it leaves that room first.
+		In the web version, when the connection goes (a phone that switched to another app) and comes back
+		within 60 seconds (a setting of the server), it is back in the room with the values sent meanwhile,
+		and the others do not notice; otherwise netId() becomes 0.
 	* Parameters
 		room - Room name (optional, up to 32 characters)
 		players - Number of players of the room (2 when omitted, 2 to 8). The value of the person who made the room is used.

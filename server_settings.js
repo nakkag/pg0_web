@@ -30,6 +30,7 @@ exports.net = {
 	idleSeconds: 1800,       // a player that sends nothing for this long is disconnected
 	maxBufferedBytes: 1048576, // what a player may leave unread; over it nothing more is sent to the player, and it is disconnected when it stays so
 	relayPerSecond: 20000,   // messages passed on in a second, all rooms together (0: no limit); the relay shares its process with the site
+	rejoinSeconds: 60,       // how long the seat of a player whose connection went is kept for the player to come back (a phone that switched apps); 0: not kept
 	trustProxy: 'loopback',  // client address from X-Forwarded-For of a proxy on this machine ('loopback'), of any proxy (true) or never (false)
 	allowOrigins: [],        // other origins whose pages may join, for the relay only (e.g. 'https://pg0.jp:9443' for the admin pages)
 	log: true,               // a line for each connection, room entry and exit, and refusal
