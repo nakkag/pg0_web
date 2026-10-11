@@ -5,7 +5,10 @@
 // the room as it is.
 //
 // Client -> server (JSON text frames):
-//   {"t": "join", "cid": "...", "room": "name" | "", "max": 2, "hash": "<sha256 of the program>"}
+//   {"t": "join", "cid": "...", "room": "name" | "", "max": 2, "hash": "<sha256 of the program>", "keep": 1, "old": "token"}
+//     (keep: the seat is kept for rejoinSeconds when the connection goes, see
+//     "rejoin"; old: a kept seat of this player, given up first: the page was
+//     loaded again)
 //     (hash: of the program as saved, see programHash; a program that differs
 //     from the one stored under the cid is refused with "modified", one that
 //     differs from the program of the people in the room with "version")
@@ -13,13 +16,16 @@
 //   {"t": "close"}   nobody else may enter the room
 //   {"t": "leave"}
 //   {"t": "rooms", "cid": "..."}   the rooms of a script, in or out of a room
+//   {"t": "rejoin", "token": "..."}   a new connection takes the seat of one that went
 // Server -> client:
-//   {"t": "joined", "id": n, "room": "name", "max": m, "players": [ids], "limits": {"bytes": n, "rate": n}}
+//   {"t": "joined", "id": n, "room": "name", "max": m, "players": [ids], "limits": {"bytes": n, "rate": n},
+//     "token": "...", "rejoin": seconds}   (token and the seconds the seat is kept: with keep only)
 //   {"t": "enter", "id": n} / {"t": "exit", "id": n}
 //   {"t": "msg", "from": n, "d": <value>}
 //   {"t": "rooms", "rooms": [{"room": "name", "count": n, "max": m, "closed": 0 | 1}, ...]}
 //   {"t": "rooms", "error": "cid" | "rate"}
-//   {"t": "error", "code": "cid" | "modified" | "version" | "full" | "closed" | "busy" | "size" | "rate" | "join"}
+//   {"t": "error", "code": "cid" | "modified" | "version" | "full" | "closed" | "busy" | "size" | "rate" | "join" | "gone"}
+//     (gone: the seat of a rejoin is not kept any more)
 //   (joins count against the same rate as messages: "rate" refuses a join too)
 const {WebSocketServer} = require('ws');
 const crypto = require('crypto');
@@ -40,6 +46,11 @@ const DEFAULTS = {
 	// what a player may leave unread (bytes): over it nothing more is sent to
 	// the player, and the player is disconnected when it stays so
 	maxBufferedBytes: 1048576,
+	// how long the seat of a player whose connection went is kept for the
+	// player to come back (a phone that switched to another app), with what
+	// was sent to it meanwhile; the others are not told until then (0: not
+	// kept)
+	rejoinSeconds: 60,
 	// messages passed on in a second, all rooms together (0: no limit): the
 	// relay shares its process with the site, and passing a message on to
 	// the others in a full room costs about as much as the site serving a
@@ -61,6 +72,8 @@ const ROOM_LENGTH = 32;
 const LIST_ROOMS = 500;
 // a connection that names this many scripts that do not exist is closed
 const CID_REFUSALS = 20;
+// messages kept for a player whose connection went (the oldest go first)
+const AWAY_QUEUE = 200;
 // lines a second about refused connections and joins (the rest is counted
 // and comes with the summary line)
 const REFUSED_LINES = 10;
@@ -81,6 +94,8 @@ module.exports = function(servers, deps) {
 	const roomsByCid = new Map();
 	const perIp = new Map();
 	const cids = new Map();
+	// the seats that may be taken again: token -> the connection that holds the seat
+	const tokens = new Map();
 	let connections = 0;
 	let connectionCount = 0;
 	let warnedLoopback = false;
@@ -288,6 +303,16 @@ module.exports = function(servers, deps) {
 		room.players.delete(id);
 		p.room = null;
 		p.id = 0;
+		if (p.token) {
+			tokens.delete(p.token);
+			p.token = '';
+		}
+		if (p.awayTimer) {
+			clearTimeout(p.awayTimer);
+			p.awayTimer = null;
+		}
+		p.away = 0;
+		p.queue = null;
 		event('info', 'leave', {conn: p.conn, cid: room.cid, room: room.name, id: id, players: room.players.size + '/' + room.max, reason: reason, secs: secondsSince(p.joined)});
 		if (room.players.size === 0) {
 			rooms.delete(room.key);
@@ -350,6 +375,11 @@ module.exports = function(servers, deps) {
 			refused('cid');
 			return unknownCid(ws);
 		}
+		// the seat this player left behind when its page was loaded again
+		const old = msg.old ? tokens.get(String(msg.old)) : null;
+		if (old && old.pg0.away) {
+			leave(old, 'replaced');
+		}
 		// the program must be the one saved under the cid
 		const hash = String(msg.hash || '').toLowerCase();
 		let script = await scriptOf(cid, false);
@@ -411,10 +441,65 @@ module.exports = function(servers, deps) {
 		p.room = room;
 		p.id = id;
 		p.joined = Date.now();
+		p.keep = !!msg.keep && conf.rejoinSeconds > 0;
+		if (p.keep) {
+			p.token = crypto.randomBytes(16).toString('hex');
+			tokens.set(p.token, ws);
+		}
 		counts.joins++;
-		event('info', 'join', {conn: p.conn, ip: p.ip, cid: cid, room: room.name, id: id, players: room.players.size + '/' + room.max, auto: room.auto ? 1 : 0, created: created ? 1 : 0});
-		send(ws, {t: 'joined', id: id, room: room.name, max: room.max, players: playersOf(room),
-			limits: {bytes: conf.maxMessageBytes, rate: conf.messagesPerSecond}});
+		event('info', 'join', {conn: p.conn, ip: p.ip, cid: cid, room: room.name, id: id, players: room.players.size + '/' + room.max, auto: room.auto ? 1 : 0, created: created ? 1 : 0, keep: p.keep ? 1 : 0});
+		send(ws, joinedMessage(ws));
+	}
+	function joinedMessage(ws) {
+		const p = ws.pg0;
+		const m = {t: 'joined', id: p.id, room: p.room.name, max: p.room.max, players: playersOf(p.room),
+			limits: {bytes: conf.maxMessageBytes, rate: conf.messagesPerSecond}, rejoin: p.keep ? conf.rejoinSeconds : 0};
+		if (p.keep) {
+			m.token = p.token;
+		}
+		return m;
+	}
+	// A player whose connection went takes its seat again with a new
+	// connection, and gets what was sent to it meanwhile.
+	function rejoin(ws, msg) {
+		const p = ws.pg0;
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+		if (!allowed(p)) {
+			return send(ws, {t: 'error', code: 'rate'});
+		}
+		const token = String(msg.token || '');
+		const old = tokens.get(token);
+		if (!old || !old.pg0.away || !old.pg0.room || old.pg0.room.players.get(old.pg0.id) !== old) {
+			counts.refused++;
+			refusedEvent('join_refused', {conn: p.conn, ip: p.ip, reason: 'gone'});
+			return send(ws, {t: 'error', code: 'gone'});
+		}
+		leave(ws, 'rejoin');
+		const op = old.pg0;
+		const room = op.room;
+		const queue = op.queue || [];
+		clearTimeout(op.awayTimer);
+		p.room = room;
+		p.id = op.id;
+		p.joined = op.joined;
+		p.keep = true;
+		p.token = token;
+		room.players.set(p.id, ws);
+		tokens.set(token, ws);
+		op.room = null;
+		op.id = 0;
+		op.token = '';
+		op.awayTimer = null;
+		op.queue = null;
+		counts.joins++;
+		event('info', 'back', {conn: p.conn, ip: p.ip, cid: room.cid, room: room.name, id: p.id, was: op.conn, secs: secondsSince(op.away), queued: queue.length});
+		op.away = 0;
+		send(ws, joinedMessage(ws));
+		queue.forEach(function(out) {
+			deliver(ws, out);
+		});
 	}
 	// The rooms of a script, oldest first: what a lobby shows so that a player
 	// can pick one. Asking counts against the same rate as sending.
@@ -466,6 +551,13 @@ module.exports = function(servers, deps) {
 	// the limit) nothing more is sent until it does; the timer closes it when
 	// it stays so.
 	function deliver(other, out) {
+		if (other.pg0.away) {
+			other.pg0.queue.push(out);
+			if (other.pg0.queue.length > AWAY_QUEUE) {
+				other.pg0.queue.shift();
+			}
+			return;
+		}
 		if (other.readyState !== other.OPEN) {
 			return;
 		}
@@ -577,6 +669,9 @@ module.exports = function(servers, deps) {
 				send(ws, {t: 'rooms', error: 'cid'});
 			});
 			break;
+		case 'rejoin':
+			rejoin(ws, msg);
+			break;
 		case 'close':
 			// Any player of the room may close it, for good: a seat that is
 			// left is not offered again.
@@ -596,7 +691,8 @@ module.exports = function(servers, deps) {
 		perIp.set(ip, (perIp.get(ip) || 0) + 1);
 		// pending: joins and listings of one connection are handled one at a time
 		ws.pg0 = {conn: ++connectionCount, ip: ip, room: null, id: 0, tokens: conf.messagesPerSecond, refilled: Date.now(), warned: 0, active: Date.now(), alive: true,
-			opened: Date.now(), joined: 0, sent: 0, dropped: {}, badCids: 0, end: '', pending: Promise.resolve()};
+			opened: Date.now(), joined: 0, sent: 0, dropped: {}, badCids: 0, end: '', pending: Promise.resolve(),
+			keep: false, token: '', away: 0, awayTimer: null, queue: null};
 		counts.connects++;
 		event('info', 'connect', {conn: ws.pg0.conn, ip: ip, origin: origin});
 		ws.on('pong', function() {
@@ -610,8 +706,20 @@ module.exports = function(servers, deps) {
 			}
 		});
 		ws.on('close', function(code) {
-			leave(ws, 'disconnect');
 			const p = ws.pg0;
+			if (p.room && p.keep && p.token && (p.end === '' || p.end === 'no_response')) {
+				// the seat is kept for a while: the player may come back
+				p.away = Date.now();
+				p.queue = [];
+				p.awayTimer = setTimeout(function() {
+					if (p.room) {
+						leave(ws, 'gone');
+					}
+				}, conf.rejoinSeconds * 1000);
+				event('info', 'away', {conn: p.conn, cid: p.room.cid, room: p.room.name, id: p.id, secs: conf.rejoinSeconds});
+			} else {
+				leave(ws, 'disconnect');
+			}
 			event('info', 'disconnect', {conn: p.conn, ip: ip, secs: secondsSince(p.opened), sent: p.sent,
 				dropped_rate: p.dropped.rate, dropped_size: p.dropped.size, dropped_slow: p.dropped.slow, dropped_load: p.dropped.load, reason: p.end || 'close', code: code});
 			connections--;
@@ -667,5 +775,14 @@ module.exports = function(servers, deps) {
 		statsTimer.unref();
 	}
 
-	return {wss: wss, rooms: rooms, stats: stats, close: function() { clearInterval(timer); clearInterval(statsTimer); wss.close(); }};
+	return {wss: wss, rooms: rooms, stats: stats, close: function() {
+		clearInterval(timer);
+		clearInterval(statsTimer);
+		tokens.forEach(function(w) {
+			if (w.pg0.awayTimer) {
+				clearTimeout(w.pg0.awayTimer);
+			}
+		});
+		wss.close();
+	}};
 };

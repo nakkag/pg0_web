@@ -151,17 +151,33 @@ function _netSetInt(ret, n) {
 
 // One connection to the relay and what it has received.
 function _netConnection() {
+	// token, rejoin: the seat is kept for rejoin seconds when the connection
+	// goes (a phone that switched to another app); away: since when.
 	const me = {ws: null, result: '', id: 0, room: '', max: 0, players: [], queue: [], last: {}, limits: {bytes: 16384, rate: 60}, warned: {}, timer: null,
-		rooms: null, roomsDone: false};
+		rooms: null, roomsDone: false, token: '', rejoin: 0, away: 0, retry: null, closing: false, cid: ''};
 	me.close = function() {
+		me.closing = true;
 		if (me.timer) {
 			clearInterval(me.timer);
 			me.timer = null;
+		}
+		if (me.retry) {
+			clearTimeout(me.retry);
+			me.retry = null;
+		}
+		document.removeEventListener('visibilitychange', me.onVisible);
+		window.removeEventListener('online', me.onVisible);
+		window.removeEventListener('beforeunload', me.unload);
+		if (me.token) {
+			_netSeat(me.cid, me.room, '');
 		}
 		if (me.ws) {
 			me.ws.onclose = null;
 			me.ws.onmessage = null;
 			try {
+				if (me.ws.readyState === WebSocket.OPEN) {
+					me.ws.send(JSON.stringify({t: 'leave'}));
+				}
 				me.ws.close();
 			} catch (e) {
 			}
@@ -169,6 +185,96 @@ function _netConnection() {
 		}
 		me.id = 0;
 		me.players = [];
+		me.away = 0;
+		me.token = '';
+	};
+	// The page goes: the seat is given up, but its token stays in the tab for
+	// the page loaded next (the leave may not get through).
+	me.unload = function() {
+		me.closing = true;
+		try {
+			if (me.ws && me.ws.readyState === WebSocket.OPEN) {
+				me.ws.send(JSON.stringify({t: 'leave'}));
+			}
+		} catch (e) {
+		}
+	};
+	// A connection that sends message once it is open.
+	me.connect = function(message) {
+		let ws;
+		try {
+			ws = new WebSocket(_netUrl());
+		} catch (e) {
+			console.error(e);
+			return false;
+		}
+		me.ws = ws;
+		ws.onopen = function() {
+			if (me.ws === ws) {
+				ws.send(JSON.stringify(message));
+			}
+		};
+		ws.onmessage = function(e) {
+			if (me.ws === ws) {
+				me.receive(e.data);
+			}
+		};
+		ws.onclose = function() {
+			if (me.ws === ws) {
+				me.lost();
+			}
+		};
+		return true;
+	};
+	// The connection went. A player in a room takes its seat again for a
+	// while; before the room was entered, it is the answer "connect".
+	me.lost = function() {
+		me.ws = null;
+		if (me.id && me.token && me.rejoin > 0 && run && !me.closing) {
+			const first = !me.away;
+			if (first) {
+				me.away = Date.now();
+			}
+			me.schedule(first ? 500 : 2000);
+			return;
+		}
+		me.drop();
+	};
+	// The room is gone for good.
+	me.drop = function() {
+		me.id = 0;
+		me.players = [];
+		me.away = 0;
+		me.token = '';
+		if (!me.result) {
+			me.result = 'connect';
+		}
+	};
+	me.schedule = function(ms) {
+		if (me.retry) {
+			clearTimeout(me.retry);
+		}
+		me.retry = setTimeout(me.tryRejoin, ms);
+	};
+	me.tryRejoin = function() {
+		me.retry = null;
+		if (!me.away || me.ws || !run || me.closing) {
+			return;
+		}
+		if (Date.now() - me.away > me.rejoin * 1000) {
+			me.drop();
+			_netNotice(_netText('NET_ERROR_LOST', 'netJoin: the connection was lost and could not be made again within {secs} seconds.', {secs: me.rejoin}));
+			return;
+		}
+		if (!me.connect({t: 'rejoin', token: me.token})) {
+			me.schedule(2000);
+		}
+	};
+	// Back in front (or online again): no waiting for the next try.
+	me.onVisible = function() {
+		if (me.away && !me.ws && (document.visibilityState !== 'hidden' || navigator.onLine)) {
+			me.tryRejoin();
+		}
 	};
 	// The same warning at most once a second.
 	me.warn = function(key, text) {
@@ -197,7 +303,11 @@ function _netConnection() {
 			if (msg.limits) {
 				me.limits = {bytes: msg.limits.bytes | 0, rate: msg.limits.rate | 0};
 			}
+			me.token = (typeof msg.token === 'string') ? msg.token : '';
+			me.rejoin = me.token ? (msg.rejoin | 0) : 0;
+			me.away = 0;
 			me.result = 'joined';
+			_netSeat(me.cid, me.room, me.token);
 			break;
 		case 'enter':
 			if (!me.players.includes(msg.id | 0)) {
@@ -224,7 +334,11 @@ function _netConnection() {
 			me.roomsDone = true;
 			break;
 		case 'error':
-			if (!me.result) {
+			if (msg.code === 'gone' && me.away) {
+				// the seat was not kept any longer
+				me.drop();
+				_netNotice(_netText('NET_ERROR_LOST', 'netJoin: the connection was lost and could not be made again within {secs} seconds.', {secs: me.rejoin}));
+			} else if (!me.result) {
 				me.result = String(msg.code || 'join');
 			} else if (msg.code === 'size') {
 				me.warn('size', _netText('NET_ERROR_SIZE', 'netSend: the value is too large to send (up to {bytes} bytes).', {bytes: me.limits.bytes}));
@@ -237,9 +351,37 @@ function _netConnection() {
 	return me;
 }
 
+// The connection of the room this run is in (the seat is kept while the
+// connection is being made again).
 function _netCurrent() {
 	const c = ScriptExec.lib['$net'];
-	return (c && c.ws && c.id) ? c : null;
+	return (c && c.id) ? c : null;
+}
+
+// The token of the seat of this tab's last run (the page may be loaded again
+// while the seat is still kept: the next join gives it up first).
+function _netSeatKey(cid, room) {
+	return 'pg0net:' + cid + ':' + room;
+}
+function _netSeat(cid, room, token) {
+	try {
+		if (token) {
+			sessionStorage.setItem(_netSeatKey(cid, room), token);
+		} else {
+			sessionStorage.removeItem(_netSeatKey(cid, room));
+		}
+	} catch (e) {
+	}
+}
+function _netOldSeat(cid, room) {
+	try {
+		return sessionStorage.getItem(_netSeatKey(cid, room)) || '';
+	} catch (e) {
+		return '';
+	}
+}
+function _netOpen(c) {
+	return !!(c && c.ws && c.ws.readyState === WebSocket.OPEN);
 }
 
 // netJoin(room = "", players = 2): enters a room of this script and returns
@@ -275,31 +417,14 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 		_netNotice(_netText('NET_ERROR_CID', 'netJoin: works only in a program saved online (saving gives it a cid).'));
 		return 0;
 	}
-	// (the program must be the one saved under the cid)
+	// (the program must be the one saved under the cid; keep: the seat is kept
+	// for a while when the connection goes)
 	const hash = _netProgramHash();
 	const c = _netConnection();
+	c.cid = cid;
 	ScriptExec.lib['$net'] = c;
-	try {
-		c.ws = new WebSocket(_netUrl());
-	} catch (e) {
-		console.error(e);
+	if (!c.connect({t: 'join', cid: cid, room: room, max: max, hash: hash, keep: 1, old: _netOldSeat(cid, room)})) {
 		c.result = 'connect';
-	}
-	if (c.ws) {
-		c.ws.onopen = function() {
-			c.ws.send(JSON.stringify({t: 'join', cid: cid, room: room, max: max, hash: hash}));
-		};
-		c.ws.onmessage = function(e) {
-			c.receive(e.data);
-		};
-		c.ws.onclose = function() {
-			c.ws = null;
-			c.id = 0;
-			c.players = [];
-			if (!c.result) {
-				c.result = 'connect';
-			}
-		};
 	}
 	const start = Date.now();
 	while (!c.result && run && Date.now() - start < 10000) {
@@ -332,6 +457,10 @@ ScriptExec.lib['netjoin'] = async function(ei, param, ret) {
 			c.close();
 		}
 	}, 200);
+	document.addEventListener('visibilitychange', c.onVisible);
+	window.addEventListener('online', c.onVisible);
+	// (leaving the page gives the seat up; a phone that switches apps does not come here)
+	window.addEventListener('beforeunload', c.unload);
 	ret.v.num = c.id;
 	return 0;
 };
@@ -425,7 +554,7 @@ ScriptExec.lib['netrooms'] = async function(ei, param, ret) {
 ScriptExec.lib['netclose'] = function(ei, param, ret) {
 	_netSetInt(ret, 0);
 	const c = _netCurrent();
-	if (!c || c.ws.readyState !== WebSocket.OPEN) {
+	if (!_netOpen(c)) {
 		return 0;
 	}
 	c.ws.send(JSON.stringify({t: 'close'}));
@@ -480,7 +609,7 @@ ScriptExec.lib['netsend'] = function(ei, param, ret) {
 	}
 	_netSetInt(ret, 0);
 	const c = _netCurrent();
-	if (!c || c.ws.readyState !== WebSocket.OPEN) {
+	if (!_netOpen(c)) {
 		return 0;
 	}
 	const msg = {t: 'send', d: _netValue(param[0].v, 0)};
