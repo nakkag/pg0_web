@@ -735,7 +735,7 @@ POST /api/agent/v1/scripts
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```
 
-`201` レスポンスに `"run_url": "https://<host>/app/?cid=<cid>"` が含まれ、開くとアプリとして実行されるので、その URL を人に渡します。`"url": "https://<host>/dev/?cid=<cid>"` はエディタで開く URL です（`&run=1` を付けるとエディタで開いたときに自動実行されます）。
+`201` レスポンスに `"run_url": "https://<host>/app/?cid=<cid>"` が含まれ、開くとアプリとして実行されるので、その URL を人に渡します。`"url": "https://<host>/dev/?cid=<cid>"` はエディタで開く URL です（以前の自動実行の URL、`url` + `&run=1` はアプリのページに転送されます）。
 
 ### 5.5 スクリーンのプログラムをテストして保存する
 

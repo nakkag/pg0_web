@@ -18,6 +18,15 @@ const options = {
 let ev, vv, cv;
 let baseTitle = document.title;
 
+// The autorun link of old (/dev/?cid=...&run=1) is the app page now: the
+// program runs there without the editor. Before anything else is loaded.
+(function() {
+	const param = pg0_string.searchParams(location.search);
+	if (param.cid && param.run && param.run !== '0' && /^[a-zA-Z0-9\-]+$/.test(param.cid)) {
+		location.replace('/app/?cid=' + encodeURIComponent(param.cid));
+	}
+})();
+
 document.addEventListener('DOMContentLoaded', async function() {
 	if ('serviceWorker' in navigator) {
 		navigator.serviceWorker.register('/dev/serviceworker.js', {scope: '/dev/'}).then(function (registration) {
@@ -746,13 +755,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 	setTimeout(async function() {
 		const param = pg0_string.searchParams(location.search);
-		if (param.cid && param.run && param.run !== '0') {
-			if ((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW)) {
-				await onlineOpenView.getScript(param.cid, false);
-				history.replaceState('', '', `${location.pathname}${location.search}&run=1`);
-				exec(false);
-			}
-		} else if (param.cid && ev.currentContent.cid !== param.cid &&
+		if (param.cid && ev.currentContent.cid !== param.cid &&
 			((param.force && param.force !== '0') || !ev.currentContent.modify || window.confirm(resource.MSG_NEW))) {
 			await onlineOpenView.getScript(param.cid, false);
 		} else if (param.cid && ev.currentContent.cid === param.cid && !ev.currentContent.modify) {
