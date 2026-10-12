@@ -318,7 +318,37 @@ function pageOf(template, doc, url) {
 		page = page.replace(/(<meta name="description" content=")[^"]*(")/, '$1' + escapeHtml(description) + '$2')
 			.replace(/(<meta property="og:description" content=")[^"]*(")/, '$1' + escapeHtml(description) + '$2');
 	}
+	// (the manifest names the program, so that it is added to a home screen as its own app)
+	if (doc && doc.cid) {
+		page = page.replace(/(<link rel="manifest" href=")[^"]*(")/, '$1' + manifestPath(doc.cid) + '$2');
+	} else {
+		page = page.replace(/[ \t]*<link rel="manifest"[^>]*>\r?\n?/, '');
+	}
 	return page.replace(/(<meta property="og:url" content=")[^"]*(")/, '$1' + escapeHtml(url) + '$2');
+}
+
+function manifestPath(cid) {
+	return '/api/app/' + encodeURIComponent(cid) + '/manifest.json';
+}
+
+// The web app manifest of a program: opened from a home screen, the app
+// starts at the program.
+function manifestOf(doc) {
+	const name = doc.name ? String(doc.name) : 'PG0';
+	const start = '/app/?cid=' + encodeURIComponent(doc.cid);
+	return {
+		name: name,
+		short_name: name,
+		id: start,
+		start_url: start,
+		scope: '/app/',
+		display: 'standalone',
+		background_color: '#f1f3f4',
+		theme_color: '#f1f3f4',
+		icons: [
+			{src: '/dev/image/icon_256.png', sizes: '256x256', type: 'image/png'}
+		]
+	};
 }
 
 // deps: getDB, logger, countShow(db, doc, req).
@@ -421,7 +451,7 @@ module.exports = function(app, deps) {
 		let doc = null;
 		if (CID.test(cid)) {
 			try {
-				doc = await (await deps.getDB()).collection('script').findOne({cid: cid}, {projection: {name: 1}});
+				doc = await (await deps.getDB()).collection('script').findOne({cid: cid}, {projection: {cid: 1, name: 1}});
 			} catch (error) {
 				// (the page still loads; its script tells what went wrong)
 				logger.error(error);
@@ -441,6 +471,23 @@ module.exports = function(app, deps) {
 		res.type('html').send(pageOf(template, doc, url));
 	});
 
+	app.get('/api/app/:cid/manifest.json', async (req, res) => {
+		if (!CID.test(req.params.cid)) {
+			return res.status(404).send('Not found.');
+		}
+		try {
+			const doc = await (await deps.getDB()).collection('script').findOne({cid: req.params.cid}, {projection: {cid: 1, name: 1}});
+			if (!doc) {
+				return res.status(404).send('Not found.');
+			}
+			res.set('Cache-Control', 'no-cache');
+			res.type('application/manifest+json').send(JSON.stringify(manifestOf(doc)));
+		} catch (error) {
+			logger.error(error);
+			return res.status(500).send('Internal Server Error.');
+		}
+	});
+
 	app.get('/api/app/:cid', async (req, res) => {
 		if (!CID.test(req.params.cid)) {
 			return res.status(404).send('Not found.');
@@ -453,7 +500,8 @@ module.exports = function(app, deps) {
 			}
 			const data = await compiled(db, doc);
 			await deps.countShow(db, doc, req);
-			// (the browser asks again each time; the ETag answers 304 while nothing changed)
+			// The page keeps the program it got and asks with If-None-Match: the
+			// ETag (of the content, by Express) answers 304 while nothing changed.
 			res.set('Cache-Control', 'no-cache');
 			res.type('application/json').send(data);
 		} catch (error) {

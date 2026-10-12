@@ -11,6 +11,13 @@
 // shows the screen only while it runs; when it ends (or stops with an error)
 // the screen goes and the console takes its place, so that what it printed
 // and its error can be read and copied.
+//
+// The page works offline: its service worker (serviceworker.js) keeps the
+// page and the files it loads, and the compiled program is kept here, under
+// a cache of its own, and asked for again with its ETag: the server answers
+// 304 while the program has not changed, and with no network the copy kept
+// is run. A program's manifest (/api/app/<cid>/manifest.json) lets it be
+// added to a home screen as an app of its own.
 
 // The libraries read these as in the editor (pg0.js): whether a run is on,
 // the console, and the program's identity. pg0_app tells lib/screen.js that
@@ -20,11 +27,23 @@ let run = false;
 let cv = null;
 let ev = {currentContent: {cid: '', name: '', hash: '', modify: false}, getText: function() { return ''; }};
 
+// the cache of the compiled programs (not the service worker's: it outlives its versions)
+const PROGRAM_CACHE = 'pg0-app-programs';
+
 function stop() {
 	run = false;
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('serviceworker.js', {scope: './'}).then(function (registration) {
+			registration.onupdatefound = function() {
+				registration.update();
+			}
+		}).catch(function (error) {
+			console.error('serviceWorker error:', error);
+		});
+	}
 	cv = new consoleView(document.getElementById('console'));
 
 	const param = pg0_string.searchParams(location.search);
@@ -33,9 +52,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 		cv.error(pg0_string.escapeHTML(resource.APP_NO_CID));
 		return;
 	}
+	// (the page served with no network is the one cached without a program: it gets the manifest of this one)
+	if (!document.querySelector('link[rel="manifest"]')) {
+		const link = document.createElement('link');
+		link.rel = 'manifest';
+		link.href = `${apiServer}/api/app/${encodeURIComponent(cid)}/manifest.json`;
+		document.head.appendChild(link);
+	}
 	let prog;
 	try {
-		const res = await fetch(`${apiServer}/api/app/${cid}`);
+		const res = await fetchProgram(`${apiServer}/api/app/${cid}`);
 		if (res.status === 404) {
 			cv.error(pg0_string.escapeHTML(resource.ONLINE_ERROR_NOT_FOUND));
 			return;
@@ -75,6 +101,52 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}
 	await execProgram(prog);
 }, false);
+
+// The compiled program: from the server when it has changed (or was never
+// had), else the copy kept in PROGRAM_CACHE, which also serves when the
+// server cannot be reached. Returns the response to read the program from.
+async function fetchProgram(url) {
+	let store = null;
+	let cached = null;
+	if (typeof caches !== 'undefined') {
+		try {
+			store = await caches.open(PROGRAM_CACHE);
+			cached = await store.match(url, {ignoreVary: true});
+		} catch (e) {
+			console.error(e);
+			store = null;
+		}
+	}
+	const headers = {};
+	if (cached && cached.headers.get('ETag')) {
+		headers['If-None-Match'] = cached.headers.get('ETag');
+	}
+	let res;
+	try {
+		// (no-store: the browser's own cache is not asked, the server is, with the ETag above)
+		res = await fetch(url, {headers: headers, cache: 'no-store'});
+	} catch (e) {
+		if (cached) {
+			return cached;
+		}
+		throw e;
+	}
+	if (cached && (res.status === 304 || res.status >= 500)) {
+		return cached;
+	}
+	if (store) {
+		try {
+			if (res.ok) {
+				await store.put(url, res.clone());
+			} else if (res.status === 404) {
+				await store.delete(url);
+			}
+		} catch (e) {
+			console.error(e);
+		}
+	}
+	return res;
+}
 
 // IO functions, as the editor provides them
 ScriptExec.lib['error'] = async function(ei, param, ret) {

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v459';
+const CACHE_VERSION = 'pg0-v460';
 
 const resources = [
 	'./',
@@ -78,7 +78,9 @@ self.addEventListener('fetch', function (event) {
 		return;
 	}
 	event.respondWith(
-		self.caches.match(event.request, {ignoreSearch: true}).then(function (response) {
+		self.caches.open(CACHE_VERSION).then(function (cache) {
+			return cache.match(event.request, {ignoreSearch: true});
+		}).then(function (response) {
 			if (response) {
 				return response;
 			} else {
@@ -91,8 +93,9 @@ self.addEventListener('fetch', function (event) {
 self.addEventListener('activate', function (event) {
 	event.waitUntil(
 		self.caches.keys().then(function (keyList) {
+			// (the caches of the app page, /app/, are not this worker's)
 			return Promise.all(keyList.map(function (key) {
-				if (key !== CACHE_VERSION) {
+				if (key !== CACHE_VERSION && !/^pg0-app-/.test(key)) {
 					return self.caches.delete(key);
 				}
 			}));
