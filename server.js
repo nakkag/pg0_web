@@ -144,6 +144,24 @@ function withConditions(base, conds) {
 	return conds.length ? Object.assign({$and: conds}, base) : base;
 }
 
+function clientAddress(req) {
+	return (req.headers['x-forwarded-for'] ||
+		(req.connection && req.connection.remoteAddress) ||
+		(req.socket && req.socket.remoteAddress));
+}
+
+// A script opened (in the editor or as an app) by an address other than the
+// last one counts as shown once more, for the popular order of the list.
+async function countShow(db, doc, req) {
+	const prev = clientAddress(req);
+	if (prev !== doc.prev) {
+		await db.collection('script').updateOne({cid: doc.cid}, {$set: {
+			showCount: (doc.showCount || 0) + 1,
+			prev: prev,
+		}});
+	}
+}
+
 // Two modes: the caller's own scripts, private ones included, newest first (mine),
 // or everyone's public scripts, optionally of one genre, in the requested order.
 async function listScripts(q, conds) {
@@ -196,7 +214,15 @@ app.use(function (req, res, next) {
 	res.header('Referrer-Policy', 'no-referrer-when-downgrade');
 	next();
 });
+// Apps (/app/?cid=...): a stored script compiled for the page that only runs
+// it, see app_server.js. Before the static files: the page is sent with the
+// program's name in its title.
+require('./app_server.js')(app, {getDB: getDB, logger: logger, countShow: countShow});
+
 app.use('/', express.static('public'));
+// The app page (/app/) loads the libraries, and the images they show, by the
+// same relative paths as the editor.
+app.use('/app/lib', express.static(path.join(__dirname, 'public', 'dev', 'lib')));
 
 // AI agent API (/api/agent/v1): program execution and script storage, see agent_api.js
 require('./agent_api.js')(app, {getDB: getDB, addHistory: addHistory, logger: logger, tags: scriptTags, normalizeTags: normalizeTags});
@@ -258,15 +284,7 @@ app.get('/api/script/item/:cid', async (req, res) => {
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
-		const prev = (req.headers['x-forwarded-for'] ||
-			(req.connection && req.connection.remoteAddress) ||
-			(req.socket && req.socket.remoteAddress));
-		if (prev !== doc.prev) {
-			await db.collection('script').updateOne({cid: req.params.cid}, {$set: {
-				showCount: (doc.showCount || 0) + 1,
-				prev: prev,
-			}});
-		}
+		await countShow(db, doc, req);
 		delete doc._id;
 		delete doc.ipaddr;
 		delete doc.password;

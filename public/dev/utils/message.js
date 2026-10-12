@@ -10,7 +10,7 @@ let resource = {
 	SETTING_LINENUM_TITLE: 'Show line number',
 
 	ONLINE_OPEN_COPY: 'Copy URL',
-	ONLINE_OPEN_COPY_AUTORUN: 'Copy autorun URL',
+	ONLINE_OPEN_COPY_AUTORUN: 'Copy app URL',
 	ONLINE_OPEN_HISTORY: 'Revision history',
 	ONLINE_OPEN_REMOVE: 'Remove',
 	ONLINE_OPEN_REMOVE_PASSWORD: 'Enter the edit password.',
@@ -65,6 +65,8 @@ let resource = {
 	CONSOLE_STOP: 'Stop',
 	CONSOLE_RESULT: 'Result:',
 
+	APP_NO_CID: 'No program is given (the URL needs ?cid=...).',
+
 	MENU_NEW: 'New',
 	MENU_ONLINE_OPEN: 'Open online',
 	MENU_ONLINE_SAVE: 'Save to online',
@@ -110,7 +112,7 @@ if (_lang === 'ja') {
 		SETTING_LINENUM_TITLE: '行番号を表示',
 
 		ONLINE_OPEN_COPY: 'URLをコピー',
-		ONLINE_OPEN_COPY_AUTORUN: '自動実行URLをコピー',
+		ONLINE_OPEN_COPY_AUTORUN: 'アプリURLをコピー',
 		ONLINE_OPEN_HISTORY: '変更履歴',
 		ONLINE_OPEN_REMOVE: '削除',
 		ONLINE_OPEN_REMOVE_PASSWORD: '編集パスワードを入力してください。',
@@ -163,6 +165,8 @@ if (_lang === 'ja') {
 		CONSOLE_END: '終了',
 		CONSOLE_STOP: '停止',
 		CONSOLE_RESULT: '実行結果:',
+
+		APP_NO_CID: 'プログラムが指定されていません（URL に ?cid=... が必要です）。',
 
 		MENU_NEW: '新規',
 		MENU_ONLINE_OPEN: 'オンラインを開く',

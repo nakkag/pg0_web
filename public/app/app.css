@@ -1,0 +1,30 @@
+html {
+	min-height: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-top));
+}
+
+body {
+	overflow: hidden;
+	background-color: #f1f3f4;
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	-webkit-text-size-adjust: 100%;
+	font-size: 18px;
+}
+
+/* A program without a screen shows its console over the whole page. */
+#console-container {
+	position: fixed;
+	top: env(safe-area-inset-top);
+	left: env(safe-area-inset-left);
+	right: env(safe-area-inset-right);
+	bottom: env(safe-area-inset-bottom);
+	background-color: #fff;
+	overflow-y: auto;
+}
+#console-container:focus {
+	outline: none;
+}
+
+/* A program with a screen (lib/screen.pg0) shows the screen only while it runs. */
+body.screen #console-container {
+	display: none;
+}
