@@ -205,7 +205,8 @@ function escapeHtml(s) {
 // sites that show a link read), since they do not run the page's script.
 function pageOf(template, doc, url) {
 	const title = (doc && doc.name) ? String(doc.name) : '';
-	const description = (doc && doc.memo) ? String(doc.memo) : (title ? title + ' - PG0' : '');
+	// (the memo of a script is a note on its revision, not a description)
+	const description = title ? title + ' - PG0' : '';
 	let page = template;
 	if (title) {
 		page = page.replace(/<title>[^<]*<\/title>/, '<title>' + escapeHtml(title) + '</title>')
@@ -315,7 +316,7 @@ module.exports = function(app, deps) {
 		let doc = null;
 		if (CID.test(cid)) {
 			try {
-				doc = await (await deps.getDB()).collection('script').findOne({cid: cid}, {projection: {name: 1, memo: 1}});
+				doc = await (await deps.getDB()).collection('script').findOne({cid: cid}, {projection: {name: 1}});
 			} catch (error) {
 				// (the page still loads; its script tells what went wrong)
 				logger.error(error);
