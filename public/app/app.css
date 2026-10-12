@@ -1,0 +1,64 @@
+html {
+	min-height: calc(100% + env(safe-area-inset-top) + env(safe-area-inset-top));
+}
+
+body {
+	overflow: hidden;
+	background-color: #f1f3f4;
+	font-family: Menlo, Monaco, 'ＭＳ ゴシック', 'MS Gothic', 'Courier New', monospace;
+	-webkit-text-size-adjust: 100%;
+	font-size: 18px;
+}
+
+/* A program without a screen shows its console over the whole page. */
+#console-container {
+	position: fixed;
+	top: env(safe-area-inset-top);
+	left: env(safe-area-inset-left);
+	right: env(safe-area-inset-right);
+	bottom: env(safe-area-inset-bottom);
+	background-color: #fff;
+	overflow-y: auto;
+}
+#console-container:focus {
+	outline: none;
+}
+
+/* A program with a screen (lib/screen.pg0) shows the screen only. */
+body.screen #console-container {
+	display: none;
+}
+
+/* The notice that the program ended, over the screen it leaves behind. */
+#app-end {
+	position: fixed;
+	z-index: 600;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	box-sizing: border-box;
+	max-width: calc(100% - 40px);
+	max-height: calc(100% - 40px);
+	overflow: auto;
+	padding: 1em 1.5em;
+	border-radius: 8px;
+	background-color: rgba(0, 0, 0, 0.75);
+	color: #fff;
+	font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+	line-height: 1.5;
+	text-align: center;
+	user-select: none;
+}
+#app-end[hidden] {
+	display: none;
+}
+#app-end-error {
+	color: #ffa0a0;
+	white-space: pre-wrap;
+	word-break: break-word;
+	text-align: left;
+	margin-bottom: 0.7em;
+}
+#app-end-error:empty {
+	display: none;
+}

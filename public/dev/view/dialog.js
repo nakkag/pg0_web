@@ -198,7 +198,8 @@ const onlineOpenView = (function () {
 			me.closeMenu();
 			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
 			if (navigator.clipboard) {
-				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}&run=1`);
+				// (the app page runs the program as it is saved, without the editor)
+				navigator.clipboard.writeText(`${location.origin}/app/?cid=${cid}`);
 			}
 			return;
 		}
@@ -680,7 +681,8 @@ const onlineHistoryView = (function () {
 			me.closeMenu();
 			const cid = e.target.closest('#online-open-menu').getAttribute('cid');
 			if (navigator.clipboard) {
-				navigator.clipboard.writeText(`${location.origin}${location.pathname}?cid=${cid}&run=1`);
+				// (the app page runs the program as it is saved, without the editor)
+				navigator.clipboard.writeText(`${location.origin}/app/?cid=${cid}`);
 			}
 			return;
 		}

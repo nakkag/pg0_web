@@ -139,8 +139,13 @@ function _netSha256(text) {
 }
 
 // The program as the editor has it, hashed as the server hashes the saved
-// one: without CR and without the line breaks at the end.
+// one: without CR and without the line breaks at the end. The app page
+// (/app/) has no source and carries the hash the server gave it instead.
 function _netProgramHash() {
+	const cc = (typeof ev !== 'undefined' && ev) ? ev.currentContent : null;
+	if (cc && typeof cc.hash === 'string' && cc.hash) {
+		return cc.hash;
+	}
 	const text = (typeof ev !== 'undefined' && ev && typeof ev.getText === 'function') ? ev.getText() : '';
 	return _netSha256(String(text).replace(/\r/g, '').replace(/\n+$/, ''));
 }

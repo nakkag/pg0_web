@@ -264,6 +264,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		screen.addEventListener('touchmove', _mouseMove, false);
 		back.append(screen);
 	}
+	// The app page (/app/) shows the program only: no button closes or
+	// shrinks the screen, and the speaker is at the right edge.
+	const appMode = _screenAppMode();
 	let sound = document.getElementById('lib-screen-sound');
 	if (!sound) {
 		sound = document.createElement('div');
@@ -275,7 +278,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		}
 		sound.style.zIndex = 502;
 		sound.style.position = 'absolute';
-		sound.style.right = 'calc(env(safe-area-inset-right) + 100px)';
+		sound.style.right = appMode ? 'env(safe-area-inset-right)' : 'calc(env(safe-area-inset-right) + 100px)';
 		sound.style.top = 'env(safe-area-inset-top)';
 		sound.style.width = '40px';
 		sound.style.opacity = '75%';
@@ -296,7 +299,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		}, false);
 	}
 	let iconic = document.getElementById('lib-screen-iconic');
-	if (!iconic) {
+	if (!iconic && !appMode) {
 		iconic = document.createElement('div');
 		iconic.setAttribute('id', 'lib-screen-iconic');
 		iconic.innerHTML = '<img src="lib/image/sc_icon.svg">';
@@ -363,7 +366,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		}, false);
 	}
 	let close = document.getElementById('lib-screen-close');
-	if (!close) {
+	if (!close && !appMode) {
 		close = document.createElement('div');
 		close.setAttribute('id', 'lib-screen-close');
 		close.innerHTML = '<img src="lib/image/sc_close.svg">';
@@ -429,7 +432,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				ScriptExec.lib['$audio_ctx'].close();
 				ScriptExec.lib['$audio_ctx'] = null;
 			}
-			document.getElementById('lib-screen-back').style.display = 'none';
+			// (the app page keeps the screen as the program left it)
+			if (!appMode) {
+				document.getElementById('lib-screen-back').style.display = 'none';
+			}
 			window.removeEventListener('resize', _screenResizeDelay, false);
 			window.removeEventListener('orientationchange', _screenResizeDelay, false);
 			document.removeEventListener('keydown', _screenKeyDown, false);
@@ -1510,6 +1516,12 @@ function _screenKeyClear(e) {
 	ScriptExec.lib['$keyCodes'] = {};
 }
 
+// Whether this is the app page (/app/), which shows a program as an app: the
+// screen has no close or minimize button, and stays when the program ends.
+function _screenAppMode() {
+	return typeof pg0_app !== 'undefined' && !!pg0_app;
+}
+
 function _screenResizeDelay() {
 	setTimeout(function() {
 		_screenResize();
@@ -1539,19 +1551,28 @@ function _screenResize() {
 		windowHeight = rect.height - 40;
 		sound.style.right = '100px';
 		sound.style.top = '0px';
-		iconic.style.right = '50px';
-		iconic.style.top = '0px';
-		close.style.right = '0px';
-		close.style.top = '0px';
+		if (iconic) {
+			iconic.style.right = '50px';
+			iconic.style.top = '0px';
+		}
+		if (close) {
+			close.style.right = '0px';
+			close.style.top = '0px';
+		}
 	} else {
 		screen.style.top = `calc(50% - ${height}px / 2 + env(safe-area-inset-top) - ${(top + bottom) / 2}px)`;
 		windowHeight = rect.height - top - bottom;
-		sound.style.right = 'calc(env(safe-area-inset-right) + 100px)';
+		// (the app page has the speaker alone, at the right edge)
+		sound.style.right = _screenAppMode() ? 'env(safe-area-inset-right)' : 'calc(env(safe-area-inset-right) + 100px)';
 		sound.style.top = 'env(safe-area-inset-top)';
-		iconic.style.right = 'calc(env(safe-area-inset-right) + 50px)';
-		iconic.style.top = 'env(safe-area-inset-top)';
-		close.style.right = 'env(safe-area-inset-right)';
-		close.style.top = 'env(safe-area-inset-top)';
+		if (iconic) {
+			iconic.style.right = 'calc(env(safe-area-inset-right) + 50px)';
+			iconic.style.top = 'env(safe-area-inset-top)';
+		}
+		if (close) {
+			close.style.right = 'env(safe-area-inset-right)';
+			close.style.top = 'env(safe-area-inset-top)';
+		}
 	}
 	// Without fit the screen is shown 1:1, except while it is minimized
 	if (screen.getAttribute('fit') !== '1' && !back.classList.contains('icon')) {

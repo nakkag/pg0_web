@@ -239,11 +239,9 @@ module.exports = function(servers, deps) {
 		});
 	}
 
-	// What a program is when it is saved: SHA-256 of the code in UTF-8, without
-	// CR and without the line breaks at the end (the editors hash the same way).
-	function programHash(code) {
-		return crypto.createHash('sha256').update(String(code == null ? '' : code).replace(/\r/g, '').replace(/\n+$/, ''), 'utf8').digest('hex');
-	}
+	// What a program is when it is saved: SHA-256 of the code (app_server.js;
+	// the editors and the apps hash the same way).
+	const programHash = require('./app_server.js').programHash;
 	// Whether a stored script has this cid, and the hash of its code. Answers
 	// are kept for a while so that a burst of joins does not ask the database
 	// every time (a script that exists only briefly: the owner may save it
