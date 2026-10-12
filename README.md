@@ -34,7 +34,7 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 - A program without a screen shows a console with the start and end of the run, the output and the result, as the editor does. A program that imports `lib/screen.pg0` shows the screen only while it runs: no close or minimize button, just the speaker at the right edge. When it ends, or stops with an error, the screen goes and the console takes its place, so that the output and the error can be read and copied. The page is sent by the server with the name of the script as its title (and in the `og:` tags), so that a link shared on a social site shows the name. It runs without waiting between statements (the `speed` of the script is for the editor).
 - The program's hash (SHA-256 of the code as saved) comes with the compiled program, so `lib/net.pg0` enters rooms as the saved program (the app has no source to hash).
 - Compiled programs are cached in the MongoDB collection `app_cache` (one document per cid, no expiry) and compiled again when the script was saved, a script it imports was saved, or the compiler changed (`app_server.js`, the parser, the library `.pg0` files). A program that does not compile is cached too, with its errors. Opening an app counts as a view of the script, as opening it in the editor does.
-- The page loads the libraries and their images from `/app/lib/`, which serves `public/dev/lib/`.
+- `/app/` and `/app/index.html` are sent by the Node server (`app/index.html` is the template; the page's script and style are static files under `public/app/`), and the page loads the libraries from `/dev/lib/`. A web server in front that serves `public/` itself has to pass `/app/` and `/app/index.html` to Node, as it does `/api/`.
 
 ## Online play (lib/net.pg0)
 
@@ -69,7 +69,7 @@ Programs that import `lib/net.pg0` (in the web editor and the Windows version) c
 - 画面の無いプログラムは、エディタと同じように開始と終了、出力、実行結果をコンソールに表示します。`lib/screen.pg0` を取り込んだプログラムは実行中は画面だけを表示し、閉じるボタンや小さくするボタンは出さず、右端にスピーカーのアイコンだけを置きます。終了したとき、またはエラーで止まったときは画面を消してコンソールに切り替え、出力とエラーを読んだりコピーしたりできるようにします。ページはサーバーがスクリプトの名前をタイトル（と `og:` タグ）に入れて返すので、SNS でシェアしたリンクにプログラムの名前が出ます。文ごとの待ちは入れずに実行します（スクリプトの `speed` はエディタ用です）。
 - プログラムのハッシュ（保存されたコードの SHA-256）をコンパイル済みのプログラムと一緒に渡すので、`lib/net.pg0` は保存されたプログラムとして部屋に入れます（アプリにはハッシュを取るソースがありません）。
 - コンパイル済みのプログラムは MongoDB のコレクション `app_cache` に入れます（cid ごとに 1 件、有効期限なし）。スクリプトが保存されたとき、取り込んでいるスクリプトが保存されたとき、コンパイラ（`app_server.js`、パーサー、ライブラリの `.pg0`）が変わったときに作り直します。コンパイルできないプログラムもエラーと一緒に入れます。アプリを開くと、エディタで開いたときと同じくスクリプトの閲覧数に数えます。
-- ページはライブラリとその画像を `/app/lib/` から読みます（`public/dev/lib/` を返します）。
+- `/app/` と `/app/index.html` は Node のサーバーが返します（`app/index.html` がテンプレート。ページのスクリプトとスタイルは `public/app/` の静的ファイル）。ライブラリは `/dev/lib/` から読みます。前段の Web サーバーが `public/` を直接返している場合は、`/api/` と同じように `/app/` と `/app/index.html` を Node に通してください。
 
 ## オンライン対戦（lib/net.pg0）
 

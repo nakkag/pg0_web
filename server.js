@@ -215,14 +215,12 @@ app.use(function (req, res, next) {
 	next();
 });
 // Apps (/app/?cid=...): a stored script compiled for the page that only runs
-// it, see app_server.js. Before the static files: the page is sent with the
-// program's name in its title.
+// it, see app_server.js. The page itself is sent from here, with the program's
+// name in its title (app/index.html is not under public/, so that a web
+// server in front cannot send it as it is).
 require('./app_server.js')(app, {getDB: getDB, logger: logger, countShow: countShow});
 
 app.use('/', express.static('public'));
-// The app page (/app/) loads the libraries, and the images they show, by the
-// same relative paths as the editor.
-app.use('/app/lib', express.static(path.join(__dirname, 'public', 'dev', 'lib')));
 
 // AI agent API (/api/agent/v1): program execution and script storage, see agent_api.js
 require('./agent_api.js')(app, {getDB: getDB, addHistory: addHistory, logger: logger, tags: scriptTags, normalizeTags: normalizeTags});

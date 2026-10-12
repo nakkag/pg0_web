@@ -143,9 +143,10 @@ async function execProgram(prog) {
 		});
 	} else {
 		let ok = true;
+		// (the libraries are the editor's, under /dev/)
 		for (const lib of (prog.libraries || [])) {
 			try {
-				await loadScript(lib);
+				await loadScript('/dev/' + lib);
 			} catch (e) {
 				console.error(e);
 				showError(lib, errMsg.ERR_SCRIPT, -1);

@@ -1,5 +1,11 @@
 "use strict";
 
+// Where the images of the screen are: next to this script, whichever page
+// loads it (the editor at /dev/, the app page at /app/, the admin pages).
+// var: the editor loads the script again on every run.
+var _screenImageDir = (document.currentScript && document.currentScript.src) ?
+	new URL('image/', document.currentScript.src).href : 'lib/image/';
+
 ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	if (param.length < 2) {
 		return -2;
@@ -272,9 +278,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		sound = document.createElement('div');
 		sound.setAttribute('id', 'lib-screen-sound');
 		if (ScriptExec.lib['$op'].mute) {
-			sound.innerHTML = '<img src="lib/image/sc_mute.svg">';
+			sound.innerHTML = '<img src=\"' + _screenImageDir + 'sc_mute.svg\">';
 		} else {
-			sound.innerHTML = '<img src="lib/image/sc_speaker.svg">';
+			sound.innerHTML = '<img src=\"' + _screenImageDir + 'sc_speaker.svg\">';
 		}
 		sound.style.zIndex = 502;
 		sound.style.position = 'absolute';
@@ -289,10 +295,10 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			e.preventDefault();
 			if (ScriptExec.lib['$op'].mute) {
 				ScriptExec.lib['$op'].mute = false;
-				sound.innerHTML = '<img src="lib/image/sc_speaker.svg">';
+				sound.innerHTML = '<img src=\"' + _screenImageDir + 'sc_speaker.svg\">';
 			} else {
 				ScriptExec.lib['$op'].mute = true;
-				sound.innerHTML = '<img src="lib/image/sc_mute.svg">';
+				sound.innerHTML = '<img src=\"' + _screenImageDir + 'sc_mute.svg\">';
 				_screenStopSound();
 			}
 			localStorage.setItem('pg0_screen', JSON.stringify(ScriptExec.lib['$op']));
@@ -302,7 +308,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	if (!iconic && !appMode) {
 		iconic = document.createElement('div');
 		iconic.setAttribute('id', 'lib-screen-iconic');
-		iconic.innerHTML = '<img src="lib/image/sc_icon.svg">';
+		iconic.innerHTML = '<img src=\"' + _screenImageDir + 'sc_icon.svg\">';
 		iconic.style.zIndex = 502;
 		iconic.style.position = 'absolute';
 		iconic.style.right = 'calc(env(safe-area-inset-right) + 50px)';
@@ -316,7 +322,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 			e.preventDefault();
 			if (!back.classList.contains('icon')) {
 				const rect = document.getElementById('ctrl-container').getBoundingClientRect();
-				iconic.innerHTML = '<img src="lib/image/sc_restore.svg">';
+				iconic.innerHTML = '<img src=\"' + _screenImageDir + 'sc_restore.svg\">';
 				back.classList.add('icon');
 				back.style.right = 'env(safe-area-inset-right)';
 				if (rect.top > 100) {
@@ -352,7 +358,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 					back.setAttribute('icon-top', top + 'px');
 				}
 			} else {
-				iconic.innerHTML = '<img src="lib/image/sc_icon.svg">';
+				iconic.innerHTML = '<img src=\"' + _screenImageDir + 'sc_icon.svg\">';
 				back.classList.remove('icon');
 				back.style.left = '0';
 				back.style.right = 'unset';
@@ -369,7 +375,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	if (!close && !appMode) {
 		close = document.createElement('div');
 		close.setAttribute('id', 'lib-screen-close');
-		close.innerHTML = '<img src="lib/image/sc_close.svg">';
+		close.innerHTML = '<img src=\"' + _screenImageDir + 'sc_close.svg\">';
 		close.style.zIndex = 502;
 		close.style.position = 'absolute';
 		close.style.right = 'env(safe-area-inset-right)';
