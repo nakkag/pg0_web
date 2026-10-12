@@ -326,7 +326,6 @@ module.exports = function(app, deps) {
 	const logger = deps.logger;
 	const parser = createParser();
 	const toolchain = toolchainKey();
-	const template = fs.readFileSync(PAGE_FILE, 'utf8');
 	// cid -> promise of the compile under way, shared by requests that arrive meanwhile
 	const compiling = new Map();
 	let indexed = false;
@@ -430,6 +429,14 @@ module.exports = function(app, deps) {
 		}
 		const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
 		const url = (host ? 'https://' + host : '') + '/app/' + (doc ? '?cid=' + encodeURIComponent(cid) : '');
+		// (the template is read each time: a new one is served without a restart)
+		let template;
+		try {
+			template = fs.readFileSync(PAGE_FILE, 'utf8');
+		} catch (error) {
+			logger.error(error);
+			return res.status(500).send('Internal Server Error.');
+		}
 		res.set('Cache-Control', 'no-cache');
 		res.type('html').send(pageOf(template, doc, url));
 	});

@@ -53,11 +53,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 	if (prog.name) {
 		document.title = prog.name;
 	}
-	// (the parse trees come in the compact form of pack.js)
-	if (prog.scripts) {
-		prog.scripts = prog.scripts.map(function(s) {
-			return (prog.format === 2) ? pg0_pack.unpackScript(s) : s;
-		});
+	// The parse trees come in the compact form of pack.js (loaded here when
+	// the page did not: a page cached from before pack.js existed).
+	if (prog.scripts && prog.format === 2) {
+		if (typeof pg0_pack === 'undefined') {
+			try {
+				await loadScript('pack.js?v=1');
+			} catch (e) {
+				console.error(e);
+				cv.error(pg0_string.escapeHTML(resource.ONLINE_ERROR_CONNECTION));
+				return;
+			}
+		}
+		prog.scripts = prog.scripts.map(pg0_pack.unpackScript);
 	}
 	// (the hash is what the relay of lib/net.pg0 compares with the saved program)
 	ev.currentContent = {cid: prog.cid || cid, name: prog.name || '', hash: prog.hash || '', modify: false};
