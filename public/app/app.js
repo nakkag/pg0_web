@@ -190,21 +190,41 @@ async function execScripts(prog, showError) {
 		let ok = true;
 		let line = -1;
 		try {
+			// The run gives the page a turn (to draw, and to take input) as the
+			// editor does with no wait between statements: after 1000 steps in
+			// an imported part, else after 1000 new lines, or after 100 steps on
+			// one line (a loop in a single line). Each turn costs a few
+			// milliseconds (the browser clamps chained timers), so a turn at
+			// every thousand steps would slow a drawing loop many times over.
 			let syncCnt = 0;
+			let sameCnt = 0;
 			await se.exec(prog.scripts[i].token, {}, {
 				callback: async function(ei) {
 					if (!run) {
 						return 1;
 					}
 					const tk = ei.token[ei.index];
-					if (tk && tk.line >= 0) {
-						line = tk.line;
-					}
-					// (the page draws and answers input between the steps)
-					syncCnt++;
-					if (syncCnt > 1000) {
-						await new Promise(resolve => setTimeout(resolve, 0));
-						syncCnt = 0;
+					const l = tk ? tk.line : -1;
+					if (imp) {
+						syncCnt++;
+						if (syncCnt > 1000) {
+							await new Promise(resolve => setTimeout(resolve, 0));
+							syncCnt = 0;
+						}
+					} else if (l >= 0 && line !== l) {
+						sameCnt = 0;
+						line = l;
+						syncCnt++;
+						if (syncCnt > 1000) {
+							await new Promise(resolve => setTimeout(resolve, 0));
+							syncCnt = 0;
+						}
+					} else if (line === l) {
+						sameCnt++;
+						if (sameCnt > 100) {
+							await new Promise(resolve => setTimeout(resolve, 0));
+							sameCnt = 0;
+						}
 					}
 					return run ? 0 : 1;
 				},
