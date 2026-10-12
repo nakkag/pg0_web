@@ -12,7 +12,7 @@ This manual is written for AI agents (and people) that want to write, check, run
 1. Write a program. Use **PG0.5** (the default) unless a task explicitly asks for PG0.
 2. `POST /api/agent/v1/run` with `{"code": "..."}`.
 3. Read `status`, `output`, `result`, `variables` and `error` in the response. Fix the program and run again.
-4. Optionally store the program with `POST /api/agent/v1/scripts`; the response contains a URL that opens it in the web editor.
+4. Optionally store the program with `POST /api/agent/v1/scripts`; the response contains a URL that opens it in the web editor (`url`) and one that runs it as an app (`run_url`).
 
 ```http
 POST /api/agent/v1/run
@@ -130,7 +130,7 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `speed` | 0, 1, 250 or 500 | Execution speed in the web editor: milliseconds of wait per statement. 0 = no wait, 1 = fast, 250 = normal (default), 500 = slow. **Set 0 for programs that use `lib/screen.pg0`**: with a wait, drawing and animation become extremely slow. |
 | `check` | boolean | `true` parses `code` before saving and rejects the request with `422 syntax_error` (details in `error.detail`) when it does not parse. Without it, saving never checks the code, so run `/check` yourself first. |
 
-Response `201`: `{"cid", "name", "author", "mode", "private", "tags", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC. `url` opens the script in the web editor; `run_url` (`url` + `&run=1`) opens and runs it immediately, which is the link to hand to a person for a game.
+Response `201`: `{"cid", "name", "author", "mode", "private", "tags", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`. Times are milliseconds since 1970-01-01 UTC. `url` opens the script in the web editor; `run_url` (`https://<host>/app/?cid=<cid>`) runs it as an app: no editor, the source is not shown, a program with a screen shows the screen only, and the console (with the output and any error) appears when it ends. This is the link to hand to a person for a game. The app page runs the program as it is saved (it is compiled on the server and cached), so after a change save it again.
 
 `PUT /api/agent/v1/scripts/{cid}`: body `{"password": "...", ...any of name, code, author, memo, private, tags, mode, uuid, speed, check}`; only given fields change. The previous version is kept in the history. **Always send `memo` with an update** describing the change; if omitted, the previous memo is carried over and the history no longer tells the versions apart. `401 wrong_password`, `404 not_found`, `409 name_conflict`.
 
@@ -542,7 +542,7 @@ In the browser this library opens a canvas that covers the page and provides dra
 - `inTouch()` and `inKey()` answer from the `screen.touch` and `screen.keys` timelines of the request (nothing pressed by default);
 - the run stops with `status: "frame_limit"` after `max_frames` frames (default 10000) or `status: "virtual_time_limit"` when the virtual clock reaches `max_virtual_ms`. These are normal stops for endless game loops: `variables` and `screen` are returned and `error` is `null`.
 
-What cannot be verified headless: actual pixels (`rgbToPoint` returns black), exact text metrics (`measureText` is an approximation), real frame rate and appearance. Store the program (`POST /api/agent/v1/scripts` with `"speed": 0`) and let a person open the returned `run_url` for that.
+What cannot be verified headless: actual pixels (`rgbToPoint` returns black), exact text metrics (`measureText` is an approximation), real frame rate and appearance. Store the program (`POST /api/agent/v1/scripts`) and let a person open the returned `run_url` (the app page) for that.
 
 **Performance budget per frame.** `stats.steps_per_frame` (`avg` and `max`) counts execution steps between two `sleep()` calls, in the same unit as `stats.steps`. In the browser at speed 0 the interpreter yields to the page every 1000 steps, which costs about 4 ms each, so a frame needs roughly **4.6 ms per 1000 steps plus the `sleep()` time plus drawing**. With `sleep(16)`: about 1000 steps per frame gives around 45 fps, 3000 steps around 30 fps, 10000 steps around 15 fps. Drawing 300 tiles with one `drawRect` each costs a few thousand steps; draw only what changed, or draw static layers once into an image (`createImage`) and blit it with `drawImage`.
 
@@ -735,7 +735,7 @@ POST /api/agent/v1/scripts
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```
 
-The `201` response contains `"url": "https://<host>/dev/?cid=<cid>"`; give that URL to the person. Append `&run=1` to run it on open.
+The `201` response contains `"run_url": "https://<host>/app/?cid=<cid>"`, which runs the program as an app; give that URL to the person. `"url": "https://<host>/dev/?cid=<cid>"` opens it in the editor instead (`&run=1` appended runs it there on open).
 
 ### 5.5 Testing and storing a screen program
 
