@@ -1411,7 +1411,18 @@
         }
       ],
       "get": {
-        "summary": "Get a stored script including its code",
+        "summary": "Get a stored script including its code (a private script needs ?password=<edit password>)",
+        "parameters": [
+          {
+            "name": "password",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Edit password; required for a private script"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Script",
@@ -1422,6 +1433,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "The script is private and the password is missing or wrong (private_script)"
           },
           "404": {
             "description": "Not found"
@@ -1616,7 +1630,18 @@
         }
       ],
       "get": {
-        "summary": "Get a previous version of a stored script",
+        "summary": "Get a previous version of a stored script (a private script needs ?password=<edit password>)",
+        "parameters": [
+          {
+            "name": "password",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Edit password; required for a private script"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Script version",
@@ -1627,6 +1652,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "The script is private and the password is missing or wrong (private_script)"
           },
           "404": {
             "description": "Not found"

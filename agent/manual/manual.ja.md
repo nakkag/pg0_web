@@ -123,7 +123,7 @@ Content-Type: application/json
 | `password` | string、必須 | 更新・削除に必要。エディタと同様、前後の空白を除き大文字小文字を区別せずに比較されます。 |
 | `author` | string、100 文字まで | デフォルト `"AI agent"`。 |
 | `memo` | string | **変更履歴のメモ。** エディタと、バージョンごとの変更履歴に表示されます。作成時はプログラムの説明を、更新時は毎回その変更内容を書きます（下の「変更履歴」参照）。 |
-| `private` | 0 または 1 | 1 で一覧に出なくなります（`cid` では取得可能。名前の一意性も不要）。 |
+| `private` | 0 または 1 | 1 で一覧に出なくなり、コードはパスワードを知る人にしか見えません。`GET /scripts/{cid}` と `/history/{time}` には `?password=<編集パスワード>` が必要です（無ければ `401 private_script`。エディタも同じく尋ねます）。アプリのページ（`run_url`）はパスワード無しで動きます。名前の一意性は不要です。 |
 | `tags` | string の配列、3 つまで | ジャンル。`game`（ゲーム）, `graphics`（図形・アニメーション）, `math`（計算・数学）, `algorithm`（アルゴリズム）, `text`（文字列・データ処理）, `study`（学習・練習）, `tool`（ツール・シミュレーション）, `other`（その他）から選びます（一覧は `GET /api/agent/v1` の `script_tags`）。エディタの「オンラインを開く」でジャンルとして表示・絞り込みされるので、公開するスクリプトには内容に合うものを 1～2 個付けてください。不明な ID は `400 invalid_request`。省略すると未設定（絞り込みでは `other` 扱い）。 |
 | `mode` | `"PG0.5"` または `"PG0"` | エディタと `/scripts/{cid}/run` が使うモード。 |
 | `uuid` | string | 任意の所有者 ID。`GET /scripts?uuid=` で非公開分も含めて先頭に列挙されます。省略するとランダムな ID が割り当てられ、レスポンスには含まれません。後で自分のスクリプト（非公開分を含む）を一覧したいときは、推測されにくい ID を自分で決めて毎回渡してください。 |
@@ -142,7 +142,7 @@ Content-Type: application/json
 
 `POST /api/agent/v1/scripts/{cid}/run`: `/run` から `code` を除いたボディ。`mode` は保存時のモードがデフォルトです。
 
-`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [memo と current 付きの要約...]}`。現在のバージョンが先頭（`"current": 1`）で、その後に過去のバージョンが新しい順に並びます。`GET /api/agent/v1/scripts/{cid}/history/{updateTime}` でそのバージョンのコードを取得できます。
+`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [memo と current 付きの要約...]}`。現在のバージョンが先頭（`"current": 1`）で、その後に過去のバージョンが新しい順に並びます。`GET /api/agent/v1/scripts/{cid}/history/{updateTime}` でそのバージョンのコードを取得できます。非公開のスクリプトではどちらにも `?password=<編集パスワード>` が必要です。
 
 **変更履歴。** 保存のたびにバージョンが作られ、各バージョンは自分の `memo` を保持します。Web エディタはこの一覧を「変更履歴」として現在のバージョンを先頭に表示するので、`memo` がスクリプトの変更履歴になります。コミットメッセージのように書いてください。
 

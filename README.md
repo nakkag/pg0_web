@@ -33,8 +33,13 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 
 - A program without a screen shows a console with the start and end of the run, the output and the result, as the editor does. A program that imports `lib/screen.pg0` shows the screen only while it runs: no close or minimize button, just the speaker at the right edge. When it ends, or stops with an error, the screen goes and the console takes its place, so that the output and the error can be read and copied. The page is sent by the server with the name of the script as its title (and in the `og:` tags), so that a link shared on a social site shows the name. It runs without waiting between statements (the `speed` of the script is for the editor).
 - The program's hash (SHA-256 of the code as saved) comes with the compiled program, so `lib/net.pg0` enters rooms as the saved program (the app has no source to hash).
+- The names of the variables and of the functions the program declares are made short (`a`, `b`, ... and `_a`, `_b`, ...), as `pg0gen.exe` does for an executable: the compiled program is smaller, and reads like nothing. A variable named inside a `{...}` that makes an array keeps its name, since the name becomes the key of the element (`{x, y}` is `{"x": ..., "y": ...}`). The editor and the Windows version keep every name: they show them while debugging.
 - Compiled programs are cached in the MongoDB collection `app_cache` (one document per cid, no expiry) and compiled again when the script was saved, a script it imports was saved, or the compiler changed (`app_server.js`, the parser, the library `.pg0` files). A program that does not compile is cached too, with its errors. Opening an app counts as a view of the script, as opening it in the editor does.
 - `/app/` and `/app/index.html` are sent by the Node server (`app/index.html` is the template; the page's script and style are static files under `public/app/`), and the page loads the libraries from `/dev/lib/`. A web server in front that serves `public/` itself has to pass `/app/` and `/app/index.html` to Node, as it does `/api/`.
+
+## Private scripts
+
+A private script (`private: 1`) shows its code only with its edit password: `GET /api/script/item/<cid>`, `GET /api/script/item/<cid>/<time>` and `GET /api/script/import/<cid>` answer 401 unless `?password=<crc32>` carries the password as the editor saves it (`pg0_string.crc32`). The editor asks for the password when it opens such a script (after trying the one it remembers from saving), as the Windows version does; `#import("cid:...")` of a private script asks too. The AI agent API takes the password itself (`GET /api/agent/v1/scripts/<cid>?password=...`). Apps (`/app/`) and executables run a private program without the password.
 
 ## Online play (lib/net.pg0)
 
@@ -68,8 +73,13 @@ Programs that import `lib/net.pg0` (in the web editor and the Windows version) c
 
 - 画面の無いプログラムは、エディタと同じように開始と終了、出力、実行結果をコンソールに表示します。`lib/screen.pg0` を取り込んだプログラムは実行中は画面だけを表示し、閉じるボタンや小さくするボタンは出さず、右端にスピーカーのアイコンだけを置きます。終了したとき、またはエラーで止まったときは画面を消してコンソールに切り替え、出力とエラーを読んだりコピーしたりできるようにします。ページはサーバーがスクリプトの名前をタイトル（と `og:` タグ）に入れて返すので、SNS でシェアしたリンクにプログラムの名前が出ます。文ごとの待ちは入れずに実行します（スクリプトの `speed` はエディタ用です）。
 - プログラムのハッシュ（保存されたコードの SHA-256）をコンパイル済みのプログラムと一緒に渡すので、`lib/net.pg0` は保存されたプログラムとして部屋に入れます（アプリにはハッシュを取るソースがありません）。
+- プログラムが宣言する変数名と関数名は、`pg0gen.exe` が実行ファイルにするときと同じく短い名前（`a`、`b`、... と `_a`、`_b`、...）に置き換えます。コンパイル済みのプログラムが小さくなり、読んでも分からなくなります。配列を作る `{...}` の中に書かれた変数は、その名前が要素のキーになる（`{x, y}` は `{"x": ..., "y": ...}`）ので名前を残します。エディタと Windows 版はデバッグで名前を見せるので置き換えません。
 - コンパイル済みのプログラムは MongoDB のコレクション `app_cache` に入れます（cid ごとに 1 件、有効期限なし）。スクリプトが保存されたとき、取り込んでいるスクリプトが保存されたとき、コンパイラ（`app_server.js`、パーサー、ライブラリの `.pg0`）が変わったときに作り直します。コンパイルできないプログラムもエラーと一緒に入れます。アプリを開くと、エディタで開いたときと同じくスクリプトの閲覧数に数えます。
 - `/app/` と `/app/index.html` は Node のサーバーが返します（`app/index.html` がテンプレート。ページのスクリプトとスタイルは `public/app/` の静的ファイル）。ライブラリは `/dev/lib/` から読みます。前段の Web サーバーが `public/` を直接返している場合は、`/api/` と同じように `/app/` と `/app/index.html` を Node に通してください。
+
+## 非公開のスクリプト
+
+非公開のスクリプト（`private: 1`）は編集パスワード無しではコードを見られません。`GET /api/script/item/<cid>`、`GET /api/script/item/<cid>/<time>`、`GET /api/script/import/<cid>` は、エディタが保存するのと同じ形（`pg0_string.crc32`）のパスワードを `?password=<crc32>` に付けないと 401 を返します。エディタはそのスクリプトを開くときに（保存で覚えているパスワードを試してから）パスワードを尋ねます。Windows 版も同じです。非公開のスクリプトの `#import("cid:...")` も尋ねます。AI エージェント用 API はパスワードそのものを受け取ります（`GET /api/agent/v1/scripts/<cid>?password=...`）。アプリ（`/app/`）と実行ファイルはパスワード無しで非公開のプログラムを動かせます。
 
 ## オンライン対戦（lib/net.pg0）
 

@@ -140,6 +140,51 @@ const messageView = (function () {
 	return me;
 })();
 
+// A private script shows its code only with its edit password (the server
+// answers 401 without it). A request that is refused is made again with the
+// password that opened the script before, with the one the editor remembers
+// from saving, and then with one asked for; null when the person gives none.
+const onlinePassword = (function () {
+	const me = {};
+	const known = {};
+
+	me.fetch = async function(cid, url) {
+		let res = await fetch(url);
+		if (res.status !== 401) {
+			return res;
+		}
+		const sep = url.includes('?') ? '&' : '?';
+		const tries = [];
+		if (known[cid] !== undefined) {
+			tries.push(known[cid]);
+		}
+		if (options.password) {
+			tries.push(pg0_string.crc32(options.password));
+		}
+		for (const crc of tries) {
+			res = await fetch(`${url}${sep}password=${crc}`);
+			if (res.status !== 401) {
+				known[cid] = crc;
+				return res;
+			}
+		}
+		while (true) {
+			const password = window.prompt(resource.ONLINE_OPEN_PASSWORD);
+			if (password === null) {
+				return null;
+			}
+			const crc = pg0_string.crc32(password);
+			res = await fetch(`${url}${sep}password=${crc}`);
+			if (res.status !== 401) {
+				known[cid] = crc;
+				return res;
+			}
+			alert(resource.ONLINE_ERROR_UNAUTHORIZED);
+		}
+	};
+	return me;
+})();
+
 const onlineOpenView = (function () {
 	const me = {};
 
@@ -363,7 +408,10 @@ const onlineOpenView = (function () {
 	me.getScript = async function(cid, ignoreError) {
 		let ret = true;
 		try {
-			const res = await fetch(`${apiServer}/api/script/item/${cid}`);
+			const res = await onlinePassword.fetch(cid, `${apiServer}/api/script/item/${cid}`);
+			if (!res) {
+				return false;
+			}
 			switch (res.status) {
 			case 200:
 				const script = await res.json();
@@ -782,7 +830,10 @@ const onlineHistoryView = (function () {
 	me.getHistory = async function(time) {
 		let ret = true;
 		try {
-			const res = await fetch(`${apiServer}/api/script/item/${me.cid}/${time}`);
+			const res = await onlinePassword.fetch(me.cid, `${apiServer}/api/script/item/${me.cid}/${time}`);
+			if (!res) {
+				return false;
+			}
 			switch (res.status) {
 			case 200:
 				const script = await res.json();
@@ -843,8 +894,8 @@ const onlineHistoryView = (function () {
 		return (scripts.length > 0) ? String(scripts[0].updateTime) : null;
 	};
 	me.getCode = async function(time) {
-		const res = await fetch(`${apiServer}/api/script/item/${me.cid}/${time}`);
-		if (res.status !== 200) {
+		const res = await onlinePassword.fetch(me.cid, `${apiServer}/api/script/item/${me.cid}/${time}`);
+		if (!res || res.status !== 200) {
 			throw res;
 		}
 		const script = await res.json();

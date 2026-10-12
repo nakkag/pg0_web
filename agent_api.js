@@ -623,6 +623,15 @@ module.exports = function(app, deps) {
 		}
 	});
 
+	// A private script shows its code only with its edit password (?password=,
+	// the password itself); the public ones to anybody.
+	function readable(doc, req) {
+		if (!doc || !doc.private || doc.password === undefined || doc.password === null || doc.password === '') {
+			return true;
+		}
+		return typeof req.query.password === 'string' && crc32(req.query.password) === doc.password;
+	}
+
 	router.get('/scripts/:cid', async function(req, res) {
 		if (!requireDB(res)) {
 			return;
@@ -632,6 +641,9 @@ module.exports = function(app, deps) {
 			const doc = await db.collection('script').findOne({cid: req.params.cid});
 			if (!doc) {
 				return apiError(res, 404, 'not_found', 'Script not found');
+			}
+			if (!readable(doc, req)) {
+				return apiError(res, 401, 'private_script', 'The script is private: add ?password=<edit password> to read it');
 			}
 			res.json(detailScript(req, doc));
 		} catch (error) {
@@ -812,6 +824,10 @@ module.exports = function(app, deps) {
 			}
 			if (!doc) {
 				return apiError(res, 404, 'not_found', 'Script version not found');
+			}
+			const current = await db.collection('script').findOne({cid: req.params.cid});
+			if (!readable(current || doc, req)) {
+				return apiError(res, 401, 'private_script', 'The script is private: add ?password=<edit password> to read it');
 			}
 			res.json(detailScript(req, doc));
 		} catch (error) {
