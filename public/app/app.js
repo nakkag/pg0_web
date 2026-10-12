@@ -8,8 +8,9 @@
 //
 // A program without a screen shows a console, with the start and the end of
 // the run as the editor shows them. A program that uses the screen library
-// shows the screen only, and when it ends the screen stays, with a notice in
-// its middle.
+// shows the screen only while it runs; when it ends (or stops with an error)
+// the screen goes and the console takes its place, so that what it printed
+// and its error can be read and copied.
 
 // The libraries read these as in the editor (pg0.js): whether a run is on,
 // the console, and the program's identity. pg0_app tells lib/screen.js that
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	}
 	// (the hash is what the relay of lib/net.pg0 compares with the saved program)
 	ev.currentContent = {cid: prog.cid || cid, name: prog.name || '', hash: prog.hash || '', modify: false};
+	// (the screen library draws over the page; the console is shown again when the run is over)
 	if (prog.screen) {
 		document.body.classList.add('screen');
 	}
@@ -126,11 +128,8 @@ function errorText(part, msg, line) {
 // Runs the compiled program: the imported parts first, in the order the
 // editor would run them, then the program (pg0.js, _exec).
 async function execProgram(prog) {
-	const errors = [];
 	function showError(part, msg, line) {
-		const text = errorText(part, msg, line);
-		errors.push(text);
-		cv.error(pg0_string.escapeHTML(text));
+		cv.error(pg0_string.escapeHTML(errorText(part, msg, line)));
 	}
 
 	run = true;
@@ -160,23 +159,18 @@ async function execProgram(prog) {
 	}
 	run = false;
 
-	if (!prog.screen) {
-		cv.info(resource.CONSOLE_END);
-		if (value) {
-			if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
-				cv.info(resource.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
-			} else if (value.type === TYPE_STRING) {
-				cv.info(resource.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
-			} else if (value.type === TYPE_ARRAY) {
-				cv.info(resource.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
-			}
+	cv.info(resource.CONSOLE_END);
+	if (value) {
+		if (value.type === TYPE_INTEGER || value.type === TYPE_FLOAT) {
+			cv.info(resource.CONSOLE_RESULT, pg0_string.escapeHTML(ScriptExec.getValueString(value)));
+		} else if (value.type === TYPE_STRING) {
+			cv.info(resource.CONSOLE_RESULT, `"${pg0_string.escapeHTML(ScriptExec.getValueString(value))}"`);
+		} else if (value.type === TYPE_ARRAY) {
+			cv.info(resource.CONSOLE_RESULT, `{${pg0_string.escapeHTML(pg0_string.arrayToString(value.array))}}`);
 		}
-		return;
 	}
-	// The screen stays as the program left it; the notice goes over it.
-	document.getElementById('app-end-error').textContent = errors.join('\n');
-	document.getElementById('app-end-message').textContent = resource.APP_ENDED;
-	document.getElementById('app-end').hidden = false;
+	// (lib/screen.js takes the screen away now that the run is over)
+	document.body.classList.remove('screen');
 }
 
 // Returns the value the program ended with (exit), or null.

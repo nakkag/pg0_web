@@ -65,7 +65,6 @@ let resource = {
 	CONSOLE_STOP: 'Stop',
 	CONSOLE_RESULT: 'Result:',
 
-	APP_ENDED: 'The program has ended.',
 	APP_NO_CID: 'No program is given (the URL needs ?cid=...).',
 
 	MENU_NEW: 'New',
@@ -167,7 +166,6 @@ if (_lang === 'ja') {
 		CONSOLE_STOP: '停止',
 		CONSOLE_RESULT: '実行結果:',
 
-		APP_ENDED: 'プログラムが終了しました',
 		APP_NO_CID: 'プログラムが指定されていません（URL に ?cid=... が必要です）。',
 
 		MENU_NEW: '新規',

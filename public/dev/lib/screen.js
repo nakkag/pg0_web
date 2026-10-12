@@ -432,10 +432,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 				ScriptExec.lib['$audio_ctx'].close();
 				ScriptExec.lib['$audio_ctx'] = null;
 			}
-			// (the app page keeps the screen as the program left it)
-			if (!appMode) {
-				document.getElementById('lib-screen-back').style.display = 'none';
-			}
+			document.getElementById('lib-screen-back').style.display = 'none';
 			window.removeEventListener('resize', _screenResizeDelay, false);
 			window.removeEventListener('orientationchange', _screenResizeDelay, false);
 			document.removeEventListener('keydown', _screenKeyDown, false);
@@ -1517,7 +1514,8 @@ function _screenKeyClear(e) {
 }
 
 // Whether this is the app page (/app/), which shows a program as an app: the
-// screen has no close or minimize button, and stays when the program ends.
+// screen has no close or minimize button (the page shows its console when the
+// program ends).
 function _screenAppMode() {
 	return typeof pg0_app !== 'undefined' && !!pg0_app;
 }
