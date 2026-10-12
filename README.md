@@ -39,7 +39,9 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 
 ## Private scripts
 
-A private script (`private: 1`) shows its code only with its edit password: `GET /api/script/item/<cid>`, `GET /api/script/item/<cid>/<time>` and `GET /api/script/import/<cid>` answer 401 unless `?password=<crc32>` carries the password as the editor saves it (`pg0_string.crc32`). The editor asks for the password when it opens such a script (after trying the one it remembers from saving), as the Windows version does; `#import("cid:...")` of a private script asks too. The AI agent API takes the password itself (`GET /api/agent/v1/scripts/<cid>?password=...`). Apps (`/app/`) and executables run a private program without the password.
+A private script (`private: 1`) shows its code only with its edit password: `GET /api/script/item/<cid>`, `GET /api/script/item/<cid>/<time>` and `GET /api/script/import/<cid>` answer 401 unless `?password=<crc32>` carries the password as the editor saves it (`pg0_string.crc32`). The editor asks for the password when it opens such a script (after trying the one it remembers from saving), as the Windows version does. The AI agent API takes the password itself (`GET /api/agent/v1/scripts/<cid>?password=...`). Apps (`/app/`) and executables run a private program without the password.
+
+A private script can be imported (`#import("cid:...")`) only by a private program with the same edit password; a public program cannot import it, and to it the script does not exist. The editor sends the password of the program it runs (the one it opened or saved it with), the Windows version passes it to the program and to `pg0gen.exe` as `PG0_PASSWORD`, the app compiler compares the two stored scripts, and the AI agent API compares the `private` and `password` of the request (or of the stored script it runs) with the part's.
 
 ## Online play (lib/net.pg0)
 
@@ -79,7 +81,9 @@ Programs that import `lib/net.pg0` (in the web editor and the Windows version) c
 
 ## 非公開のスクリプト
 
-非公開のスクリプト（`private: 1`）は編集パスワード無しではコードを見られません。`GET /api/script/item/<cid>`、`GET /api/script/item/<cid>/<time>`、`GET /api/script/import/<cid>` は、エディタが保存するのと同じ形（`pg0_string.crc32`）のパスワードを `?password=<crc32>` に付けないと 401 を返します。エディタはそのスクリプトを開くときに（保存で覚えているパスワードを試してから）パスワードを尋ねます。Windows 版も同じです。非公開のスクリプトの `#import("cid:...")` も尋ねます。AI エージェント用 API はパスワードそのものを受け取ります（`GET /api/agent/v1/scripts/<cid>?password=...`）。アプリ（`/app/`）と実行ファイルはパスワード無しで非公開のプログラムを動かせます。
+非公開のスクリプト（`private: 1`）は編集パスワード無しではコードを見られません。`GET /api/script/item/<cid>`、`GET /api/script/item/<cid>/<time>`、`GET /api/script/import/<cid>` は、エディタが保存するのと同じ形（`pg0_string.crc32`）のパスワードを `?password=<crc32>` に付けないと 401 を返します。エディタはそのスクリプトを開くときに（保存で覚えているパスワードを試してから）パスワードを尋ねます。Windows 版も同じです。AI エージェント用 API はパスワードそのものを受け取ります（`GET /api/agent/v1/scripts/<cid>?password=...`）。アプリ（`/app/`）と実行ファイルはパスワード無しで非公開のプログラムを動かせます。
+
+非公開のスクリプトを取り込める（`#import("cid:...")`）のは、同じ編集パスワードの非公開のプログラムだけです。公開のプログラムからは取り込めず、無いものとして扱われます。エディタは実行するプログラムのパスワード（開いたとき、または保存したときのもの）を付け、Windows 版はプログラムと `pg0gen.exe` に `PG0_PASSWORD` で渡し、アプリのコンパイルは保存された二つのスクリプトを比べ、AI エージェント用 API はリクエストの `private` と `password`（または実行する保存済みスクリプトのもの）を部品のものと比べます。
 
 ## オンライン対戦（lib/net.pg0）
 

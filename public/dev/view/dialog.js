@@ -148,6 +148,21 @@ const onlinePassword = (function () {
 	const me = {};
 	const known = {};
 
+	// The password of the program in the editor as the server compares it, for
+	// the private scripts it imports (a private script can be imported only by
+	// a private program with the same password); undefined when the program is
+	// public or its password is not known.
+	me.own = function() {
+		const cc = ev.currentContent || {};
+		if (!cc.private) {
+			return undefined;
+		}
+		if (cc.password) {
+			return pg0_string.crc32(cc.password);
+		}
+		return (cc.cid && known[cc.cid] !== undefined) ? known[cc.cid] : undefined;
+	};
+
 	me.fetch = async function(cid, url) {
 		let res = await fetch(url);
 		if (res.status !== 401) {
