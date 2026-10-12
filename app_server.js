@@ -8,6 +8,9 @@
 // Compiled programs are kept in the app_cache collection, without expiry: a
 // program is compiled again when the script, a script it imports or the
 // compiler (this file, the parser, the library .pg0 files) changed.
+//
+// The page is app/index.html, sent with the program's name in its title and
+// its og: tags; its script and style are static files under public/app/.
 
 const fs = require('fs');
 const path = require('path');
@@ -15,7 +18,7 @@ const vm = require('vm');
 const crypto = require('crypto');
 
 const DEV_DIR = path.join(__dirname, 'public', 'dev');
-const PAGE_FILE = path.join(__dirname, 'public', 'app', 'index.html');
+const PAGE_FILE = path.join(__dirname, 'app', 'index.html');
 const PARSER_FILES = ['pg0/script_common.js', 'pg0/script_parse.js'];
 const CID = /^[a-zA-Z0-9\-]+$/;
 // The library files, as the editor finds them under /dev/.
@@ -305,8 +308,7 @@ module.exports = function(app, deps) {
 		}
 	}
 
-	// The page itself, with the program's name in it (mounted before the
-	// static files, which would answer the file as it is).
+	// The page itself, with the program's name in it.
 	app.get(['/app', '/app/', '/app/index.html'], async (req, res) => {
 		if (req.path === '/app') {
 			const q = req.originalUrl.indexOf('?');
