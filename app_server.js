@@ -9,6 +9,11 @@
 // program is compiled again when the script, a script it imports or the
 // compiler (this file, the parser, the library .pg0 files) changed.
 //
+// The names of the variables and of the functions the program declares are
+// made short (a, b, ... and _a, _b, ...) as pg0gen.exe does: the compiled
+// program is smaller, and reads like nothing. Only what the names stand for
+// is kept (see minify).
+//
 // The page is app/index.html, sent with the program's name in its title and
 // its og: tags; its script and style are static files under public/app/.
 
@@ -62,7 +67,90 @@ function createParser() {
 		new vm.Script(fs.readFileSync(path.join(DEV_DIR, f), 'utf8'), {filename: f}).runInContext(context);
 	});
 	vm.runInContext('Object.keys(errMsg).forEach(function(k) { errMsg[k] = k; })', context);
-	return vm.runInContext('({Script: Script, ScriptParse: ScriptParse})', context);
+	return vm.runInContext('({Script: Script, ScriptParse: ScriptParse, SYM: {BOPEN_PRIMARY: SYM_BOPEN_PRIMARY, ' +
+		'DECLVARIABLE: SYM_DECLVARIABLE, VARIABLE: SYM_VARIABLE, FUNCSTART: SYM_FUNCSTART, FUNC: SYM_FUNC}})', context);
+}
+
+// Short names: a letter or _ first, then letters, digits or _ (lower case,
+// since the parser folds the case of half-width letters): a, b, ..., z, _,
+// aa, ba, ... The n-th one (from 0).
+const NAME_FIRST = 'abcdefghijklmnopqrstuvwxyz_';
+const NAME_REST = 'abcdefghijklmnopqrstuvwxyz0123456789_';
+const KEYWORDS = ['var', 'if', 'else', 'while', 'exit', 'for', 'do', 'break', 'continue', 'switch', 'case', 'default', 'return', 'function'];
+function shortName(n) {
+	let s = NAME_FIRST[n % NAME_FIRST.length];
+	n = Math.floor(n / NAME_FIRST.length);
+	while (n > 0) {
+		n--;
+		s += NAME_REST[n % NAME_REST.length];
+		n = Math.floor(n / NAME_REST.length);
+	}
+	return s;
+}
+
+// Every token of a list and of the blocks under it; inBrace is true under a
+// {...} that makes an array.
+function walkTokens(tokens, SYM, fn, inBrace) {
+	for (const t of tokens) {
+		fn(t, inBrace);
+		if (t.target) {
+			walkTokens(t.target, SYM, fn, inBrace || t.type === SYM.BOPEN_PRIMARY);
+		}
+	}
+}
+
+// Gives the variables and the functions the program declares short names.
+// The functions are one set for the whole program (a part calls the functions
+// of another); a name that no part declares is a library function and stays.
+// A variable is its own in each part. A variable named inside a {...} that
+// makes an array keeps its name: the name becomes the key of the element
+// ({x, y} is {"x": ..., "y": ...}). argv and argc stay for the executable,
+// which hands the command line to the program under these names.
+function minify(scripts, parser) {
+	const SYM = parser.SYM;
+	const fold = parser.Script.foldName;
+	const funcs = new Map();
+	scripts.forEach(function(s) {
+		walkTokens(s.token, SYM, function(t) {
+			if (t.type === SYM.FUNCSTART && !funcs.has(t.buf)) {
+				funcs.set(t.buf, '_' + shortName(funcs.size));
+			}
+		}, false);
+	});
+	scripts.forEach(function(s) {
+		const keep = new Set(['argv', 'argc']);
+		walkTokens(s.token, SYM, function(t, inBrace) {
+			if (inBrace && (t.type === SYM.VARIABLE || t.type === SYM.DECLVARIABLE)) {
+				keep.add(fold(t.buf.replace(/^&/, '')));
+			}
+		}, false);
+		const vars = new Map();
+		let n = 0;
+		function nextName() {
+			let name;
+			do {
+				name = shortName(n++);
+			} while (KEYWORDS.includes(name) || keep.has(name));
+			return name;
+		}
+		walkTokens(s.token, SYM, function(t) {
+			if (t.type === SYM.FUNCSTART || t.type === SYM.FUNC) {
+				if (funcs.has(t.buf)) {
+					t.buf = funcs.get(t.buf);
+				}
+			} else if (t.type === SYM.VARIABLE || t.type === SYM.DECLVARIABLE) {
+				const ref = (t.buf.substring(0, 1) === '&') ? '&' : '';
+				const name = ref ? t.buf.substring(1) : t.buf;
+				if (keep.has(fold(name))) {
+					return;
+				}
+				if (!vars.has(name)) {
+					vars.set(name, nextName());
+				}
+				t.buf = ref + vars.get(name);
+			}
+		}, false);
+	});
 }
 
 // Compiles a program as the editor would run it (pg0.js, _exec): the program
@@ -186,6 +274,9 @@ async function compile(parser, code, extension, loadScript) {
 		errors.push({key: String((e && e.message) || e), line: -1, part: ''});
 	}
 	const failed = errors.length > 0;
+	if (!failed) {
+		minify(scripts, parser);
+	}
 	return {
 		libraries: libraries,
 		screen: libraries.some(function(l) {

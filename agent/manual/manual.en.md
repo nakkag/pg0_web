@@ -123,7 +123,7 @@ Stored scripts are the same documents the web editor uses, so an agent can hand 
 | `password` | string, required | Needed for update/delete. Compared case-insensitively after trimming, exactly as in the editor. |
 | `author` | string, max 100 | Default `"AI agent"`. |
 | `memo` | string | **Revision note.** Shown in the editor and, per version, in the revision history. On creation describe the program; on every update describe what changed (see "Revision history" below). |
-| `private` | 0 or 1 | 1 hides the script from lists (still reachable by `cid`, and the name need not be unique). |
+| `private` | 0 or 1 | 1 hides the script from lists and its code from everybody but the password holder: `GET /scripts/{cid}` and `/history/{time}` need `?password=<edit password>` (else `401 private_script`), as the editor asks for it. The app page (`run_url`) runs it without the password. The name need not be unique. |
 | `tags` | array of string, at most 3 | Genres, chosen from `game`, `graphics` (graphics and animation), `math`, `algorithm`, `text` (text and data processing), `study` (study and practice), `tool` (tools and simulation) and `other` (the list is `script_tags` in `GET /api/agent/v1`). The editor's "Open online" list shows them as genre badges and filters by them, so give a public script one or two that fit. An unknown id is a `400 invalid_request`. When omitted the script has no genre (the `other` filter matches it). |
 | `mode` | `"PG0.5"` or `"PG0"` | Mode used by the editor and by `/scripts/{cid}/run`. |
 | `uuid` | string | Optional owner id; `GET /scripts?uuid=` lists these first, private ones included. When omitted a random id is assigned and not returned, so choose a hard-to-guess id of your own and send it every time if you want to list your scripts (private ones included) later. |
@@ -142,7 +142,7 @@ While iterating on a program, save it with `"private": 1` (and optionally a `uui
 
 `POST /api/agent/v1/scripts/{cid}/run`: same body as `/run` without `code`; `mode` defaults to the stored mode.
 
-`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [summary with memo and current...]}`; the current version first (`"current": 1`), then previous versions, newest first. `GET /api/agent/v1/scripts/{cid}/history/{updateTime}` returns that version with its code.
+`GET /api/agent/v1/scripts/{cid}/history`: `{"history": [summary with memo and current...]}`; the current version first (`"current": 1`), then previous versions, newest first. `GET /api/agent/v1/scripts/{cid}/history/{updateTime}` returns that version with its code. Both need `?password=<edit password>` for a private script.
 
 **Revision history.** Every save creates a version, and each version keeps its own `memo`. The web editor shows this list under "Revision history" (変更履歴), with the current version on top, so `memo` works as the change log of the script. Write it like a commit message:
 

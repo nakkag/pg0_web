@@ -144,6 +144,16 @@ function withConditions(base, conds) {
 	return conds.length ? Object.assign({$and: conds}, base) : base;
 }
 
+// A private script shows its code only with its edit password: the editor
+// sends the same crc32 it saves (?password=). Apps run the program without
+// it (app_server.js). A script saved without a password has nothing to ask.
+function readable(doc, req) {
+	if (!doc || !doc.private || doc.password === undefined || doc.password === null || doc.password === '') {
+		return true;
+	}
+	return req.query.password !== undefined && String(req.query.password) === String(doc.password);
+}
+
 function clientAddress(req) {
 	return (req.headers['x-forwarded-for'] ||
 		(req.connection && req.connection.remoteAddress) ||
@@ -237,6 +247,9 @@ app.get('/api/script/import/:cid', async (req, res) => {
 		if (!doc) {
 			return res.status(404).send('Not found.');
 		}
+		if (!readable(doc, req)) {
+			return res.status(401).send('Unauthorized.');
+		}
 		res.type('text/plain; charset=utf-8').send(String(doc.code || ''));
 	} catch (error) {
 		logger.error(error);
@@ -281,6 +294,9 @@ app.get('/api/script/item/:cid', async (req, res) => {
 		const doc = await db.collection('script').findOne({cid: req.params.cid});
 		if (!doc) {
 			return res.status(404).send('Not found.');
+		}
+		if (!readable(doc, req)) {
+			return res.status(401).send('Unauthorized.');
 		}
 		await countShow(db, doc, req);
 		delete doc._id;
@@ -344,6 +360,11 @@ app.get('/api/script/item/:cid/:time', async (req, res) => {
 			if (!doc) {
 				return res.status(404).send('Not found.');
 			}
+		}
+		// (the password of the script as it is now opens its old versions too)
+		const current = await db.collection('script').findOne({cid: req.params.cid});
+		if (!readable(current || doc, req)) {
+			return res.status(401).send('Unauthorized.');
 		}
 		delete doc._id;
 		delete doc.ipaddr;

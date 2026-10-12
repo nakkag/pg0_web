@@ -937,7 +937,11 @@ async function _exec(scis, sci, imp, imports, name) {
 							if (!/^[a-zA-Z0-9\-]+$/.test(cid)) {
 								return -1;
 							}
-							res = await fetch(apiServer + '/api/script/import/' + cid);
+							// (a private script asks for its edit password)
+							res = await onlinePassword.fetch(cid, apiServer + '/api/script/import/' + cid);
+							if (!res) {
+								return -1;
+							}
 						} else if (/^(https|http):\/\//i.test(file)) {
 							const url = new URL(file);
 							if (url.hostname.toLowerCase() !== location.hostname.toLowerCase()) {
