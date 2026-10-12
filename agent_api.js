@@ -80,6 +80,11 @@ function scriptUrl(req, cid) {
 	return `${baseUrl(req)}/dev/?cid=${encodeURIComponent(cid)}`;
 }
 
+// The page that runs the stored program as an app, without the editor (app_server.js).
+function appUrl(req, cid) {
+	return `${baseUrl(req)}/app/?cid=${encodeURIComponent(cid)}`;
+}
+
 function summarizeScript(req, doc) {
 	return {
 		cid: doc.cid,
@@ -92,7 +97,7 @@ function summarizeScript(req, doc) {
 		updateTime: doc.updateTime,
 		tags: Array.isArray(doc.tags) ? doc.tags : [],
 		url: scriptUrl(req, doc.cid),
-		run_url: scriptUrl(req, doc.cid) + '&run=1'
+		run_url: appUrl(req, doc.cid)
 	};
 }
 

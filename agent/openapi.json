@@ -629,7 +629,7 @@
           },
           "run_url": {
             "type": "string",
-            "description": "URL that opens the script in the web editor and runs it immediately (url + &run=1)."
+            "description": "URL of the app page (/app/?cid=...), which runs the stored program without the editor and without showing its source; the link to hand to a person."
           }
         }
       },

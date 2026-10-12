@@ -12,7 +12,7 @@
 1. プログラムを書きます。課題で PG0 が明示されていない限り **PG0.5**（デフォルト）を使います。
 2. `POST /api/agent/v1/run` に `{"code": "..."}` を送ります。
 3. レスポンスの `status`, `output`, `result`, `variables`, `error` を読み、必要ならプログラムを直して再実行します。
-4. 必要なら `POST /api/agent/v1/scripts` で保存します。レスポンスの `url` を開くと Web エディタでそのプログラムが開きます。
+4. 必要なら `POST /api/agent/v1/scripts` で保存します。レスポンスの `url` を開くと Web エディタでそのプログラムが開き、`run_url` を開くとアプリとして実行されます。
 
 ```http
 POST /api/agent/v1/run
@@ -130,7 +130,7 @@ Content-Type: application/json
 | `speed` | 0, 1, 250, 500 のいずれか | Web エディタでの実行速度。1 文ごとの待ち時間（ミリ秒）で、0 = 待ち無し、1 = 速い、250 = 普通（デフォルト）、500 = 遅い。**`lib/screen.pg0` を使うプログラムは 0 にしてください。** 待ちがあると描画やアニメーションが極端に遅くなります。 |
 | `check` | boolean | `true` にすると保存前に `code` を構文解析し、通らなければ `422 syntax_error`（詳細は `error.detail`）で保存を拒否します。指定しなければ保存時に構文チェックは行われないので、先に `/check` を実行してください。 |
 
-レスポンス `201`: `{"cid", "name", "author", "mode", "private", "tags", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。`url` は Web エディタでスクリプトを開く URL、`run_url`（`url` + `&run=1`）は開いてすぐ実行する URL で、ゲームを人に渡すときはこちらを使います。
+レスポンス `201`: `{"cid", "name", "author", "mode", "private", "tags", "speed", "createTime", "updateTime", "url", "run_url", "memo", "code"}`。時刻は 1970-01-01 UTC からのミリ秒です。`url` は Web エディタでスクリプトを開く URL、`run_url`（`https://<host>/app/?cid=<cid>`）はアプリとして実行する URL です。エディタは無く、ソースは見せず、画面のあるプログラムは画面だけを出し、終了するとコンソール（出力とエラー）が出ます。ゲームを人に渡すときはこちらを使います。アプリのページは保存されたとおりのプログラムを動かす（サーバーでコンパイルしてキャッシュする）ので、変えたら保存し直してください。
 
 `PUT /api/agent/v1/scripts/{cid}`: ボディは `{"password": "...", name, code, author, memo, private, tags, mode, uuid, speed, check のうち変更したいもの}`。指定したフィールドだけ変わります。以前の内容は履歴に残ります。**更新時は必ず `memo` に変更内容を書いてください。** 省略すると前の memo が引き継がれ、履歴でバージョンの区別がつかなくなります。`401 wrong_password`, `404 not_found`, `409 name_conflict`。
 
@@ -542,7 +542,7 @@ exit vlen(6, 8)             // 10
 - `inTouch()` と `inKey()` はリクエストの `screen.touch` / `screen.keys` タイムラインから状態を返します（指定がなければ何も押されていない状態）。
 - `sleep()` が `max_frames` 回（デフォルト 10000）に達すると `status: "frame_limit"`、仮想時計が `max_virtual_ms` に達すると `status: "virtual_time_limit"` で停止します。無限ループのゲームではこれが正常な停止で、`variables` と `screen` が返り、`error` は `null` です。
 
-ヘッドレスで確認できないもの: 実際のピクセル（`rgbToPoint` は黒を返す）、正確な文字サイズ（`measureText` は概算）、実際のフレームレートと見た目。これらは `POST /api/agent/v1/scripts` に `"speed": 0` で保存し、人が `run_url` から開いて確認します。
+ヘッドレスで確認できないもの: 実際のピクセル（`rgbToPoint` は黒を返す）、正確な文字サイズ（`measureText` は概算）、実際のフレームレートと見た目。これらは `POST /api/agent/v1/scripts` で保存し、人が `run_url`（アプリのページ）から開いて確認します。
 
 **1 フレームあたりの性能の目安。** `stats.steps_per_frame`（`avg` と `max`）は `sleep()` から次の `sleep()` までの実行ステップ数で、`stats.steps` と同じ単位です。ブラウザでは実行速度「待ち無し」でも 1000 ステップごとにページへ制御を戻し、それに約 4ms かかるため、1 フレームには**1000 ステップあたり約 4.6ms + `sleep()` の時間 + 描画時間**が必要です。`sleep(16)` の場合、1 フレーム 1000 ステップで約 45fps、3000 ステップで約 30fps、10000 ステップで約 15fps です。300 枚のタイルを毎フレーム `drawRect` で描くと数千ステップになります。変化した部分だけ描くか、静的なレイヤーは一度 `createImage` で画像にして `drawImage` で貼ってください。
 
@@ -735,7 +735,7 @@ POST /api/agent/v1/scripts
  "code": "#import(\"lib/io.pg0\")\nfor (i = 1; i <= 30; i++) {\n  if (i % 15 == 0) { println(\"FizzBuzz\") }\n  else if (i % 3 == 0) { println(\"Fizz\") }\n  else if (i % 5 == 0) { println(\"Buzz\") }\n  else { println(i) }\n}"}
 ```
 
-`201` レスポンスに `"url": "https://<host>/dev/?cid=<cid>"` が含まれるので、その URL を人に渡します。`&run=1` を付けると開いたときに自動実行されます。
+`201` レスポンスに `"run_url": "https://<host>/app/?cid=<cid>"` が含まれ、開くとアプリとして実行されるので、その URL を人に渡します。`"url": "https://<host>/dev/?cid=<cid>"` はエディタで開く URL です（`&run=1` を付けるとエディタで開いたときに自動実行されます）。
 
 ### 5.5 スクリーンのプログラムをテストして保存する
 
