@@ -53,6 +53,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 	if (prog.name) {
 		document.title = prog.name;
 	}
+	// (the parse trees come in the compact form of pack.js)
+	if (prog.scripts) {
+		prog.scripts = prog.scripts.map(function(s) {
+			return (prog.format === 2) ? pg0_pack.unpackScript(s) : s;
+		});
+	}
 	// (the hash is what the relay of lib/net.pg0 compares with the saved program)
 	ev.currentContent = {cid: prog.cid || cid, name: prog.name || '', hash: prog.hash || '', modify: false};
 	// (the screen library draws over the page; the console is shown again when the run is over)

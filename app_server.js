@@ -19,11 +19,15 @@
 //
 // The page is app/index.html, sent with the program's name in its title and
 // its og: tags; its script and style are static files under public/app/.
+//
+// The parse trees go in the compact form of public/app/pack.js ("format": 2).
 
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
+
+const pack = require('./public/app/pack.js');
 
 const DEV_DIR = path.join(__dirname, 'public', 'dev');
 const PAGE_FILE = path.join(__dirname, 'app', 'index.html');
@@ -46,6 +50,7 @@ function programHash(code) {
 function toolchainKey() {
 	const h = crypto.createHash('sha256');
 	h.update(fs.readFileSync(__filename));
+	h.update(fs.readFileSync(path.join(__dirname, 'public', 'app', 'pack.js')));
 	PARSER_FILES.forEach(function(f) {
 		h.update(fs.readFileSync(path.join(DEV_DIR, f)));
 	});
@@ -360,6 +365,7 @@ module.exports = function(app, deps) {
 			return part;
 		});
 		const data = JSON.stringify({
+			format: 2,
 			cid: doc.cid,
 			name: doc.name || '',
 			type: doc.type || '',
@@ -367,7 +373,7 @@ module.exports = function(app, deps) {
 			compiled: now,
 			libraries: result.libraries,
 			screen: result.screen,
-			scripts: result.scripts,
+			scripts: result.scripts ? result.scripts.map(pack.packScript) : null,
 			exec: result.exec,
 			errors: result.errors
 		});
