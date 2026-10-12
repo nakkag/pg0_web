@@ -15,6 +15,7 @@ const vm = require('vm');
 const crypto = require('crypto');
 
 const DEV_DIR = path.join(__dirname, 'public', 'dev');
+const PAGE_FILE = path.join(__dirname, 'public', 'app', 'index.html');
 const PARSER_FILES = ['pg0/script_common.js', 'pg0/script_parse.js'];
 const CID = /^[a-zA-Z0-9\-]+$/;
 // The library files, as the editor finds them under /dev/.
@@ -196,11 +197,33 @@ async function compile(parser, code, extension, loadScript) {
 	};
 }
 
+function escapeHtml(s) {
+	return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// The page with the name of the program as its title (and in the tags the
+// sites that show a link read), since they do not run the page's script.
+function pageOf(template, doc, url) {
+	const title = (doc && doc.name) ? String(doc.name) : '';
+	const description = (doc && doc.memo) ? String(doc.memo) : (title ? title + ' - PG0' : '');
+	let page = template;
+	if (title) {
+		page = page.replace(/<title>[^<]*<\/title>/, '<title>' + escapeHtml(title) + '</title>')
+			.replace(/(<meta property="og:title" content=")[^"]*(")/, '$1' + escapeHtml(title) + '$2');
+	}
+	if (description) {
+		page = page.replace(/(<meta name="description" content=")[^"]*(")/, '$1' + escapeHtml(description) + '$2')
+			.replace(/(<meta property="og:description" content=")[^"]*(")/, '$1' + escapeHtml(description) + '$2');
+	}
+	return page.replace(/(<meta property="og:url" content=")[^"]*(")/, '$1' + escapeHtml(url) + '$2');
+}
+
 // deps: getDB, logger, countShow(db, doc, req).
 module.exports = function(app, deps) {
 	const logger = deps.logger;
 	const parser = createParser();
 	const toolchain = toolchainKey();
+	const template = fs.readFileSync(PAGE_FILE, 'utf8');
 	// cid -> promise of the compile under way, shared by requests that arrive meanwhile
 	const compiling = new Map();
 	let indexed = false;
@@ -280,6 +303,29 @@ module.exports = function(app, deps) {
 			compiling.delete(doc.cid);
 		}
 	}
+
+	// The page itself, with the program's name in it (mounted before the
+	// static files, which would answer the file as it is).
+	app.get(['/app', '/app/', '/app/index.html'], async (req, res) => {
+		if (req.path === '/app') {
+			const q = req.originalUrl.indexOf('?');
+			return res.redirect(301, '/app/' + (q >= 0 ? req.originalUrl.substring(q) : ''));
+		}
+		const cid = String(req.query.cid || '');
+		let doc = null;
+		if (CID.test(cid)) {
+			try {
+				doc = await (await deps.getDB()).collection('script').findOne({cid: cid}, {projection: {name: 1, memo: 1}});
+			} catch (error) {
+				// (the page still loads; its script tells what went wrong)
+				logger.error(error);
+			}
+		}
+		const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+		const url = (host ? 'https://' + host : '') + '/app/' + (doc ? '?cid=' + encodeURIComponent(cid) : '');
+		res.set('Cache-Control', 'no-cache');
+		res.type('html').send(pageOf(template, doc, url));
+	});
 
 	app.get('/api/app/:cid', async (req, res) => {
 		if (!CID.test(req.params.cid)) {

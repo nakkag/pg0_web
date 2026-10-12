@@ -214,6 +214,11 @@ app.use(function (req, res, next) {
 	res.header('Referrer-Policy', 'no-referrer-when-downgrade');
 	next();
 });
+// Apps (/app/?cid=...): a stored script compiled for the page that only runs
+// it, see app_server.js. Before the static files: the page is sent with the
+// program's name in its title.
+require('./app_server.js')(app, {getDB: getDB, logger: logger, countShow: countShow});
+
 app.use('/', express.static('public'));
 // The app page (/app/) loads the libraries, and the images they show, by the
 // same relative paths as the editor.
@@ -221,9 +226,6 @@ app.use('/app/lib', express.static(path.join(__dirname, 'public', 'dev', 'lib'))
 
 // AI agent API (/api/agent/v1): program execution and script storage, see agent_api.js
 require('./agent_api.js')(app, {getDB: getDB, addHistory: addHistory, logger: logger, tags: scriptTags, normalizeTags: normalizeTags});
-
-// Apps (/app/?cid=...): a stored script compiled for the page that only runs it, see app_server.js
-require('./app_server.js')(app, {getDB: getDB, logger: logger, countShow: countShow});
 
 app.options('*', function (req, res) {
 	res.sendStatus(200);
