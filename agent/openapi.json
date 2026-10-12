@@ -46,6 +46,18 @@
             "type": "string",
             "description": "Program source code (UTF-8). Lines are separated by \\n."
           },
+          "private": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "1 with \"password\": the program counts as a private script with that edit password, so that it may import (#import(\"cid:...\")) private scripts saved with the same password. A private script cannot be imported otherwise."
+          },
+          "password": {
+            "type": "string",
+            "description": "Edit password that goes with \"private\": 1 (see there)."
+          },
           "input": {
             "description": "Lines returned by input(), one per call. A string is split at newlines; an array is used as is.",
             "oneOf": [
@@ -461,6 +473,18 @@
         "properties": {
           "code": {
             "type": "string"
+          },
+          "private": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "1 with \"password\": the program may import private scripts saved with the same edit password (as in /run)."
+          },
+          "password": {
+            "type": "string",
+            "description": "Edit password that goes with \"private\": 1."
           },
           "mode": {
             "type": "string",

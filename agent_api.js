@@ -255,8 +255,22 @@ module.exports = function(app, deps) {
 		return m ? m[1] : null;
 	}
 
-	// Collects the code of every stored script that "code" imports (recursively) as {cid: code | null}.
-	async function resolveImports(code, sources) {
+	// The program that imports, for the private parts: {private, password (crc32)}.
+	// From a request body (private and password as sent), or from a stored script.
+	function importerOf(body, doc) {
+		if (doc) {
+			return {private: doc.private ? 1 : 0, password: doc.password};
+		}
+		body = body || {};
+		return {private: toPrivate(body.private), password: (typeof body.password === 'string' && body.password) ? crc32(body.password) : undefined};
+	}
+
+	// Collects the code of every stored script that "code" imports (recursively) as
+	// {cid: code | null | false}: null for a script that does not exist, false for a
+	// private one that the importer may not use (only a private program with the
+	// same edit password may).
+	async function resolveImports(code, sources, importer) {
+		importer = importer || {};
 		const imports = Object.create(null);
 		if (typeof getDB !== 'function') {
 			return imports;
@@ -285,6 +299,10 @@ module.exports = function(app, deps) {
 				}
 				const db = await getDB();
 				const doc = await db.collection('script').findOne({cid: cid});
+				if (doc && doc.private && !(importer.private && importer.password !== undefined && importer.password === doc.password)) {
+					imports[cid] = false;
+					continue;
+				}
 				imports[cid] = doc ? String(doc.code || '') : null;
 				if (doc && doc.code) {
 					queue.push(doc.code);
@@ -386,7 +404,8 @@ module.exports = function(app, deps) {
 			return;
 		}
 		try {
-			params.imports = await resolveImports(params.code, params.sources);
+			params.imports = await resolveImports(params.code, params.sources, params.importer);
+			delete params.importer;
 			const result = await runner.run(params);
 			res.json(result);
 		} catch (error) {
@@ -405,7 +424,7 @@ module.exports = function(app, deps) {
 		}
 		try {
 			// A step limit of 1 stops execution right after parsing.
-			const imports = await resolveImports(body.code, body.sources);
+			const imports = await resolveImports(body.code, body.sources, importerOf(body));
 			const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false, imports: imports, sources: body.sources});
 			if (result.status === 'error' && result.error && result.error.phase === 'parse') {
 				return res.json({ok: false, mode: result.mode, error: result.error, warnings: []});
@@ -429,6 +448,7 @@ module.exports = function(app, deps) {
 			return;
 		}
 		await runProgram(req, res, {
+			importer: importerOf(body),
 			code: body.code,
 			input: body.input,
 			mode: body.mode,
@@ -553,14 +573,19 @@ module.exports = function(app, deps) {
 	}
 
 	// With "check": true a script is parsed before it is stored; a syntax error rejects the save.
-	async function checkBeforeSave(body, res) {
+	async function checkBeforeSave(body, res, doc) {
 		if (!body.check || typeof body.code !== 'string') {
 			return true;
 		}
 		if (runnerBusy(res)) {
 			return false;
 		}
-		const imports = await resolveImports(body.code);
+		// (an update keeps the script's privacy unless the body changes it)
+		const importer = importerOf(body);
+		if (doc && body.private === undefined) {
+			importer.private = doc.private ? 1 : 0;
+		}
+		const imports = await resolveImports(body.code, null, importer);
 		const result = await runner.run({code: body.code, mode: body.mode, lang: body.lang, max_steps: 1, timeout_ms: 2000, variables: false, imports: imports});
 		if (result.status === 'error' && result.error && result.error.phase === 'parse') {
 			apiError(res, 422, 'syntax_error', 'The script has a syntax error and was not saved', {detail: result.error});
@@ -660,9 +685,6 @@ module.exports = function(app, deps) {
 		if (!body) {
 			return;
 		}
-		if (!await checkBeforeSave(body, res)) {
-			return;
-		}
 		try {
 			const db = await getDB();
 			const doc = await db.collection('script').findOne({cid: req.params.cid});
@@ -671,6 +693,9 @@ module.exports = function(app, deps) {
 			}
 			if (doc.password !== crc32(body.password)) {
 				return apiError(res, 401, 'wrong_password', 'Password does not match');
+			}
+			if (!await checkBeforeSave(body, res, doc)) {
+				return;
 			}
 			const name = body.name !== undefined ? body.name.trim() : doc.name;
 			const author = body.author !== undefined ? ((body.author && String(body.author).trim()) || settings.defaultAuthor) : doc.author;
@@ -750,6 +775,7 @@ module.exports = function(app, deps) {
 				return apiError(res, 404, 'not_found', 'Script not found');
 			}
 			await runProgram(req, res, {
+				importer: importerOf(null, doc),
 				code: doc.code || '',
 				input: body.input,
 				mode: body.mode !== undefined ? body.mode : doc.type,

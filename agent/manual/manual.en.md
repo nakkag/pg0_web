@@ -103,6 +103,7 @@ Request fields:
 | `globals_at` | `"start"` or `"first_sleep"` | `"start"` | When `globals` are applied: before the first statement, or at the first `sleep()` call after the program's own initialization ran (screen programs; see 4.5). |
 | `profile` | boolean | false | Return `profile` with the execution steps per source line and per function, to find out what is expensive. |
 | `sources` | object | `{}` | Additional source files `{"util.pg0": "code", ...}` that the program (and other sources) can pull in with `#import("util.pg0")` (`.pg0` may be omitted; also accepted by `/check`). Lets a multi-file program be tested without saving; see 3.12. At most 30 entries of 200,000 characters each. |
+| `private`, `password` | int, string | `0` | `"private": 1` with the edit password: the program counts as a private script with that password and may import (`#import("cid:...")`) private scripts saved with the same password. A private script cannot be imported otherwise (also accepted by `/check`). |
 | `storage` | object | `{}` | Initial contents of the key/value store of `lib/io.pg0` (`loadValue`), `{"key": value}`. The final store comes back in the response field `storage`. |
 | `max_frames` | integer | 10000 | Programs using `lib/screen.pg0`: stop with `status: "frame_limit"` after this many `sleep()` calls (frames). See 4.5. |
 | `max_virtual_ms` | integer | none | Programs using `lib/screen.pg0`: stop with `status: "virtual_time_limit"` when the virtual clock reaches this value. |
@@ -432,7 +433,7 @@ How it behaves (identical for the API and the web editor):
 - Private scripts can be imported; the cid is all that is needed. Up to 30 stored scripts per run.
 - In the API, `/check`, `/run`, `/scripts/{cid}/run` and `check: true` on save all resolve the imports from the stored scripts at that moment, so a part updated with `PUT` takes effect for every program that imports it the next time it runs.
 
-**Visibility of parts.** Save a part as **public** (`"private": 0`) when it is a reusable component that other systems could use as well (vector math, a menu system, a text box, a sorting helper): give it a descriptive name and a memo that says what it offers. Save a part as **private** (`"private": 1`) when it only makes sense inside its own system (the levels of one game, the screens of one tool): this keeps the public list meaningful. The main program is saved like any other script.
+**Visibility of parts.** Save a part as **public** (`"private": 0`) when it is a reusable component that other systems could use as well (vector math, a menu system, a text box, a sorting helper): give it a descriptive name and a memo that says what it offers. Save a part as **private** (`"private": 1`) when it only makes sense inside its own system (the levels of one game, the screens of one tool): this keeps the public list meaningful. A private part can be imported only by a private program with the same edit password, so save the main program (and every part that imports it) as private with that password too; a public program cannot import a private part (`stored script ... is private`). To test such a program with `/run` or `/check`, send `"private": 1` and the `"password"` in the body. The main program is saved like any other script.
 
 **Workflow.**
 

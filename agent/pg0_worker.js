@@ -727,6 +727,10 @@ async function main(opt) {
 		if (cm) {
 			const cid = cm[1];
 			const code = (opt.imports && Object.prototype.hasOwnProperty.call(opt.imports, cid)) ? opt.imports[cid] : undefined;
+			if (code === false) {
+				importErrors.push(`#import("${file}"): stored script ${cid} is private; only a private program with the same edit password may import it (send "private": 1 and "password")`);
+				return -1;
+			}
 			if (typeof code !== 'string') {
 				importErrors.push(`#import("${file}"): stored script ${cid} was not found`);
 				return -1;

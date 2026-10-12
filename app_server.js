@@ -9,6 +9,9 @@
 // program is compiled again when the script, a script it imports or the
 // compiler (this file, the parser, the library .pg0 files) changed.
 //
+// A private script can be imported only by a private program with the same
+// edit password; to any other program it is as if it did not exist.
+//
 // The names of the variables and of the functions the program declares are
 // made short (a, b, ... and _a, _b, ...) as pg0gen.exe does: the compiled
 // program is smaller, and reads like nothing. Only what the names stand for
@@ -350,7 +353,11 @@ module.exports = function(app, deps) {
 	async function compileScript(db, doc) {
 		const now = Date.now();
 		const result = await compile(parser, doc.code, doc.type !== 'PG0', async function(cid) {
-			return await db.collection('script').findOne({cid: cid}, {projection: {code: 1, updateTime: 1}});
+			const part = await db.collection('script').findOne({cid: cid}, {projection: {code: 1, updateTime: 1, private: 1, password: 1}});
+			if (part && part.private && !(doc.private && String(doc.password) === String(part.password))) {
+				return null;
+			}
+			return part;
 		});
 		const data = JSON.stringify({
 			cid: doc.cid,

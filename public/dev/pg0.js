@@ -937,9 +937,12 @@ async function _exec(scis, sci, imp, imports, name) {
 							if (!/^[a-zA-Z0-9\-]+$/.test(cid)) {
 								return -1;
 							}
-							// (a private script asks for its edit password)
-							res = await onlinePassword.fetch(cid, apiServer + '/api/script/import/' + cid);
-							if (!res) {
+							// (a private script can be imported only by a private
+							// program with the same edit password)
+							const own = onlinePassword.own();
+							res = await fetch(apiServer + '/api/script/import/' + cid + ((own !== undefined) ? '?password=' + own : ''));
+							if (res.status === 401) {
+								cv.error(pg0_string.escapeHTML(resource.ONLINE_IMPORT_PRIVATE));
 								return -1;
 							}
 						} else if (/^(https|http):\/\//i.test(file)) {
