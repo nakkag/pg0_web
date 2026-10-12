@@ -29,7 +29,7 @@ The server also exposes an HTTP API (`agent_api.js`, mounted from `server.js`) t
 
 ## Apps (/app/)
 
-`/app/?cid=<cid>` runs a stored script as an app, the way `pg0gen.exe` turns a program into an executable: the page has no editor and never receives the source. `GET /api/app/<cid>` (`app_server.js`, mounted from `server.js`) answers the program compiled, that is parsed into the parse trees the interpreter runs (`pg0/script_parse.js` loaded on the server), together with the scripts it imports (`#import("cid:...")`) and the library `.pg0` files, and the names of the JavaScript libraries the page loads. "Copy app URL" in the editor's online list copies this URL.
+`/app/?cid=<cid>` runs a stored script as an app, the way `pg0gen.exe` turns a program into an executable: the page has no editor and never receives the source. `GET /api/app/<cid>` (`app_server.js`, mounted from `server.js`) answers the program compiled, that is parsed into the parse trees the interpreter runs (`pg0/script_parse.js` loaded on the server), together with the scripts it imports (`#import("cid:...")`) and the library `.pg0` files, and the names of the JavaScript libraries the page loads. "Copy app URL" in the editor's online list copies this URL, and the editor's old autorun link (`/dev/?cid=<cid>&run=1`) goes here.
 
 - A program without a screen shows a console with the start and end of the run, the output and the result, as the editor does. A program that imports `lib/screen.pg0` shows the screen only while it runs: no close or minimize button, just the speaker at the right edge. When it ends, or stops with an error, the screen goes and the console takes its place, so that the output and the error can be read and copied. The page is sent by the server with the name of the script as its title (and in the `og:` tags), so that a link shared on a social site shows the name. It runs without waiting between statements (the `speed` of the script is for the editor).
 - The program's hash (SHA-256 of the code as saved) comes with the compiled program, so `lib/net.pg0` enters rooms as the saved program (the app has no source to hash).
@@ -64,7 +64,7 @@ Programs that import `lib/net.pg0` (in the web editor and the Windows version) c
 
 ## アプリ（/app/）
 
-`/app/?cid=<cid>` は、保存されたスクリプトをアプリとして実行します。`pg0gen.exe` でプログラムを実行ファイルにするのと同じ考え方で、ページにはエディタが無く、ソースは渡しません。`GET /api/app/<cid>`（`app_server.js`、`server.js` からマウント）が、コンパイル済みのプログラム、つまりインタプリタが実行する構文木（サーバー側で `pg0/script_parse.js` を動かして変換したもの）を、取り込んだスクリプト（`#import("cid:...")`）とライブラリの `.pg0` の分も含めて、ページが読み込む JavaScript ライブラリの名前と一緒に返します。エディタのオンライン一覧の「アプリURLをコピー」はこの URL をコピーします。
+`/app/?cid=<cid>` は、保存されたスクリプトをアプリとして実行します。`pg0gen.exe` でプログラムを実行ファイルにするのと同じ考え方で、ページにはエディタが無く、ソースは渡しません。`GET /api/app/<cid>`（`app_server.js`、`server.js` からマウント）が、コンパイル済みのプログラム、つまりインタプリタが実行する構文木（サーバー側で `pg0/script_parse.js` を動かして変換したもの）を、取り込んだスクリプト（`#import("cid:...")`）とライブラリの `.pg0` の分も含めて、ページが読み込む JavaScript ライブラリの名前と一緒に返します。エディタのオンライン一覧の「アプリURLをコピー」はこの URL をコピーし、以前の自動実行の URL（`/dev/?cid=<cid>&run=1`）はここに転送されます。
 
 - 画面の無いプログラムは、エディタと同じように開始と終了、出力、実行結果をコンソールに表示します。`lib/screen.pg0` を取り込んだプログラムは実行中は画面だけを表示し、閉じるボタンや小さくするボタンは出さず、右端にスピーカーのアイコンだけを置きます。終了したとき、またはエラーで止まったときは画面を消してコンソールに切り替え、出力とエラーを読んだりコピーしたりできるようにします。ページはサーバーがスクリプトの名前をタイトル（と `og:` タグ）に入れて返すので、SNS でシェアしたリンクにプログラムの名前が出ます。文ごとの待ちは入れずに実行します（スクリプトの `speed` はエディタ用です）。
 - プログラムのハッシュ（保存されたコードの SHA-256）をコンパイル済みのプログラムと一緒に渡すので、`lib/net.pg0` は保存されたプログラムとして部屋に入れます（アプリにはハッシュを取るソースがありません）。

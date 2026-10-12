@@ -1385,7 +1385,7 @@ ScriptExec.lib['bgm'] = async function(ei, param, ret) {
 };
 
 // The browser keeps an AudioContext that was created before the first user
-// gesture suspended (a program started by run=1 opens the screen before any
+// gesture suspended (a program started by the app page opens the screen before any
 // tap). Once the page has been interacted with, resume() is allowed anywhere.
 function _screenResumeAudio() {
 	const ctx = ScriptExec.lib['$audio_ctx'];
