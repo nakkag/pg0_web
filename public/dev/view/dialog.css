@@ -143,6 +143,23 @@
 
 #online-save {
 	display: none;
+	flex-direction: column;
+	/* the fields scroll inside a short window (a phone with the AI agent open);
+	   the close button and the save button stay in view */
+	max-height: calc(100% - 20px - var(--font-size) * 3.2 - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+#online-save-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	/* room for the focus ring of the fields at the edges */
+	padding: 0 3px;
+	margin-left: -3px;
+	margin-right: -3px;
+}
+#online-save-footer {
+	flex: 0 0 auto;
 }
 #online-save div {
 	margin-bottom: var(--font-size);

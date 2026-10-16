@@ -1253,7 +1253,7 @@ const onlineSaveView = (function () {
 			me.close();
 		}, false);
 		document.body.append(modal);
-		document.getElementById('online-save').style.display = 'block';
+		document.getElementById('online-save').style.display = 'flex';
 		document.getElementById('online-save').focus();
 		document.getElementById('online-save-file').value = ev.currentContent.name || '';
 		document.getElementById('online-save-author').value = options.author || '';
