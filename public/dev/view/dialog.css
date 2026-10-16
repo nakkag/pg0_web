@@ -147,6 +147,10 @@
 	/* the fields scroll inside a short window (a phone with the AI agent open);
 	   the close button and the save button stay in view */
 	max-height: calc(100% - 20px - var(--font-size) * 3.2 - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+	padding-bottom: calc(var(--font-size) * 0.9);
+}
+#online-save > #online-save-body {
+	margin-bottom: 8px;
 }
 #online-save-body {
 	flex: 1 1 auto;
@@ -166,7 +170,7 @@
 	position: sticky;
 	left: 0;
 	z-index: 1;
-	height: 12px;
+	height: 20px;
 	margin: 0 -3px;
 	pointer-events: none;
 	opacity: 0;
@@ -174,13 +178,13 @@
 }
 #online-save-body::before {
 	top: 0;
-	margin-bottom: -12px;
-	background: linear-gradient(rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0));
+	margin-bottom: -20px;
+	background: linear-gradient(rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0));
 }
 #online-save-body::after {
 	bottom: 0;
-	margin-top: -12px;
-	background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.14));
+	margin-top: -20px;
+	background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.10));
 }
 #online-save-body.scroll-up::before, #online-save-body.scroll-down::after {
 	opacity: 1;
