@@ -18,7 +18,7 @@
 	<link rel="apple-touch-icon" href="image/icon.png">
 	<link rel="shortcut icon" sizes="114x114" href="image/icon.png">
 	<link rel="stylesheet" type="text/css" href="utils/reset.css">
-	<link rel="stylesheet" type="text/css" href="view/dialog.css?v=39">
+	<link rel="stylesheet" type="text/css" href="view/dialog.css?v=40">
 	<link rel="stylesheet" type="text/css" href="view/editor.css?v=40">
 	<link rel="stylesheet" type="text/css" href="view/variable.css?v=28">
 	<link rel="stylesheet" type="text/css" href="view/console.css?v=8">
@@ -26,7 +26,7 @@
 	<script type="text/javascript" src="pg0/script_common.js?v=8"></script>
 	<script type="text/javascript" src="pg0/script_parse.js?v=16"></script>
 	<script type="text/javascript" src="pg0/script_exec.js?v=19"></script>
-	<script type="text/javascript" src="view/dialog.js?v=69"></script>
+	<script type="text/javascript" src="view/dialog.js?v=70"></script>
 	<script type="text/javascript" src="view/editor.js?v=179"></script>
 	<script type="text/javascript" src="view/variable.js?v=26"></script>
 	<script type="text/javascript" src="view/console.js?v=10"></script>
@@ -151,14 +151,16 @@
 	</div>
 	<div id="online-save" class="dialog" tabIndex="0">
 		<a href="#" class="close"></a>
-		<div><span id="online-save-file-title"></span><br /><input type="text" class="setting-item" id="online-save-file"></input></div>
-		<div><span id="online-save-author-title"></span><br /><input type="text" class="setting-item" id="online-save-author"></input></div>
-		<div><span id="online-save-password-title"></span><br /><input type="password" class="setting-item" id="online-save-password"></input></div>
-		<div><span id="online-save-memo-title"></span><br /><input type="text" class="setting-item" id="online-save-memo"></input></div>
-		<div><span id="online-save-tags-title"></span><br /><select class="setting-item" id="online-save-tags"></select></div>
-		<div><p><input type="checkbox" class="setting-item" id="online-save-new" /><label id="online-save-new-title" for="online-save-new"></label></p>
-		<p><input type="checkbox" class="setting-item" id="online-save-private" /><label id="online-save-private-title" for="online-save-private"></label></p></div>
-		<div><input type="button" class="setting-item" id="online-save-button"></input></div>
+		<div id="online-save-body">
+			<div><span id="online-save-file-title"></span><br /><input type="text" class="setting-item" id="online-save-file"></input></div>
+			<div><span id="online-save-author-title"></span><br /><input type="text" class="setting-item" id="online-save-author"></input></div>
+			<div><span id="online-save-password-title"></span><br /><input type="password" class="setting-item" id="online-save-password"></input></div>
+			<div><span id="online-save-memo-title"></span><br /><input type="text" class="setting-item" id="online-save-memo"></input></div>
+			<div><span id="online-save-tags-title"></span><br /><select class="setting-item" id="online-save-tags"></select></div>
+			<div><p><input type="checkbox" class="setting-item" id="online-save-new" /><label id="online-save-new-title" for="online-save-new"></label></p>
+			<p><input type="checkbox" class="setting-item" id="online-save-private" /><label id="online-save-private-title" for="online-save-private"></label></p></div>
+		</div>
+		<div id="online-save-footer"><input type="button" class="setting-item" id="online-save-button"></input></div>
 	</div>
 </body>
 </html>
