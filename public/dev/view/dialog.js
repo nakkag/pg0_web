@@ -1272,12 +1272,19 @@ const onlineSaveView = (function () {
 		}
 		document.getElementById('online-save-private').checked = ev.currentContent.private;
 		document.addEventListener('keydown', me.keyEvent, false);
+		scrollShadows();
 	};
 	me.close = function() {
 		document.getElementById('modal-overlay').remove();
 		document.getElementById('online-save').style.display = 'none';
 		document.removeEventListener('keydown', me.keyEvent, false);
 	};
+	// Shows a shadow at an edge of the fields there is more to scroll past.
+	function scrollShadows() {
+		const body = document.getElementById('online-save-body');
+		body.classList.toggle('scroll-up', body.scrollTop > 1);
+		body.classList.toggle('scroll-down', body.scrollTop + body.clientHeight < body.scrollHeight - 1);
+	}
 
 	document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('online-save-file-title').textContent = resource.ONLINE_SAVE_FILE_TITLE;
@@ -1301,6 +1308,12 @@ const onlineSaveView = (function () {
 			}
 		}, false);
 
+		document.getElementById('online-save-body').addEventListener('scroll', scrollShadows, {passive: true});
+		window.addEventListener('resize', function() {
+			if (document.getElementById('online-save').style.display !== 'none') {
+				scrollShadows();
+			}
+		});
 		document.querySelector('#online-save .close').addEventListener('click', function(e) {
 			me.close();
 		}, false);

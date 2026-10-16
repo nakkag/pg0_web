@@ -158,6 +158,33 @@
 	margin-left: -3px;
 	margin-right: -3px;
 }
+/* a faint shadow at an edge there is more to scroll past; the shadows stick
+   to the edges and lie over the fields */
+#online-save-body::before, #online-save-body::after {
+	content: '';
+	display: block;
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	height: 12px;
+	margin: 0 -3px;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.15s;
+}
+#online-save-body::before {
+	top: 0;
+	margin-bottom: -12px;
+	background: linear-gradient(rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0));
+}
+#online-save-body::after {
+	bottom: 0;
+	margin-top: -12px;
+	background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.14));
+}
+#online-save-body.scroll-up::before, #online-save-body.scroll-down::after {
+	opacity: 1;
+}
 #online-save-footer {
 	flex: 0 0 auto;
 }
