@@ -71,6 +71,9 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 	const _mouseUp = function(e) {
 		e.preventDefault();
 		if (e.touches && e.touches.length > 0) {
+			// A finger was lifted while others stay: the points are those
+			// that remain (a finger that does not move sends no touchmove).
+			_mouseMove(e);
 			return;
 		}
 		ScriptExec.lib['$touch'].touch = 0;
