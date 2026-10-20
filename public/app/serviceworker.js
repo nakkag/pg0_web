@@ -6,7 +6,7 @@
 //
 // A new version of the page or of a file it loads goes with a new
 // CACHE_VERSION: the files are served from the cache first, as in /dev/.
-const CACHE_VERSION = 'pg0-app-v3';
+const CACHE_VERSION = 'pg0-app-v4';
 
 const resources = [
 	'./',
@@ -47,7 +47,11 @@ self.addEventListener('install', function (event) {
 		self.caches.open(CACHE_VERSION).then(function (cache) {
 			// (a file that cannot be had is left out, and comes from the network)
 			return Promise.all(resources.map(function(r) {
-				return cache.add(new Request(r, {cache: 'no-cache'})).catch(function(error) {
+				// The version in the query makes a CDN or a proxy on the way
+				// fetch the file afresh, as no-cache does the browser's cache;
+				// the fetch handler matches it with the query ignored.
+				const url = (r === './') ? r : r + '?sw=' + CACHE_VERSION;
+				return cache.add(new Request(url, {cache: 'no-cache'})).catch(function(error) {
 					console.error('cache error:', r, error);
 				});
 			}));
