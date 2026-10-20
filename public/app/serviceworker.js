@@ -6,7 +6,7 @@
 //
 // A new version of the page or of a file it loads goes with a new
 // CACHE_VERSION: the files are served from the cache first, as in /dev/.
-const CACHE_VERSION = 'pg0-app-v2';
+const CACHE_VERSION = 'pg0-app-v3';
 
 const resources = [
 	'./',
