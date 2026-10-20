@@ -26,70 +26,102 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		ScriptExec.lib['$op'] = {};
 	}
 
-	// Touch events
+	// Touch events. The touches of the screen are followed by identifier: a
+	// touch is one from its touchstart on the screen to its touchend or
+	// touchcancel (changedTouches), and the points of inTouch() are these
+	// touches where e.touches last put them. A touch that began outside the
+	// screen (on the margin around it) is listed by every touch event but is
+	// not one of them, and a touch that an event no longer lists is dropped.
 	ScriptExec.lib['$touch'] = {x: 0, y: 0, touch: 0, button: 0, pos: []};
+	const _touches = new Map();
+	const _touchUpdate = function(e) {
+		const rect = document.getElementById('lib-screen').getBoundingClientRect();
+		const point = function(t) {
+			return {
+				x: (t.clientX - rect.left) / ScriptExec.lib['$scale'],
+				y: (t.clientY - rect.top) / ScriptExec.lib['$scale']
+			};
+		};
+		if (e.type === 'touchstart') {
+			for (const t of e.changedTouches) {
+				_touches.set(t.identifier, point(t));
+			}
+		} else if (e.type === 'touchend' || e.type === 'touchcancel') {
+			for (const t of e.changedTouches) {
+				_touches.delete(t.identifier);
+			}
+		}
+		const listed = new Set();
+		for (const t of e.touches) {
+			listed.add(t.identifier);
+			if (_touches.has(t.identifier)) {
+				_touches.set(t.identifier, point(t));
+			}
+		}
+		for (const id of Array.from(_touches.keys())) {
+			if (!listed.has(id)) {
+				_touches.delete(id);
+			}
+		}
+		const pos = Array.from(_touches.values());
+		ScriptExec.lib['$touch'].pos = pos;
+		if (pos.length > 0) {
+			ScriptExec.lib['$touch'].x = pos[0].x;
+			ScriptExec.lib['$touch'].y = pos[0].y;
+		}
+		ScriptExec.lib['$touch'].touch = (pos.length > 0) ? 1 : 0;
+		return pos.length;
+	};
 	const _mouseDown = function(e) {
 		_screenResumeAudio();
-		_mouseMove(e);
-		ScriptExec.lib['$touch'].touch = 1;
-		ScriptExec.lib['$touch'].button = e.button ? e.button : 0;
-
-		if (e.type === 'mousedown') {
-			document.addEventListener('mousemove', _mouseMove, false);
-			['mouseup', 'mouseleave'].forEach(function(event) {
-				document.addEventListener(event, _mouseUp, false);
-			});
-		} else {
+		if (e.touches) {
+			e.preventDefault();
+			_touchUpdate(e);
+			ScriptExec.lib['$touch'].button = 0;
 			document.addEventListener('touchmove', _mouseMove, false);
 			['touchend', 'touchcancel'].forEach(function(event) {
 				document.addEventListener(event, _mouseUp, false);
 			});
+			return;
 		}
+		_mouseMove(e);
+		ScriptExec.lib['$touch'].touch = 1;
+		ScriptExec.lib['$touch'].button = e.button ? e.button : 0;
+		document.addEventListener('mousemove', _mouseMove, false);
+		['mouseup', 'mouseleave'].forEach(function(event) {
+			document.addEventListener(event, _mouseUp, false);
+		});
 	};
 	const _mouseMove = function(e) {
 		e.preventDefault();
-		const x = (e.x !== undefined) ? e.x : e.touches[0].clientX;
-		const y = (e.y !== undefined) ? e.y : e.touches[0].clientY;
-		const rect = document.getElementById('lib-screen').getBoundingClientRect();
-		ScriptExec.lib['$touch'].x = (x - rect.left) / ScriptExec.lib['$scale'];
-		ScriptExec.lib['$touch'].y = (y - rect.top) / ScriptExec.lib['$scale'];
-		ScriptExec.lib['$touch'].pos = [];
 		if (e.touches) {
-			for (const t of e.touches) {
-				ScriptExec.lib['$touch'].pos.push({
-					x: (t.clientX - rect.left) / ScriptExec.lib['$scale'],
-					y: (t.clientY - rect.top) / ScriptExec.lib['$scale']
-				});
-			}
-		} else {
-			ScriptExec.lib['$touch'].pos.push({
-				x: (e.x - rect.left) / ScriptExec.lib['$scale'],
-				y: (e.y - rect.top) / ScriptExec.lib['$scale']
-			});
+			_touchUpdate(e);
+			return;
 		}
+		const rect = document.getElementById('lib-screen').getBoundingClientRect();
+		ScriptExec.lib['$touch'].x = (e.x - rect.left) / ScriptExec.lib['$scale'];
+		ScriptExec.lib['$touch'].y = (e.y - rect.top) / ScriptExec.lib['$scale'];
+		ScriptExec.lib['$touch'].pos = [{x: ScriptExec.lib['$touch'].x, y: ScriptExec.lib['$touch'].y}];
 	};
 	const _mouseUp = function(e) {
 		e.preventDefault();
-		if (e.touches && e.touches.length > 0) {
-			// A finger was lifted while others stay: the points are those
-			// that remain (a finger that does not move sends no touchmove).
-			_mouseMove(e);
-			return;
-		}
-		ScriptExec.lib['$touch'].touch = 0;
-		ScriptExec.lib['$touch'].button = 0;
-
-		if (e.type === 'mouseup' || e.type === 'mouseleave') {
-			document.removeEventListener('mousemove', _mouseMove, false);
-			['mouseup', 'mouseleave'].forEach(function(event) {
-				document.removeEventListener(event, _mouseUp, false);
-			});
-		} else {
+		if (e.touches) {
+			if (_touchUpdate(e) > 0) {
+				return;
+			}
+			ScriptExec.lib['$touch'].button = 0;
 			document.removeEventListener('touchmove', _mouseMove, false);
 			['touchend', 'touchcancel'].forEach(function(event) {
 				document.removeEventListener(event, _mouseUp, false);
 			});
+			return;
 		}
+		ScriptExec.lib['$touch'].touch = 0;
+		ScriptExec.lib['$touch'].button = 0;
+		document.removeEventListener('mousemove', _mouseMove, false);
+		['mouseup', 'mouseleave'].forEach(function(event) {
+			document.removeEventListener(event, _mouseUp, false);
+		});
 	};
 
 	// Key events
@@ -267,6 +299,7 @@ ScriptExec.lib['startscreen'] = async function(ei, param, ret) {
 		screen.style.height = '100%';
 		screen.style.setProperty('--top', 'env(safe-area-inset-top)');
 		screen.style.setProperty('--bottom', 'env(safe-area-inset-bottom)');
+		screen.style.touchAction = 'none';
 		screen.addEventListener('mousedown', _mouseDown, false);
 		screen.addEventListener('mousemove', _mouseMove, false);
 		screen.addEventListener('touchstart', _mouseDown, false);
