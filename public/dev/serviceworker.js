@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pg0-v465';
+const CACHE_VERSION = 'pg0-v466';
 
 const resources = [
 	'./',
@@ -65,7 +65,11 @@ self.addEventListener('install', function (event) {
 	event.waitUntil(
 		self.caches.open(CACHE_VERSION).then(function (cache) {
 			resources.forEach(function(r) {
-				cache.add(new Request(r, {cache: 'no-cache'}));
+				// The version in the query makes a CDN or a proxy on the way
+				// fetch the file afresh, as no-cache does the browser's cache;
+				// the fetch handler matches it with the query ignored.
+				const url = (r === './') ? r : r + '?sw=' + CACHE_VERSION;
+				cache.add(new Request(url, {cache: 'no-cache'}));
 			});
 		}).then(function() {
 			self.skipWaiting();
