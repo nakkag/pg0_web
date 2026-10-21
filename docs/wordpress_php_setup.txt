@@ -1,0 +1,234 @@
+WordPress の PHP を 8.3 にする手順 (CentOS Stream 9 + Remi)
+
+対象: PG0 の WordPress が動いているサーバ (CentOS Stream 9)
+現状: AppStream の php:8.2 モジュール (8.2.28) に php-intl / php-gd / php-pecl-zip などが入っている。
+目的: Remi の php:remi-8.3 モジュールに切り替え、以後は dnf の更新でパッチ版に追従する。
+
+PHP 8.3 のセキュリティサポートは 2027-12-31 まで。
+CentOS Stream 9 は 2027-05-31 で終了するので、それまでに OS の移行 (AlmaLinux 9 / 10 など) を予定しておく。
+
+
+■ dnf module install php:remi-8.3 が失敗する原因
+
+  nothing provides libonig.so.105         (php-mbstring が必要とする oniguruma5php)
+  nothing provides libgd.so.103           (php-gd が必要とする gd3php)
+  nothing provides libicu*.so.74          (php-intl が必要とする libicu74)
+  nothing provides remi-libzip >= 1.11.1  (php-pecl-zip が必要とする remi-libzip)
+
+Remi の PHP が使うこれらのライブラリは remi-modular ではなく remi-safe リポジトリにある。
+remi-safe が無効 (か remi-release が古い) なので、8.3 のパッケージが入れられず、
+その結果、入っている 8.2 の php-intl / php-gd / php-pecl-zip との衝突 (Problem 2〜4) も出ている。
+EPEL と CRB も Remi の前提 (gd3php などの依存) なので合わせて有効にする。
+
+※--allowerasing / --skip-broken / --nobest で押し通さない。php-intl などが消えたり 8.2 のまま残ったりする。
+※module install ではなく module switch-to を使う (入っている php パッケージをまとめて 8.3 に入れ替える)。
+
+
+■0. 現状の確認 (作業の前に保存しておく)
+---
+mkdir -p ~/php_before && cd ~/php_before
+cat /etc/os-release > os.txt; uname -r >> os.txt
+php -v > php_v.txt
+php -m > php_m.txt
+php --ini > php_ini.txt
+rpm -qa 'php*' | sort > rpm_php.txt
+dnf module list php > module_php.txt 2>&1
+dnf repolist all 2>/dev/null | grep -Ei 'remi|epel|crb|appstream' > repos.txt
+rpm -q remi-release epel-release epel-next-release >> repos.txt
+systemctl is-active httpd nginx php-fpm mariadb mysqld > services.txt 2>&1
+sudo grep -E '^(user|group|listen|listen\.owner|listen\.group)[[:space:]]*=' /etc/php-fpm.d/*.conf > fpm_pool.txt
+ls -ld /var/lib/php/* > php_dirs.txt
+sudo cp -p /etc/php.ini .
+sudo cp -rp /etc/php.d /etc/php-fpm.d .
+---
+
+WordPress の場所と版 (場所が分かっていれば find は不要)
+---
+sudo find / -xdev -name wp-config.php -not -path '/proc/*' 2>/dev/null
+WP=/var/www/html            # 上で見つかったディレクトリにする
+grep -E "^\\\$wp_version" $WP/wp-includes/version.php
+ls $WP/wp-content/plugins $WP/wp-content/themes
+---
+
+確認すること
+| 項目                 | 見る場所        | 判断                                                      |
+| Web サーバ           | services.txt    | httpd か nginx か。EL9 はどちらも php-fpm 経由で動く。      |
+| php-fpm の user      | fpm_pool.txt    | nginx なら user = nginx に変えてあるはず。切り替え後も同じか確かめる。 |
+| remi-safe            | repos.txt       | disabled なら ■2 で有効にする。                            |
+| EPEL / CRB           | repos.txt       | 無ければ ■2 で入れる。                                     |
+| 拡張                 | php_m.txt       | ■4 で 8.3 の php -m と突き合わせる。                       |
+| DB                   | services.txt    | mariadb か mysqld か (■1 のバックアップで使う)。           |
+
+
+■1. バックアップ
+
+DB 名・ユーザ・パスワードは wp-config.php の DB_NAME / DB_USER / DB_PASSWORD。
+---
+grep -E "DB_(NAME|USER|HOST)" $WP/wp-config.php
+mkdir -p ~/wp_backup
+mysqldump --single-transaction --default-character-set=utf8mb4 -u <DB_USER> -p <DB_NAME> | gzip > ~/wp_backup/db_$(date +%Y%m%d).sql.gz
+sudo tar czf ~/wp_backup/wp_files_$(date +%Y%m%d).tar.gz -C $(dirname $WP) $(basename $WP)
+sudo tar czf ~/wp_backup/etc_$(date +%Y%m%d).tar.gz /etc/php.ini /etc/php.d /etc/php-fpm.conf /etc/php-fpm.d /etc/httpd /etc/nginx 2>/dev/null
+ls -lh ~/wp_backup
+---
+※mariadb の場合は mysqldump の代わりに mariadb-dump でもよい (同じオプション)。
+
+WordPress 側は先に本体・プラグイン・テーマを最新にしておく (古いプラグインは 8.3 で Deprecated や Fatal を出すことがある)。
+管理画面の「ダッシュボード → 更新」で行う。wp-cli があれば:
+---
+wp --path=$WP core version
+wp --path=$WP plugin list --update=available
+wp --path=$WP theme list --update=available
+---
+
+
+■2. リポジトリ (EPEL / CRB / Remi の remi-safe)
+---
+sudo dnf config-manager --set-enabled crb
+sudo dnf install -y epel-release epel-next-release
+sudo dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
+sudo dnf upgrade -y remi-release
+sudo dnf config-manager --set-enabled remi-safe
+sudo dnf clean all
+sudo dnf makecache
+dnf repolist | grep -Ei 'remi|epel|crb'
+---
+※remi-release が既に入っていれば install は「既にインストール済み」で終わる (upgrade で最新にする)。
+※remi (非モジュールの remi リポジトリ) は有効にしない。PHP 以外のパッケージも Remi 版に置き換わるため。
+
+足りなかったライブラリが見えるようになったか確かめる。どれも remi-safe から出てくればよい。
+---
+dnf provides 'libonig.so.105()(64bit)' 'libgd.so.103()(64bit)' 'libicuuc.so.74()(64bit)' 'remi-libzip(x86-64)'
+---
+※出てこないものがあれば、そのパッケージ名で dnf repoquery --whatprovides を見て、どのリポジトリが必要か確かめる。
+
+
+■3. 8.3 への切り替え
+
+まず実行せずに中身を確かめる (--assumeno)。
+---
+sudo dnf module switch-to php:remi-8.3 --assumeno
+---
+確認すること:
+- Upgrading / Installing が php-* と、oniguruma5php・gd3php・libicu74・remi-libzip などのライブラリだけであること
+- Removing に php 以外のパッケージ (WordPress が使うもの、httpd / nginx / mariadb など) が無いこと
+- 0. の rpm_php.txt にある php-* がすべて 8.3 に置き換わること (php-intl / php-gd / php-pecl-zip を含む)
+
+問題なければ実行する。
+---
+sudo dnf module switch-to -y php:remi-8.3
+php -v
+rpm -qa 'php*' | sort > ~/php_before/rpm_php83.txt
+diff ~/php_before/rpm_php.txt ~/php_before/rpm_php83.txt
+---
+※switch-to が使えない古い dnf の場合は、同じく --assumeno で確かめてから:
+    sudo dnf module reset -y php
+    sudo dnf module enable -y php:remi-8.3
+    sudo dnf distro-sync -y 'php*'
+
+
+■4. 設定の確認と再起動
+
+設定ファイルは書き換えた分がそのまま残り、新しい既定値は .rpmnew として置かれる。
+---
+sudo find /etc/php.ini /etc/php.d /etc/php-fpm.conf /etc/php-fpm.d \( -name '*.rpmnew' -o -name '*.rpmsave' \)
+---
+- .rpmnew があれば diff して、8.3 で増えた設定だけを取り込む (多くの場合そのままでよい)。
+- .rpmsave があれば、自分の設定が退避されている。中身を元のファイルに戻す。
+
+php-fpm のプールとセッションのディレクトリが変わっていないか確かめる。
+---
+sudo grep -E '^(user|group|listen|listen\.owner|listen\.group)[[:space:]]*=' /etc/php-fpm.d/*.conf | diff ~/php_before/fpm_pool.txt -
+ls -ld /var/lib/php/* | diff ~/php_before/php_dirs.txt -
+---
+※nginx で動かしている場合、php-common の更新で /var/lib/php/session などのグループが apache に戻ることがある。
+  戻っていたら元に合わせる (例: sudo chgrp nginx /var/lib/php/session /var/lib/php/opcache /var/lib/php/wsdlcache)。
+
+再起動
+---
+sudo php-fpm -t
+sudo systemctl restart php-fpm
+sudo systemctl reload httpd    # Apache の場合
+sudo systemctl reload nginx    # nginx の場合
+systemctl status php-fpm
+php -m > ~/php_before/php83_m.txt
+diff ~/php_before/php_m.txt ~/php_before/php83_m.txt
+---
+※diff で消えた拡張があれば sudo dnf install php-<拡張名> で入れる (モジュールが remi-8.3 なので 8.3 版が入る)。
+
+
+■5. WordPress の確認
+
+- サイトの表と wp-admin にログインできること。
+- 管理画面の「ツール → サイトヘルス → 情報 → サーバー」で PHP のバージョンが 8.3.x、
+  「ステータス」に PHP 拡張の不足 (intl / gd / zip / imagick など) が出ていないこと。
+- メディアの追加 (画像のアップロードとサムネイル作成) ができること (gd)。
+- プラグインの更新・インストールができること (zip)。
+- エラーログに Fatal が無いこと:
+---
+sudo tail -n 100 /var/log/php-fpm/www-error.log
+sudo tail -n 100 /var/log/php-fpm/error.log
+sudo tail -n 100 /var/log/httpd/error_log    # Apache の場合
+sudo tail -n 100 /var/log/nginx/error.log    # nginx の場合
+---
+※Deprecated はプラグインの更新待ち。動作に影響が無ければ様子を見る。Fatal が出たプラグインは更新するか無効にする。
+
+
+■6. 切り戻し
+
+PHP だけを戻す (WordPress の DB は PHP の切り替えでは変わらない)。
+---
+sudo dnf module switch-to -y php:remi-8.2
+sudo systemctl restart php-fpm
+---
+- AppStream の 8.2 に戻すなら php:8.2 (remi-8.2 の方が更新が早い。セキュリティサポートは 2026-12-31 まで)。
+- 設定は ~/wp_backup/etc_*.tar.gz から戻す。
+
+
+■7. 以後のパッチの適用 (自動更新)
+
+Remi はパッチ版の公開とほぼ同時に更新を出す。php のパッチだけ手で入れるなら:
+---
+sudo dnf upgrade -y 'php*'
+sudo systemctl restart php-fpm
+php -v
+---
+
+自動にする場合は dnf-automatic を使う。
+---
+sudo dnf install -y dnf-automatic dnf-utils
+sudo vi /etc/dnf/automatic.conf
+=====
+[commands]
+upgrade_type = default
+apply_updates = yes
+=====
+---
+※upgrade_type = security にしない。Remi と CentOS Stream は security の errata (updateinfo) を出さないので、
+  security にすると PHP を含めて何も更新されない。
+
+更新しただけでは動いている php-fpm は古いままなので、更新後に必要なときだけ再起動させる。
+---
+sudo systemctl edit dnf-automatic.service
+=====
+[Service]
+ExecStartPost=/bin/sh -c 'needs-restarting -s 2>/dev/null | grep -q "^php-fpm" && systemctl restart php-fpm || true'
+=====
+sudo systemctl enable --now dnf-automatic.timer
+systemctl list-timers dnf-automatic.timer
+---
+- 実行は毎朝6時台 (dnf-automatic.timer の既定)。結果は journalctl -u dnf-automatic で見る。
+- カーネルや glibc の更新は再起動が要る。sudo needs-restarting -r で確認し、必要なら時間を決めて reboot する。
+
+WordPress 本体・プラグイン・テーマの自動更新も有効にしておく
+(プラグイン一覧の「自動更新を有効化」、本体は「ダッシュボード → 更新」でメジャーバージョンも自動にする)。
+
+通知を受ける: https://blog.remirepo.net/ (Remi のリリース告知) か https://www.php.net/releases/feed.php。
+
+
+■8. 次の作業 (2027年5月まで)
+
+CentOS Stream 9 は 2027-05-31 で更新が止まる。移行先の候補:
+- AlmaLinux 9 / Rocky Linux 9 (2032年まで。Remi の手順がそのまま使える)
+- AlmaLinux 10 / CentOS Stream 10
+新しいサーバを作って WordPress (ファイル + DB) を移す方が、インプレースの変換より安全。
