@@ -18,7 +18,9 @@ CentOS Stream 9 は 2027-05-31 で終了するので、それまでに OS の移
 Remi の PHP が使うこれらのライブラリは remi-modular ではなく remi-safe リポジトリにある。
 remi-safe が無効 (か remi-release が古い) なので、8.3 のパッケージが入れられず、
 その結果、入っている 8.2 の php-intl / php-gd / php-pecl-zip との衝突 (Problem 2〜4) も出ている。
-EPEL と CRB も Remi の前提 (gd3php などの依存) なので合わせて有効にする。
+EPEL と CRB も Remi の前提なので合わせて有効にする。gd3php が使う libimagequant は EPEL にあり、
+EPEL が無効だと remi-safe を有効にした後も次のエラーが残る:
+  nothing provides libimagequant.so.0()(64bit) needed by gd3php-... from remi-safe
 
 ※--allowerasing / --skip-broken / --nobest で押し通さない。php-intl などが消えたり 8.2 のまま残ったりする。
 ※module install ではなく module switch-to を使う (入っている php パッケージをまとめて 8.3 に入れ替える)。
@@ -99,7 +101,12 @@ dnf repolist | grep -Ei 'remi|epel|crb'
 足りなかったライブラリが見えるようになったか確かめる。どれも remi-safe から出てくればよい。
 ---
 dnf provides 'libonig.so.105()(64bit)' 'libgd.so.103()(64bit)' 'libicuuc.so.74()(64bit)' 'remi-libzip(x86-64)'
+dnf provides 'libimagequant.so.0()(64bit)'
 ---
+※libimagequant は epel から出てくればよい。出てこなければ EPEL が無効:
+    rpm -q epel-release
+    dnf repolist all | grep -i epel
+    sudo dnf config-manager --set-enabled epel
 ※出てこないものがあれば、そのパッケージ名で dnf repoquery --whatprovides を見て、どのリポジトリが必要か確かめる。
 
 
