@@ -1458,11 +1458,26 @@ function _screenPlaySound(frequency, start, end, volume, callback, group) {
 	}
 	ScriptExec.lib['$oscillators'].push(oscillator);
 }
+// Notes of one playMusic() or bgm() that are played (the same as the Windows version); the rest is not.
+const _SCREEN_NOTES_MAX = 10000;
 function _screenPlayMusic(array, callback, group) {
 	let start = 0;
 	let baseVolume = 1.0;
+	// The callback goes with the last note that is played.
+	let last = -1;
+	let count = 0;
+	for (let i = 0; i < array.length && count < _SCREEN_NOTES_MAX; i++) {
+		const v = array[i].v;
+		if (v.type === TYPE_ARRAY && v.array.length >= 2) {
+			last = i;
+			count++;
+		}
+	}
 	array.forEach(function(d, i) {
-		if (d.v.type === TYPE_ARRAY) {
+		if (i > last) {
+			return;
+		}
+		if (d.v.type === TYPE_ARRAY && d.v.array.length > 0) {
 			// Keys are case-insensitive like every array key
 			if (d.v.array[0].name.toLowerCase() === 'start') {
 				start = d.v.array[0].v.num;
@@ -1482,7 +1497,7 @@ function _screenPlayMusic(array, callback, group) {
 			if (d.v.array.length >= 3) {
 				volume = d.v.array[2].v.num;
 			}
-			if (i === array.length - 1) {
+			if (i === last) {
 				_screenPlaySound(frequency, start, len, volume, callback, group);
 			} else {
 				_screenPlaySound(frequency, start, len, volume, null, group);

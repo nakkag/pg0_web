@@ -381,7 +381,8 @@ Calling a function with fewer arguments than it requires results in an error.
 To set default values for optional arguments, assign values in the function definition.
 	function func(a, b = 100) { // The second argument defaults to 100 if omitted
 	}
-Recursive function calls are possible, but be aware that a stack overflow can cause the script to terminate.
+Recursive function calls are possible, but recursion that is too deep is an error.
+Blocks, brackets and arrays nested too deep are an error as well.
 
 # Preprocessor
 The preprocessor is processed at the time of script loading.

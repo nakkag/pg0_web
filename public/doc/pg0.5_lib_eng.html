@@ -342,6 +342,8 @@ playMusic(notes, option)
 				start: start position, if several sounds are played at the same time, set the start position to 0 and another sound.
 					Ex) playMusic({{"C4", 800}, {"start": 0}, {"E4", 800}, {"start": 0}, {"G4", 800}})
 				volume: Volumes after this.
+
+				Only the first 10000 notes are played.
 		option - Specify options as an associative array.
 					{"repeat": repetition flag(number)}
 	* Return Value

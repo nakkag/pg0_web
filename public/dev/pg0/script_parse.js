@@ -741,7 +741,18 @@ function ScriptParse(sci) {
 		}
 	}
 
+	// Expressions nest through here: brackets, blocks in an expression and unary operators.
 	function unaryOperator(pi) {
+		if (pi.depth >= PARSE_DEPTH_MAX) {
+			pi.err = Script.error(sci, errMsg.ERR_NEST, pi.line);
+			return;
+		}
+		pi.depth++;
+		unaryOperatorNest(pi);
+		pi.depth--;
+	}
+
+	function unaryOperatorNest(pi) {
 		array(pi);
 		if (pi.err) {
 			return;
@@ -1126,53 +1137,59 @@ function ScriptParse(sci) {
 		}
 	}
 
+	// A chain of "else if" is one statement: each "if" of the chain jumps to its own end, the last one first.
 	function ifStatement(pi) {
-		let token = createToken(SYM_CMPSTART, pi.line);
-		pi.token.push(token);
-		condition(pi, false);
-		if (pi.err) {
-			return;
-		}
-		token = createToken(SYM_CMP, -1);
-		pi.token.push(token);
-		const else_tk = token = createToken(SYM_JUMP, -1);
-		pi.token.push(token);
-		statementList(pi);
-		if (pi.err) {
-			return;
-		}
-		const line = pi.line;
-		const end_tk = token = createToken(SYM_JUMP, -1);
-		pi.token.push(token);
+		const end_tks = [];
+		let token;
+		while (true) {
+			token = createToken(SYM_CMPSTART, pi.line);
+			pi.token.push(token);
+			condition(pi, false);
+			if (pi.err) {
+				return;
+			}
+			token = createToken(SYM_CMP, -1);
+			pi.token.push(token);
+			const else_tk = token = createToken(SYM_JUMP, -1);
+			pi.token.push(token);
+			statementList(pi);
+			if (pi.err) {
+				return;
+			}
+			const line = pi.line;
+			token = createToken(SYM_JUMP, -1);
+			pi.token.push(token);
+			end_tks.push(token);
 
-		token = createToken(SYM_ELSE, line);
-		pi.token.push(token);
-		else_tk.link = pi.token.length - 1;
-		if (pi.type === SYM_ELSE) {
+			token = createToken(SYM_ELSE, line);
+			pi.token.push(token);
+			else_tk.link = pi.token.length - 1;
+			if (pi.type !== SYM_ELSE) {
+				break;
+			}
 			pi.concat = true;
 			getToken(pi);
 			if (pi.err) {
 				return;
 			}
 			if (sci.extension && pi.type === SYM_IF) {
-				ifStatement(pi);
-				if (pi.err) {
-					return;
-				}
-			} else {
-				if (pi.type !== SYM_BOPEN) {
-					pi.err = Script.error(sci, errMsg.ERR_BLOCK, pi.line);
-					return;
-				}
-				statementList(pi);
-				if (pi.err) {
-					return;
-				}
+				continue;
 			}
+			if (pi.type !== SYM_BOPEN) {
+				pi.err = Script.error(sci, errMsg.ERR_BLOCK, pi.line);
+				return;
+			}
+			statementList(pi);
+			if (pi.err) {
+				return;
+			}
+			break;
 		}
-		token = createToken(SYM_CMPEND, -1);
-		pi.token.push(token);
-		end_tk.link = pi.token.length - 1;
+		while (end_tks.length > 0) {
+			token = createToken(SYM_CMPEND, -1);
+			pi.token.push(token);
+			end_tks.pop().link = pi.token.length - 1;
+		}
 	}
 
 	function switchStatement(pi) {
@@ -1545,6 +1562,16 @@ function ScriptParse(sci) {
 	}
 
 	function compoundStatement(pi) {
+		if (pi.depth >= PARSE_DEPTH_MAX) {
+			pi.err = Script.error(sci, errMsg.ERR_NEST, pi.line);
+			return;
+		}
+		pi.depth++;
+		compoundStatementNest(pi);
+		pi.depth--;
+	}
+
+	function compoundStatementNest(pi) {
 		getToken(pi);
 		if (pi.err) {
 			return;
@@ -1727,6 +1754,7 @@ function ScriptParse(sci) {
 			brackets: [],
 			names: Object.create(null),
 			level: 0,
+			depth: 0,
 			line: 0,
 			err: null
 		};

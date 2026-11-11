@@ -58,45 +58,36 @@ ScriptExec.lib['str_match'] = function(ei, param, ret) {
 	} else {
 		str = ScriptExec.getValueString(param[1].v);
 	}
-	ret.v.num = str_match(ptn, str, 0, 0) ? 1 : 0;
+	ret.v.num = str_match(ptn, str) ? 1 : 0;
 	ret.v.type = TYPE_INTEGER;
 	return 0;
 };
 
-function str_match(ptn, str, ip, is) {
-	if (ptn.length <= ip) {
-		return (str.length <= is);
-	}
-	switch (ptn.slice(ip, ip + 1)) {
-	case '*':
-		if (ptn.length <= ip + 1) {
-			return true;
-		}
-		if (str_match(ptn, str, ip + 1, is)) {
-			return true;
-		}
-		while (str.length > is) {
-			is++;
-			if (str_match(ptn, str, ip + 1, is)) {
-				return true;
-			}
-		}
-		return false;
-	case '?':
-		return (str.length > is) && str_match(ptn, str, ip + 1, is + 1);
-	default:
-		while (ptn.slice(ip, ip + 1).toLowerCase() === str.slice(is, is + 1).toLowerCase()) {
-			if (ptn.length <= ip) {
-				return true;
-			}
+// Wild card match ("*" any string, "?" any character). After a mismatch it goes
+// back to the last "*" only, which then takes one more character.
+function str_match(ptn, str) {
+	let ip = 0;
+	let is = 0;
+	let star = -1;
+	let mark = 0;
+	while (is < str.length) {
+		if (ip < ptn.length && ptn[ip] === '*') {
+			star = ip++;
+			mark = is;
+		} else if (ip < ptn.length && (ptn[ip] === '?' || ptn[ip].toLowerCase() === str[is].toLowerCase())) {
 			ip++;
 			is++;
-			if (ptn.slice(ip, ip + 1) === '*' || ptn.slice(ip, ip + 1) === '?') {
-				return str_match(ptn, str, ip, is);
-			}
+		} else if (star >= 0) {
+			ip = star + 1;
+			is = ++mark;
+		} else {
+			return false;
 		}
-		return false;
 	}
+	while (ip < ptn.length && ptn[ip] === '*') {
+		ip++;
+	}
+	return ptn.length <= ip;
 }
 
 ScriptExec.lib['substring'] = function(ei, param, ret) {
