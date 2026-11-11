@@ -367,7 +367,7 @@ fill(list, 3)       // list is {0, 1, 2}
 - Definitions are only allowed at the top level (not inside blocks), before or after the call.
 - Names: same rules as variables, case-insensitive.
 - Missing required arguments are a runtime error ("Too few arguments"); extra arguments are ignored.
-- A function without `return` returns `0`. Recursion is allowed (deep recursion of several thousand levels works; extremely deep recursion fails).
+- A function without `return` returns `0`. Recursion is allowed. Function calls and running blocks may nest 2000 levels deep in total; beyond that the run ends with the error `Nesting or recursion is too deep` (about 1000 calls for a function that calls itself from inside an `if` block). Brackets and blocks may nest 90 levels deep, arrays 100.
 - Parameters and `var` variables inside the function are local. Any other name used in the function body resolves to the **global variable of that name if it already exists when the function runs** (assigning to it updates the global); if no such global exists yet, the name becomes a variable local to the function (or to the block inside the function where it is first used). Globals that a function should update must therefore be created before the function is called.
 - User functions with the same name as a built-in take precedence.
 

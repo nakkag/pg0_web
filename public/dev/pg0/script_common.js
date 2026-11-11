@@ -52,7 +52,8 @@ let errMsg = {
 	ERR_SCRIPT: 'Read error in script or library',
 	ERR_FUNCTION: 'Function not Found',
 	ERR_FUNCTION_EXEC: 'Function error',
-	ERR_IMPORT_CIRCULAR: 'Circular import'
+	ERR_IMPORT_CIRCULAR: 'Circular import',
+	ERR_NEST: 'Nesting or recursion is too deep'
 };
 
 let _lang = 'en';
@@ -82,9 +83,15 @@ if (_lang === 'ja') {
 		ERR_SCRIPT: 'スクリプトまたはライブラリの読み込みに失敗しました',
 		ERR_FUNCTION: '関数が見つかりません',
 		ERR_FUNCTION_EXEC: '関数実行中にエラーが発生しました',
-		ERR_IMPORT_CIRCULAR: 'スクリプトの取り込みが循環しています'
+		ERR_IMPORT_CIRCULAR: 'スクリプトの取り込みが循環しています',
+		ERR_NEST: '入れ子または再帰が深すぎます'
 	};
 }
+
+// Limits of nesting (the same as the Windows version)
+const PARSE_DEPTH_MAX = 90;
+const EXEC_DEPTH_MAX = 2000;
+const VALUE_NEST_MAX = 100;
 
 // Return value
 const RET_RETURN = -3;

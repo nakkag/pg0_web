@@ -888,6 +888,29 @@ async function loadScript(file) {
 	});
 }
 
+// URL of a file that #import names, or null when it may not be imported.
+// Files come from this site only, and a .js file is one of the libraries (lib/).
+// The name is resolved as the browser does it, so that a name such as
+// "//host/file" or "data:..." is judged by where it really leads.
+function importUrl(file) {
+	let url;
+	try {
+		url = new URL(file, location.href);
+	} catch(e) {
+		return null;
+	}
+	if (url.origin !== location.origin) {
+		return null;
+	}
+	if (!/\.pg0$/i.test(url.pathname)) {
+		const lib = new URL('lib/', location.href).pathname;
+		if (url.pathname.indexOf(lib) !== 0 || !/^[a-zA-Z0-9_]+\.js$/.test(url.pathname.slice(lib.length))) {
+			return null;
+		}
+	}
+	return url;
+}
+
 // Parses and runs a script; returns false when it stopped with an error.
 // "imports" holds the scripts imported in this run ('loading' while being imported, then 'done'):
 // a script is imported once, and importing one that is still being imported is a circular import.
@@ -914,25 +937,22 @@ async function _exec(scis, sci, imp, imports, name) {
 			import: async function(file) {
 				// #import("cid:<cid>") is a script stored on the server
 				const cid = /^cid:/i.test(file) ? file.slice(4).trim() : null;
-				let key;
-				try {
-					key = (cid !== null) ? 'cid:' + cid : new URL(file, location.href).href;
-				} catch(e) {
-					console.error(e);
+				const url = (cid !== null) ? null : importUrl(file);
+				if (cid === null && !url) {
+					console.error('#import: not a file of this site: ' + file);
 					return -1;
 				}
+				const key = (cid !== null) ? 'cid:' + cid : url.href;
 				if (imports.get(key) === 'loading') {
 					return errMsg.ERR_IMPORT_CIRCULAR;
 				}
 				if (imports.get(key) === 'done') {
 					return 0;
 				}
-				if (cid !== null || /\.pg0$/i.test(file)) {
+				if (cid !== null || /\.pg0$/i.test(url.pathname)) {
 					let res;
 					let buf;
 					try {
-						// Scripts come from this host only: a stored script, a
-						// relative path, or an absolute URL of this host.
 						if (cid !== null) {
 							if (!/^[a-zA-Z0-9\-]+$/.test(cid)) {
 								return -1;
@@ -945,14 +965,8 @@ async function _exec(scis, sci, imp, imports, name) {
 								cv.error(pg0_string.escapeHTML(resource.ONLINE_IMPORT_PRIVATE));
 								return -1;
 							}
-						} else if (/^(https|http):\/\//i.test(file)) {
-							const url = new URL(file);
-							if (url.hostname.toLowerCase() !== location.hostname.toLowerCase()) {
-								throw('Security error');
-							}
-							res = await fetch(file);
 						} else {
-							res = await fetch(file);
+							res = await fetch(url.href);
 						}
 						if (!res.ok) {
 							return -1;
@@ -975,13 +989,7 @@ async function _exec(scis, sci, imp, imports, name) {
 					}
 				} else {
 					try {
-						if (/^(https|http):\/\//i.test(file)) {
-							const url = new URL(file);
-							if (url.hostname.toLowerCase() !== location.hostname.toLowerCase()) {
-								throw('Security error');
-							}
-						}
-						await loadScript(file);
+						await loadScript(url.href);
 					} catch(e) {
 						console.error(e);
 						return -1;

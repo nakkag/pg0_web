@@ -417,15 +417,45 @@ function ScriptExec(scis, sci) {
 	const that = this;
 	this.callback = Script.noop;
 
-	function initExecInfo(token) {
-		return {id: Math.random().toString(36).slice(-8), token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
+	// Set when a value nested too deep was copied; the statement that did it ends with an error.
+	let valueNestError = false;
+
+	// "from" is the exec info that starts this one (none for the top of a script):
+	// depth counts how deep the execution is nested, line is where it started.
+	function initExecInfo(token, from) {
+		const ei = {id: Math.random().toString(36).slice(-8), token: token, index: 0, to_tk: -1, stack: [], vi: {}, inc_vi: [], dec_vi: [], fi: {}};
+		Object.defineProperty(ei, 'depth', {value: from ? from.depth + 1 : 0});
+		Object.defineProperty(ei, 'fromLine', {value: (from && from.token[from.index]) ? from.token[from.index].line : -1});
+		return ei;
+	}
+
+	// true when the array is nested deeper than VALUE_NEST_MAX
+	function isNestOver(array, depth) {
+		for (let i = 0; i < array.length; i++) {
+			const v = array[i].v;
+			if (v && v.type === TYPE_ARRAY && v.array) {
+				if (depth + 1 >= VALUE_NEST_MAX || isNestOver(v.array, depth + 1)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	// Copy of an array, or an empty one (with valueNestError set) when it is nested too deep.
+	function copyArray(array) {
+		if (isNestOver(array, 0)) {
+			valueNestError = true;
+			return [];
+		}
+		return JSON.parse(JSON.stringify(array));
 	}
 
 	function setValue(to_v, from_v) {
 		let type = from_v.type;
 		switch (from_v.type) {
 		case TYPE_ARRAY:
-			to_v.array = JSON.parse(JSON.stringify(from_v.array));
+			to_v.array = copyArray(from_v.array);
 			delete to_v.num;
 			delete to_v.str;
 			break;
@@ -811,12 +841,12 @@ function ScriptExec(scis, sci) {
 			vret.v.type = TYPE_ARRAY;
 			vret.v.array = [];
 			if (v1.v.type === TYPE_ARRAY) {
-				vret.v.array = JSON.parse(JSON.stringify(v1.v.array));
+				vret.v.array = copyArray(v1.v.array);
 				if (v2.v.type === TYPE_ARRAY) {
 					vret.v.array = vret.v.array.concat(v2.v.array);
 				}
 			} else {
-				vret.v.array = JSON.parse(JSON.stringify(v2.v.array));
+				vret.v.array = copyArray(v2.v.array);
 			}
 			delete vret.v.num;
 			return vret;
@@ -871,7 +901,38 @@ function ScriptExec(scis, sci) {
 		ei.dec_vi = [];
 	}
 
+	// How many values on the stack the token works on. The start of the arguments
+	// of a function has no value, and only a function call may take it.
+	const operandCount = [];
+	[SYM_BOPEN, SYM_BOPEN_PRIMARY, SYM_BCLOSE, SYM_DUMMY, SYM_LINEEND, SYM_LINESEP, SYM_WORDEND, SYM_JUMP,
+		SYM_BREAK, SYM_CONTINUE, SYM_CASE, SYM_DEFAULT, SYM_CMPSTART, SYM_ELSE, SYM_CMPEND, SYM_LOOPSTART,
+		SYM_LOOPEND, SYM_ARGSTART, SYM_FUNC, SYM_DECLVARIABLE, SYM_VARIABLE, SYM_CONST_INT, SYM_CONST_FLOAT,
+		SYM_CONST_STRING].forEach(function(type) {
+		operandCount[type] = 0;
+	});
+	[SYM_JZE, SYM_JNZ, SYM_RETURN, SYM_EXIT, SYM_CMP, SYM_SWITCH, SYM_LOOP, SYM_NOT, SYM_BITNOT, SYM_PLUS,
+		SYM_MINS, SYM_INC, SYM_DEC, SYM_BINC, SYM_BDEC].forEach(function(type) {
+		operandCount[type] = 1;
+	});
+
+	function checkOperand(type, stack) {
+		let n = operandCount[type];
+		if (n === undefined) {
+			n = 2;
+		}
+		for (let i = stack.length - 1; i >= 0 && n > 0; i--, n--) {
+			if (!stack[i].v) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	async function execSentense(ei, retvi) {
+		if (ei.depth >= EXEC_DEPTH_MAX) {
+			ei.err = Script.error(sci, errMsg.ERR_NEST, ei.fromLine);
+			return RET_ERROR;
+		}
 		let cei;
 		let ret = RET_SUCCESS;
 		let retSt;
@@ -885,11 +946,16 @@ function ScriptExec(scis, sci) {
 				ret = RET_EXIT;
 				break;
 			}
+			if (!checkOperand(token.type, stack)) {
+				ei.err = Script.error(sci, errMsg.ERR_SENTENCE, token.line);
+				ret = RET_ERROR;
+				break;
+			}
 			switch (token.type) {
 			case SYM_BOPEN:
 			case SYM_BOPEN_PRIMARY:
 				postfixValue(ei);
-				cei = initExecInfo(token.target);
+				cei = initExecInfo(token.target, ei);
 				cei.parent = ei;
 				ret = await execSentense(cei, retvi);
 				if (ret === RET_ERROR || ret === RET_BREAK || ret === RET_CONTINUE) {
@@ -1003,7 +1069,7 @@ function ScriptExec(scis, sci) {
 					}
 					break;
 				}
-				cei = initExecInfo(ei.token[ei.index].target);
+				cei = initExecInfo(ei.token[ei.index].target, ei);
 				cei.parent = ei;
 				cei.index = tmp_tk;
 				ret = await execSentense(cei, retvi);
@@ -1020,7 +1086,7 @@ function ScriptExec(scis, sci) {
 						break;
 					}
 				}
-				cei = initExecInfo(token.target);
+				cei = initExecInfo(token.target, ei);
 				cei.parent = ei;
 				cei.index = 0;
 				ret = await execSentense(cei, retvi);
@@ -1250,6 +1316,11 @@ function ScriptExec(scis, sci) {
 				stack.push(vi);
 				break;
 			}
+			if (valueNestError && ret !== RET_ERROR) {
+				valueNestError = false;
+				ei.err = Script.error(sci, errMsg.ERR_NEST, token.line);
+				ret = RET_ERROR;
+			}
 			if (ret !== RET_SUCCESS) {
 				break;
 			}
@@ -1323,8 +1394,9 @@ function ScriptExec(scis, sci) {
 		return i;
 	}
 
-	async function execNameFunction(ei, top, index, param) {
-		const cei = initExecInfo(top.token);
+	// "ei" takes the error, "from" is the exec info that calls the function.
+	async function execNameFunction(ei, top, index, param, from) {
+		const cei = initExecInfo(top.token, from);
 		cei.parent = top;
 		const i = await expandArgument(cei, index + 1, param);
 		if (i === RET_ERROR || !top.token[i].target) {
@@ -1369,12 +1441,12 @@ function ScriptExec(scis, sci) {
 		let top = ei;
 		for (; top.parent; top = top.parent);
 		if (name in top.fi) {
-			return await execNameFunction(ei, top, top.fi[name], param);
+			return await execNameFunction(ei, top, top.fi[name], param, ei);
 		}
 		for (let i = 0; i < top.token.length; i++) {
 			if (top.token[i].type === SYM_FUNCSTART && top.token[i].buf === name) {
 				top.fi[name] = i;
-				return await execNameFunction(ei, top, i, param);
+				return await execNameFunction(ei, top, i, param, ei);
 			}
 		}
 		for (let i = 0; i < scis.length; i++) {
@@ -1383,12 +1455,12 @@ function ScriptExec(scis, sci) {
 			}
 			top = scis[i].ei;
 			if (name in top.fi) {
-				return await execNameFunction(scis[i].ei, top, top.fi[name], param);
+				return await execNameFunction(scis[i].ei, top, top.fi[name], param, ei);
 			}
 			for (let j = 0; j < top.token.length; j++) {
 				if (top.token[j].type === SYM_FUNCSTART && top.token[j].buf === name) {
 					top.fi[name] = j;
-					const ret = await execNameFunction(scis[i].ei, top, j, param);
+					const ret = await execNameFunction(scis[i].ei, top, j, param, ei);
 					if (ret === RET_ERROR) {
 						ei.err = scis[i].ei.err;
 					}
@@ -1423,7 +1495,24 @@ function ScriptExec(scis, sci) {
 		sci.ei.vi = vi;
 		const retvi = ScriptExec.initValueInfo();
 		retvi.v.num = null;
-		let ret = await execSentense(sci.ei, retvi);
+		let ret;
+		try {
+			ret = await execSentense(sci.ei, retvi);
+		} catch (e) {
+			// The limits of the JavaScript engine: the call stack, and the length of a string or an array.
+			let msg = null;
+			if (e instanceof RangeError && /call stack|too much recursion/i.test(e.message)) {
+				msg = errMsg.ERR_NEST;
+			} else if (e instanceof RangeError && /(string|array) length|allocation/i.test(e.message)) {
+				msg = errMsg.ERR_ALLOC;
+			}
+			if (msg === null) {
+				throw e;
+			}
+			const tk = sci.ei.token[sci.ei.index];
+			sci.ei.err = Script.error(sci, msg, tk ? tk.line : -1);
+			ret = RET_ERROR;
+		}
 		if (ret === RET_BREAK || ret === RET_CONTINUE) {
 			sci.ei.err = Script.error(sci, errMsg.ERR_SENTENCE, sci.ei.token[sci.ei.index].line);
 			ret = RET_ERROR;
