@@ -112,6 +112,58 @@ ScriptExec.lib['get_clipboard'] = async function(ei, param, ret) {
 	return 0;
 };
 
+// Whether the user is pressing now, as lib/screen.js follows it: a touch or a
+// mouse button on the screen, or a key.
+function _ioPressing() {
+	const touch = ScriptExec.lib['$touch'];
+	const key = ScriptExec.lib['$key'];
+	return !!((touch && touch.touch) || (key && key.length > 0));
+}
+
+// Writes the clipboard while the page handles an action of the user. Safari
+// (and so every browser on iOS) lets a page write the clipboard only then,
+// and a program calls set_clipboard from its own loop: after the handler of
+// the tap it reacted to has returned. So the write is done again from the
+// handler of the next such event, which is the end of the press the program
+// reacted to. Resolves to whether the text was written; gives up after a
+// second, or when the run is stopped.
+function _ioWriteOnGesture(str) {
+	return new Promise(function(resolve) {
+		const events = ['touchend', 'pointerup', 'mouseup', 'click', 'keydown', 'keyup'];
+		let done = false;
+		const finish = function(ok) {
+			if (done) {
+				return;
+			}
+			done = true;
+			events.forEach(function(type) {
+				document.removeEventListener(type, onGesture, true);
+			});
+			clearTimeout(timer);
+			clearInterval(watch);
+			resolve(ok);
+		};
+		// (an event that does not allow the write is refused too: the next one is tried)
+		const onGesture = function() {
+			navigator.clipboard.writeText(str).then(function() {
+				finish(true);
+			}, function() {});
+		};
+		// (capture: the screen cancels its events, which does not keep them from here)
+		events.forEach(function(type) {
+			document.addEventListener(type, onGesture, true);
+		});
+		const timer = setTimeout(function() {
+			finish(false);
+		}, 1000);
+		const watch = setInterval(function() {
+			if (!run) {
+				finish(false);
+			}
+		}, 100);
+	});
+}
+
 ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
 	if (param.length === 0) {
 		return -2;
@@ -131,7 +183,13 @@ ScriptExec.lib['set_clipboard'] = async function(ei, param, ret) {
 			await navigator.clipboard.writeText(str);
 			ret.v.num = 1;
 		} catch (e) {
-			console.error(e);
+			// Refused outside an action of the user (Safari, iOS): while the
+			// press the program reacted to is still down, write when it ends.
+			if (_ioPressing() && await _ioWriteOnGesture(str)) {
+				ret.v.num = 1;
+			} else {
+				console.error(e);
+			}
 		}
 	}
 	return 0;

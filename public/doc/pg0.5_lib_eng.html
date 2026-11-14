@@ -676,6 +676,10 @@ get_clipboard()
 set_clipboard(text)
 	* Description
 		Set text on the clipboard.
+		Safari, and every browser on an iPhone or an iPad, set it only while the user is doing something.
+		In a program that uses the screen library, call it while a tap, a click or a key is still down
+		(right after inTouch() or inKey() shows the press): the text is set when that press ends.
+		A call made after the finger or the button is up fails.
 	* Parameters
 		text - Text to be set on the clipboard.
 	* Return Value
